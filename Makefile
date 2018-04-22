@@ -33,3 +33,5 @@ sdlwrap.o: sdlwrap.c
 	$(CC) -c $(CFLAGS) -I$(INC) $^ -o $@
 asm_asm : sdlwrap.o $(ASMOBJS)
 	gcc $(ASMOBJS) sdlwrap.o -m32 -g -lSDL2 -Iinc -o asm_hello_SDL
+remade : remade.s sdlwrap.o
+	gcc remade.s sdlwrap.o -m32 -g -lSDL2 -Iinc -o remade

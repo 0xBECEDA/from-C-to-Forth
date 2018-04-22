@@ -6,28 +6,43 @@
 	.size	gWindow, 4
 gWindow:
 	.zero	4
+
 	.section	.rodata
 	.align 4
-error:
+_Z4init_errmsg:
 	.string	"SDL could not initialize! SDL_Error: %s\n"
+
 	.text
 	.globl	_Z4initv
 	.type	_Z4initv, @function
 _Z4initv:
+    // prolog
 	pushl	%ebp
 	movl	%esp, %ebp
-	movb	$1, -9(%ebp)
-	pushl	$32
+    // call SDL_Init & clear stack
+    pushl	$32
 	call	SDL_Init
+    addl    $4, %esp
+    // test (retval < 0)
 	shrl	$31, %eax
     testb	%al, %al
 	je	success
-	call	SDL_GetError
+    // ----------------
+    // show error message
+_Z4initv_err:
+    call	SDL_GetError
 	pushl	%eax
-	pushl	$error
+	pushl	$_Z4init_errmsg
 	call	printf
+    addl    $8, %esp
+    movl    $0, %eax
+    jmp _Z4initv_ret
+    // ----------------
+    // return true
 success:
-	movzbl	-9(%ebp), %eax
+	movl	$1, %eax
+    // epilog
+_Z4initv_ret:
 	leave
 	ret
 
@@ -43,13 +58,20 @@ error_main:
 main:
 	leal	4(%esp), %ecx
 	pushl	-4(%ecx)
+    // prolog
 	pushl	%ebp
 	movl	%esp, %ebp
+    // ?
 	pushl	%ecx
+    // call _Z4initv
 	call	_Z4initv
+    // test (!retval)
 	xorl	$1, %eax
 	testb	%al, %al
+    // success
 	je	exit
+    // ----------------
+main_err:
 	pushl	$error_main
 	call	puts
 exit:
