@@ -1,6 +1,6 @@
 #OBJS specifies which files to compile as part of the project
 OBJS = 01_hello_SDL.cpp
-ASMOBJS = 01_hello_SDL.s
+ASMOBJS = 01_hello_SDL.S
 #CC specifies which compiler we're using
 CC = gcc
 
@@ -15,7 +15,7 @@ LINKER_FLAGS = -lSDL2 -lm
 OBJ_NAME = 01_hello_SDL
 #This is the target that compiles our executable
 
-INC = sdl
+INC = inc
 
 VPATH = make:sdl
 
@@ -31,5 +31,5 @@ asm : $(OBJS)
 	$(CC) $(OBJS) $(COMPILER_FLAGS) -S $(LINKER_FLAGS) $(CFLAGS) `pkg-config --cflags --libs sdl2` -o $(OBJ_NAME).S
 sdlwrap.o: sdlwrap.c
 	$(CC) -c $(CFLAGS) -I$(INC) $^ -o $@
-asm_asm : $(ASMOBJS)
-	gcc $(ASMOBJS) sdlwrap.o -m32 -g -lSDL2 -Isdl -o asm_hello_SDL
+asm_asm : sdlwrap.o $(ASMOBJS)
+	gcc $(ASMOBJS) sdlwrap.o -m32 -g -lSDL2 -Iinc -o asm_hello_SDL
