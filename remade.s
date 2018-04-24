@@ -15,69 +15,69 @@ gWindow:
 
     # SCREEN_WIDTH declaration
     .align 4
-	.type	_ZL12SCREEN_WIDTH, @object
-	.size	_ZL12SCREEN_WIDTH, 4
+    .type   _ZL12SCREEN_WIDTH, @object
+    .size   _ZL12SCREEN_WIDTH, 4
 _ZL12SCREEN_WIDTH:
-	.long	640
+    .long   640
 
     # SCREEN_HEIGHT declaration
-	.align 4
-	.type	_ZL13SCREEN_HEIGHT, @object
-	.size	_ZL13SCREEN_HEIGHT, 4
+    .align 4
+    .type   _ZL13SCREEN_HEIGHT, @object
+    .size   _ZL13SCREEN_HEIGHT, 4
 _ZL13SCREEN_HEIGHT:
-	.long	480
+    .long   480
 
     # header string
-	.align 4
+    .align 4
 header:
-	.string	"SDL Tutorial"
+    .string "SDL Tutorial"
 
     # window_err string
-	.align 4
+    .align 4
 window_err:
-	.string	"Didn't create window! SDL_Error: %s\n"
+    .string "Didn't create window! SDL_Error: %s\n"
 
     # text section
     .text
 
     # function : bool window()
-	.globl	_Z6windowv
-	.type	_Z6windowv, @function
+    .globl  _Z6windowv
+    .type   _Z6windowv, @function
 _Z6windowv:
     # prolog
-	pushl	%ebp
-	movl	%esp, %ebp
+    pushl   %ebp
+    movl    %esp, %ebp
     # push params and call CreateWindow
-    pushl	$4                  # SDL_WINDOW_SHOWN = 4
-	pushl	$480                # SCREEN_HEIGHT = 480
-	pushl	$640                # SCREEN_WIDTH = 640
-	pushl	$536805376          # SDL_WINDOWPOS_UNDEFINED = 0x1FFF0000
-	pushl	$536805376          # SDL_WINDOWPOS_UNDEFINED = 0x1FFF0000
-	pushl	$header             # addr of "SDL Tutorial" string
-	call	SDL_CreateWindow
+    pushl   $4                  # SDL_WINDOW_SHOWN = 4
+    pushl   $480                # SCREEN_HEIGHT = 480
+    pushl   $640                # SCREEN_WIDTH = 640
+    pushl   $536805376          # SDL_WINDOWPOS_UNDEFINED = 0x1FFF0000
+    pushl   $536805376          # SDL_WINDOWPOS_UNDEFINED = 0x1FFF0000
+    pushl   $header             # addr of "SDL Tutorial" string
+    call    SDL_CreateWindow
     addl    $24, %esp           # clear stack 6*4 bytes
-    movl	%eax, gWindow       # save retval to gWindow
-	testl	%eax, %eax          # check retval by NULL
-	jne	ready_window            #--+
+    movl    %eax, gWindow       # save retval to gWindow
+    testl   %eax, %eax          # check retval by NULL
+    jne ready_window            #--+
     # ------------------------- #  |
 failed_window:                  #  |
-  	call	SDL_GetError        #  |
-	pushl	%eax                #  |
-	pushl	window_err          #  |
-	call	printf              #  |
+    call    SDL_GetError        #  |
+    pushl   %eax                #  |
+    pushl   window_err          #  |
+    call    printf              #  |
     addl    $8, %esp            #  |
-	jmp window_ret              #--|--+
+    jmp window_ret              #--|--+
     # --------------------------#  |  |
 ready_window: # <------------------+  |
     movl $1, %eax               #     |
 window_ret:   # <---------------------+
     leave
-	ret
+    ret
 .LFE10:
-	.size	_Z6windowv, .-_Z6windowv
+    .size   _Z6windowv, .-_Z6windowv
 
     # rodata section
-	.section	.rodata
+    .section    .rodata
 
 _Z4init_errmsg:
     .string "SDL could not initialize! SDL_Error: %s\n"
@@ -125,7 +125,7 @@ _Z4initv_ret: # <---------------------+
 error_main_init:
     .string "Failed to initialize!"
 error_main_window:
-	.string	"Failed to create window!"
+    .string "Failed to create window!"
 
     # text section
     .text
@@ -150,14 +150,14 @@ main:
     jne main_err
     #success and check window
     call   _Z6windowv
-    xorl	$1, %eax
-	testb	%al, %al
+    xorl    $1, %eax
+    testb   %al, %al
     # check
     jne main_err_window
     # success
 show_window:
-    pushl	$5000
-	call	SDL_Delay
+    pushl   $5000
+    call    SDL_Delay
     jmp exit
 
 main_err:
@@ -167,7 +167,7 @@ main_err:
 
 main_err_window:
     push $error_main_window
-    call	puts
+    call    puts
 exit:
     movl    $0, %eax
     movl    -4(%ebp), %ecx
