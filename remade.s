@@ -1,6 +1,6 @@
     .file   "01_hello_SDL.cpp"
 
-    # bss section
+    # bss section ###############
     .bss
     # gWindow declaration
     .align 4
@@ -10,7 +10,7 @@
 gWindow:
     .zero   4
 
-    # rodata section
+    # rodata section ############
     .section    .rodata
 
     # SCREEN_WIDTH declaration
@@ -37,10 +37,12 @@ header:
 window_err:
     .string "Didn't create window! SDL_Error: %s\n"
 
-    # text section
+    # text section ##############
     .text
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
     # function : bool window()
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
     .globl  _Z6windowv
     .type   _Z6windowv, @function
 _Z6windowv:
@@ -85,7 +87,9 @@ _Z4init_errmsg:
     # text section
     .text
 
+    # ~~~~~~~~~~~~~~~~~~~~~~
     # function : bool init()
+    # ~~~~~~~~~~~~~~~~~~~~~~
     .globl  _Z4initv
     .type   _Z4initv, @function
 _Z4initv:
@@ -119,7 +123,7 @@ _Z4initv_ret: # <---------------------+
 .LFE11:
     .size   _Z4initv, .-_Z4initv
 
-    # rodata section
+    # rodata section ############
     .section    .rodata
 
 error_main_init:
@@ -127,10 +131,12 @@ error_main_init:
 error_main_window:
     .string "Failed to create window!"
 
-    # text section
+    # text section ##############
     .text
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # function : int main( int argc, char* args[] )
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     .globl  main
     .type   main, @function
 main:
@@ -146,29 +152,28 @@ main:
     # test (!retval)
     xorl    $1, %eax
     testb   %al, %al
-    # check
-    jne main_err
-    #success and check window
-    call   _Z6windowv
-    xorl    $1, %eax
-    testb   %al, %al
-    # check
-    jne main_err_window
-    # success
-show_window:
-    pushl   $5000
-    call    SDL_Delay
-    jmp exit
-
-main_err:
-    pushl   $error_main_init
-    call    puts
-    jmp exit
-
-main_err_window:
-    push $error_main_window
-    call    puts
-exit:
+    jne main_err                #--------+
+    # success and check window  #        |
+    call   _Z6windowv           #        |
+    xorl    $1, %eax            #        |
+    testb   %al, %al            #        |
+    # check                              |
+    jne main_err_window         #--+     |
+    # success                   #  |     |
+show_window:                    #  |     |
+    pushl   $5000               #  |     |
+    call    SDL_Delay           #  |     |
+    jmp exit                    #--|--+  |
+    # ------------------------- #  |  |  |
+main_err: # <----------------------|--|--+
+    pushl   $error_main_init    #  |  |
+    call    puts                #  |  |
+    jmp exit                    #--|--+
+    # ------------------------- #  |  |
+main_err_window: # <---------------+  |
+    push $error_main_window     #     |
+    call    puts                #     |
+exit: # <-----------------------------+
     movl    $0, %eax
     movl    -4(%ebp), %ecx
     leave
