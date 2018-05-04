@@ -161,38 +161,54 @@ defcode "init",4,, INIT
     .type   _Z4initv, @function
 _Z4initv:
   //  # call SDL_Init & clear stack
-    pushl    %esi
+    push    %eax
+    push    %ebx
+    push    %ecx
+    push    %edx
+    push    %edi
+    pushl   %esi
+    push    %ebp
+
     pushl   $32                 # SDL_INIT_VIDEO = 32
     call    SDL_Init
     addl    $4, %esp
-    pop      %esi               # clear stack
+
+    pop     %ebp
+    pop     %esi
+    pop     %edi
+    pop     %edx
+    pop     %ecx
+    pop     %ebx
+    pop     %eax
+             # clear stack
+    NEXT
     # test (retval < 0)
-    push    $happy
-    call    printf
-    shrl    $31, %eax
-    testb   %al, %al
-    je  success_init            #--+
-_Z4initv_err:                      #  |    # show error message
-    call    SDL_GetError        #  |
-    pushl   %eax                #  |
-    pushl   $_Z4init_errmsg     #  |
-    call    printf              #  |
-    addl    $8, %esp            #  |
-    movl    $0, %eax            #  |     # return false
-    jmp _Z4initv_ret            #--|--+
+   // push    $happy
+   // call    printf
+   // shrl    $31, %eax
+   // testb   %al, %al
+   // je  success_init            #--+
+//_Z4initv_err:                      #  |    # show error message
+  //  call    SDL_GetError        #  |
+  //  pushl   %eax                #  |
+  //  pushl   $_Z4init_errmsg     #  |
+  //  call    printf              #  |
+  //  addl    $8, %esp            #  |
+  //  movl    $0, %eax            #  |     # return false
+  //  jmp _Z4initv_ret            #--|--+
     # ------------------------- #  |  |
-success_init:    # <------------------+  |
-    movl    $1, %eax
+//success_init:    # <------------------+  |
+  //  movl    $1, %eax
  //   push    $happy
   //  call    printf
   // addl    $4, %esp            #     |  # return true
-_Z4initv_ret:    # <---------------------+
-    # epilog
-    NEXT
+//_Z4initv_ret:    # <---------------------+
+  //  # epilog
+   // NEXT
 //.LFE11:
   //  .size   _Z4initv, .-_Z4initv
-    .globl  _Z8getpixelP11SDL_Surfaceii
-    .type   _Z8getpixelP11SDL_Surfaceii, @function
+   // .globl  _Z8getpixelP11SDL_Surfaceii
+   // .type   _Z8getpixelP11SDL_Surfaceii, @function
 
 
 
