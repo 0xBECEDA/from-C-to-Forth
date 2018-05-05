@@ -114,14 +114,14 @@ defconst "O_TRUNC",7,,__O_TRUNC,01000
 defconst "O_APPEND",8,,__O_APPEND,02000
 defconst "O_NONBLOCK",10,,__O_NONBLOCK,04000
 
-
 sdl_part:
+    .bss # BSS section
+
+    # gScreenSurface declaration
     .globl  gScreenSurface
-    .bss
     .align 4
     .type   gScreenSurface, @object
     .size   gScreenSurface, 4
-
 gScreenSurface:
     .zero 4
 
@@ -132,6 +132,8 @@ gScreenSurface:
     .size   gWindow, 4
 gWindow:
     .zero   4
+
+    .section .rodata # Read-Only data section
 
     # SCREEN_WIDTH declaration
     .align 4
@@ -154,8 +156,10 @@ _Z4init_errmsg:
     .string "SDL could not initialize! SDL_Error: %s\n"
 happy:
     .string "happy!"
+
     # text section
     .text
+
 defcode "init",4,, INIT
     .globl  _Z4initv
     .type   _Z4initv, @function
@@ -171,7 +175,7 @@ _Z4initv:
 
     pushl   $32                 # SDL_INIT_VIDEO = 32
     call    SDL_Init
-    addl    $4, %esp
+    addl    $4, %esp            # clear stack
 
     pop     %ebp
     pop     %esi
@@ -180,7 +184,7 @@ _Z4initv:
     pop     %ecx
     pop     %ebx
     pop     %eax
-             # clear stack
+
     NEXT
     # test (retval < 0)
    // push    $happy
