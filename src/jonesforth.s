@@ -156,6 +156,8 @@ _Z4init_errmsg:
     .string "SDL could not initialize! SDL_Error: %s\n"
 happy:
     .string "happy!"
+stack_msg:
+    .string "\ncurrent stack is 0x%X\n"
 
     # text section
     .text
@@ -164,7 +166,7 @@ defcode "init",4,, INIT
     .globl  _Z4initv
     .type   _Z4initv, @function
 _Z4initv:
-  //  # call SDL_Init & clear stack
+    # call SDL_Init & clear stack
     push    %eax
     push    %ebx
     push    %ecx
@@ -177,6 +179,45 @@ _Z4initv:
     call    SDL_Init
     addl    $4, %esp            # clear stack
 
+    # try print "happy" with puts
+    push    $happy
+    call    puts
+    addl    $4, %esp            # clear stack
+
+    # try print %esp with printf
+    push    %esp
+    push    $stack_msg
+    call    printf
+    addl    $8, %esp            # clear stack
+
+    # try print %esp with printf secondly
+    push    %esp
+    push    $stack_msg
+    call    printf
+    addl    $8, %esp            # clear stack
+
+    /*
+    # test (retval < 0)
+    shrl    $31, %eax
+    testb   %al, %al
+    je  success_init            #--+
+_Z4initv_err:                   #  |    # show error message
+    call    SDL_GetError        #  |
+    pushl   %eax                #  |
+    pushl   $_Z4init_errmsg     #  |
+    call    printf              #  |
+    addl    $8, %esp            #  |
+    movl    $0, %eax            #  |     # return false
+    jmp _Z4initv_ret            #--|--+
+    # ------------------------- #  |  |
+success_init: # <------------------+  |
+    movl    $1, %eax
+    push    $happy
+    call    printf
+    addl    $4, %esp            #     |  # return true
+    */
+_Z4initv_ret: # <---------------------+
+    # epilog
     pop     %ebp
     pop     %esi
     pop     %edi
@@ -186,38 +227,10 @@ _Z4initv:
     pop     %eax
 
     NEXT
-    # test (retval < 0)
-   // push    $happy
-   // call    printf
-   // shrl    $31, %eax
-   // testb   %al, %al
-   // je  success_init            #--+
-//_Z4initv_err:                      #  |    # show error message
-  //  call    SDL_GetError        #  |
-  //  pushl   %eax                #  |
-  //  pushl   $_Z4init_errmsg     #  |
-  //  call    printf              #  |
-  //  addl    $8, %esp            #  |
-  //  movl    $0, %eax            #  |     # return false
-  //  jmp _Z4initv_ret            #--|--+
-    # ------------------------- #  |  |
-//success_init:    # <------------------+  |
-  //  movl    $1, %eax
- //   push    $happy
-  //  call    printf
-  // addl    $4, %esp            #     |  # return true
-//_Z4initv_ret:    # <---------------------+
-  //  # epilog
-   // NEXT
-//.LFE11:
-  //  .size   _Z4initv, .-_Z4initv
-   // .globl  _Z8getpixelP11SDL_Surfaceii
-   // .type   _Z8getpixelP11SDL_Surfaceii, @function
 
 
-
-   // .text
-   // .align 4
+   .text
+   .align 4
 DOCOL:
     PUSHRSP %esi            # Сохранить %esi в стеке возвратов
     leal    4(%eax), %esi   # %esi теперь указывает на param-field
