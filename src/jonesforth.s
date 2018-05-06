@@ -202,12 +202,10 @@ _Z4initv:
     call    printf
     addl    $16, %esp           # clear stack
 
-
-/*
     pushl   $32                 # SDL_INIT_VIDEO = 32
     call    SDL_Init
     addl    $4, %esp            # clear stack
-
+/*
     # try print "happy" with puts
     push    $happy
     call    puts
@@ -224,7 +222,7 @@ _Z4initv:
     push    $stack_msg
     call    printf
     addl    $8, %esp            # clear stack
-
+*/
     # test (retval < 0)
     shrl    $31, %eax
     testb   %al, %al
@@ -243,8 +241,8 @@ success_init: # <------------------+  |
     push    $happy
     call    puts
     addl    $4, %esp            #     |
-*/
 _Z4initv_ret: # <---------------------+
+    call    SDL_Quit
     # epilog
     pop     %ebp
     pop     %esi
