@@ -133,6 +133,15 @@ gScreenSurface:
 gWindow:
     .zero   4
 
+version_of_SDL:
+    .byte 0
+    .byte 0
+    .byte 0
+version_of_SDL_for_printf:
+    .int 0
+    .int 0
+    .int 0
+
     .section .rodata # Read-Only data section
 
     # SCREEN_WIDTH declaration
@@ -155,9 +164,11 @@ header:
 _Z4init_errmsg:
     .string "SDL could not initialize! SDL_Error: %s\n"
 happy:
-    .string "happy!"
+    .string "SDL_Init is OK"
 stack_msg:
     .string "\ncurrent stack is 0x%X\n"
+sdl_ver_msg:
+    .string "\ncurrent version of SDL is %d.%d.%d\n"
 
     # text section
     .text
@@ -175,6 +186,24 @@ _Z4initv:
     pushl   %esi
     push    %ebp
 
+    # get of SDL_Version
+    push    $version_of_SDL
+    call    SDL_GetVersion
+    addl    $4, %esp            #     |
+    # show version of SDL
+    xor     %eax, %eax
+    movb    (version_of_SDL), %al
+    push    %eax
+    movb    (version_of_SDL + 1), %al
+    push    %eax
+    movb    (version_of_SDL + 2), %al
+    push    %eax
+    push    $sdl_ver_msg
+    call    printf
+    addl    $16, %esp           # clear stack
+
+
+/*
     pushl   $32                 # SDL_INIT_VIDEO = 32
     call    SDL_Init
     addl    $4, %esp            # clear stack
@@ -196,7 +225,6 @@ _Z4initv:
     call    printf
     addl    $8, %esp            # clear stack
 
-    /*
     # test (retval < 0)
     shrl    $31, %eax
     testb   %al, %al
@@ -213,9 +241,9 @@ _Z4initv_err:                   #  |    # show error message
 success_init: # <------------------+  |
     movl    $1, %eax
     push    $happy
-    call    printf
-    addl    $4, %esp            #     |  # return true
-    */
+    call    puts
+    addl    $4, %esp            #     |
+*/
 _Z4initv_ret: # <---------------------+
     # epilog
     pop     %ebp
@@ -225,7 +253,6 @@ _Z4initv_ret: # <---------------------+
     pop     %ecx
     pop     %ebx
     pop     %eax
-
     NEXT
 
 
