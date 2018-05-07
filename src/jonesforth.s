@@ -281,6 +281,17 @@ _surface_success: # <-------------- +   |
 _surface_ret:  # <----------------------+
     NEXT
 
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: delay
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+defcode "delay",5,, DELAY
+    .text
+
+    call    SDL_Delay
+    NEXT
+
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: getpix
     # ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -326,8 +337,8 @@ defcode "getpix",6,, GETPIX
 //  je  case2         # да
 //  cmpl    $2, %eax # case 2?
 //  jg  third_or_4  # нет, больше
-    cmpl    $1, %eax # case 1?
-    je  case1 # yes
+//    cmpl    $1, %eax # case 1?
+  //  je  case1 # yes
 //  jmp default
 
 /*
@@ -339,11 +350,11 @@ third_or_4:
     jmp default
 
 */
-case1:
-    movl    -12(%ebp), %eax # *p в eax
-    movzbl  (%eax), %eax # достаем значение (формат пикселя)
-    movzbl  %al, %eax # кладем в eax
-    jmp unlock
+//case1:
+  //  movl    -12(%ebp), %eax # *p в eax
+   // movzbl  (%eax), %eax # достаем значение (формат пикселя)
+   // movzbl  %al, %eax # кладем в eax
+   // jmp unlock
 
 /*case2:
     movl    -12(%ebp), %eax # *p в eax
