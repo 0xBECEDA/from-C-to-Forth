@@ -114,145 +114,466 @@ defconst "O_TRUNC",7,,__O_TRUNC,01000
 defconst "O_APPEND",8,,__O_APPEND,02000
 defconst "O_NONBLOCK",10,,__O_NONBLOCK,04000
 
-sdl_part:
-    .bss # BSS section
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: sdlinit
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
 
-    # gScreenSurface declaration
-    .globl  gScreenSurface
-    .align 4
-    .type   gScreenSurface, @object
-    .size   gScreenSurface, 4
-gScreenSurface:
-    .zero 4
-
-    # gWindow declaration
-    .align 4
-    .globl  gWindow
-    .type   gWindow, @object
-    .size   gWindow, 4
-gWindow:
-    .zero   4
+    .bss # BSS section for word "sdlinit"
 
 version_of_SDL:
     .byte 0
     .byte 0
     .byte 0
-version_of_SDL_for_printf:
-    .int 0
-    .int 0
-    .int 0
 
-    .section .rodata # Read-Only data section
+    .section .rodata # Read-Only data section for word "sdlinit"
 
-    # SCREEN_WIDTH declaration
-    .align 4
-    .type   _ZL12SCREEN_WIDTH, @object
-    .size   _ZL12SCREEN_WIDTH, 4
-_ZL12SCREEN_WIDTH:
-    .long   640
+sdlinit_ver_msg:
+    .string ":: current version of SDL is %d.%d.%d\n"
+sdlinit_err_msg:
+    .string ":: SDL could not initialize! SDL_Error: %s\n"
+sdlinit_ok_msg:
+    .string ":: SDL_Init is OK\n"
 
-    # SCREEN_HEIGHT declaration
-    .align 4
-    .type   _ZL13SCREEN_HEIGHT, @object
-    .size   _ZL13SCREEN_HEIGHT, 4
-_ZL13SCREEN_HEIGHT:
-    .long   480
-
-
-header:
-    .string "SDL Tutorial"
-_Z4init_errmsg:
-    .string "SDL could not initialize! SDL_Error: %s\n"
-happy:
-    .string "SDL_Init is OK"
-stack_msg:
-    .string "\ncurrent stack is 0x%X\n"
-sdl_ver_msg:
-    .string "\ncurrent version of SDL is %d.%d.%d\n"
-
-    # text section
+    # text section for word "sdlinit"
     .text
 
-defcode "init",4,, INIT
-    .globl  _Z4initv
-    .type   _Z4initv, @function
-_Z4initv:
-    # call SDL_Init & clear stack
-    push    %eax
-    push    %ebx
-    push    %ecx
-    push    %edx
-    push    %edi
-    pushl   %esi
-    push    %ebp
-
+defcode "sdlinit",7,, SDLINIT
     # get of SDL_Version
     push    $version_of_SDL
     call    SDL_GetVersion
-    addl    $4, %esp            #     |
+    addl    $4, %esp
     # show version of SDL
     xor     %eax, %eax
-    movb    (version_of_SDL), %al
+    movb    (version_of_SDL + 2), %al
     push    %eax
     movb    (version_of_SDL + 1), %al
     push    %eax
-    movb    (version_of_SDL + 2), %al
+    movb    (version_of_SDL), %al
     push    %eax
-    push    $sdl_ver_msg
+    push    $sdlinit_ver_msg
     call    printf
     addl    $16, %esp           # clear stack
-
+    # call SDL_Init & clear stack
     pushl   $32                 # SDL_INIT_VIDEO = 32
     call    SDL_Init
     addl    $4, %esp            # clear stack
-/*
-    # try print "happy" with puts
-    push    $happy
-    call    puts
-    addl    $4, %esp            # clear stack
-
-    # try print %esp with printf
-    push    %esp
-    push    $stack_msg
-    call    printf
-    addl    $8, %esp            # clear stack
-
-    # try print %esp with printf secondly
-    push    %esp
-    push    $stack_msg
-    call    printf
-    addl    $8, %esp            # clear stack
-*/
     # test (retval < 0)
     shrl    $31, %eax
     testb   %al, %al
-    je  success_init            #--+
-_Z4initv_err:                   #  |    # show error message
+    je  _sdlinit_success        #--+
+_sdlinit_err:                   #  |    # show error msg
     call    SDL_GetError        #  |
     pushl   %eax                #  |
-    pushl   $_Z4init_errmsg     #  |
+    pushl   $sdlinit_err_msg    #  |
     call    printf              #  |
     addl    $8, %esp            #  |
-    movl    $0, %eax            #  |     # return false
-    jmp _Z4initv_ret            #--|--+
+    movl    $0, %eax            #  |    # return false
+    jmp _sdlinit_ret            #--|--+
     # ------------------------- #  |  |
-success_init: # <------------------+  |
-    movl    $1, %eax
-    push    $happy
-    call    puts
+_sdlinit_success: # <--------------+  |
+    pushl   $sdlinit_ok_msg     #     | # show ok msg
+    call    puts                #     |
     addl    $4, %esp            #     |
-_Z4initv_ret: # <---------------------+
-    call    SDL_Quit
-    # epilog
-    pop     %ebp
-    pop     %esi
-    pop     %edi
-    pop     %edx
-    pop     %ecx
-    pop     %ebx
-    pop     %eax
+    movl    $1, %eax            #     | # return true
+_sdlinit_ret: # <---------------------+
     NEXT
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: sdlquit
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    .section .rodata # Read-Only data section for word "sdlinit"
+
+sdlquit_msg:
+    .string ":: SDL_Quit\n"
+
+    # text section for word "sdlinit"
+    .text
+
+defcode "sdlquit",7,, SDLQUIT
+    call    SDL_Quit
+    pushl   $sdlquit_msg
+    call    puts
+    addl    $4, %esp
+    NEXT
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: sdlwnd
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    .section .rodata # Read-Only data section for word "sdlwnd"
+
+sdlwnd_header:
+    .string "SDL Tutorial"
+sdlwnd_err_msg:
+    .string ":: Didn't create window! SDL_Error: %s\n"
+
+    .bss # BSS section for word "sdlwnd"
+
+gWindow: # descriptor of sdlwnd
+    .zero   4
+
+    # text section for word "sdlwnd"
+    .text
+
+defcode "sdlwnd",6,,SDLWND
+    # push params and call CreateWindow
+    pushl   $4                  # SDL_WINDOW_SHOWN = 4
+    pushl   $480                # SCREEN_HEIGHT = 480
+    pushl   $640                # SCREEN_WIDTH = 640
+    pushl   $536805376          # SDL_WINDOWPOS_UNDEFINED = 0x1FFF0000
+    pushl   $536805376          # SDL_WINDOWPOS_UNDEFINED = 0x1FFF0000
+    pushl   $sdlwnd_header      # addr of "SDL Tutorial" string
+    call    SDL_CreateWindow
+    addl    $24, %esp           # clear stack 6*4 bytes
+    movl    %eax, gWindow       # save retval to gWindow
+    testl   %eax, %eax          # check retval by NULL
+    jne _sdlwnd_ready_window    #--+
+    # ------------------------- #  |
+_sdlwnd_failed_window:          #  |
+    call    SDL_GetError        #  |
+    pushl   %eax                #  |
+    pushl   sdlwnd_err_msg      #  |
+    call    printf              #  |
+    addl    $8, %esp            #  |
+    jmp _sdlwnd_ret             #--|--+
+    # --------------------------#  |  |
+_sdlwnd_ready_window: # <----------+  |
+    movl $1, %eax               #     |
+_sdlwnd_ret:   # <--------------------+
+    NEXT
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: surface
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    .section .rodata # Read-Only data section for word "surface"
+
+surface_err_msg:
+    .string ":: Didn't create surface! SDL_Error: %s\n"
+
+    .bss # BSS section for word "surface"
+
+gSurface: # descriptor of surface
+    .zero 4
+
+    # text section for word "surface"
+
+    .text
+defcode "surface",7,,SURFACE
+    movl    gWindow, %eax         # параметр для SDL_GetWindowSurface
+    pushl   %eax
+    call    SDL_GetWindowSurface
+
+    movl    %eax, gSurface        # получить полученный указатель
+    testl   %eax, %eax            # удостовериться, что он не 0
+    jne _surface_success          #-+
+_surface_err:                     # |
+    call    SDL_GetError          # |
+    pushl   %eax                  # |
+    pushl   $surface_err_msg      # |
+    call    printf                # |
+    addl    $12, %esp             # |
+    jmp     _surface_ret          #-----+
+    # --------------------------- # |   |
+_surface_success: # <-------------- +   |
+    mov $1, %eax                  #     |
+_surface_ret:  # <----------------------+
+    NEXT
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: getpix
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+
+defcode "getpix",6,, GETPIX
+
+    .text
+
+//пролог
+    pushl   %ebp
+    movl    %esp, %ebp
+
+    subl    $16, %esp
+
+    movl    gSurface, %eax  # указатель на поверхность в eax
+    pushl   %eax # указатель на поверхность в стеке
+    call    SDL_LockSurface # залочили поверхность
+
+    addl    $4, %esp
+
+    movl    gSurface, %eax # опять поместили указатель на поверхность в eax
+    movl    4(%eax), %eax # gScreenSurface->format
+    movzbl  9(%eax), %eax # видимо format->BytesPerPixel
+    movzbl  %al, %eax # ? eax = bpp
+    movl    %eax, -16(%ebp) # поместить адрес (байт?) на 16 выше ebp - это место где хранится bpp
+
+    movl    gSurface, %eax # поместить указатель на поверхность в eax
+    movl    20(%eax), %edx  # - (Uint8 *)gScreenSurface->pixels
+
+    movl    gSurface, %eax # лишнее
+    movl    16(%eax), %eax # получить адрес  pitch
+    imull   16(%ebp), %eax # y *  gScreenSurface->pitch
+    movl    %eax, %ecx # сохранить результат в ECX
+    movl    12(%ebp), %eax # поместить адрес bpp
+    imull   -16(%ebp), %eax  # x * bpp
+    addl    %ecx, %eax # (y * gScreenSurface->pitch) + (x * bpp);
+    addl    %edx, %eax # (Uint8 *)gScreenSurface->pixels + результат выше
+    movl    %eax, -12(%ebp) # *p в стек (?)
+    movl    -16(%ebp), %eax # поместить результат №197 в eax
+
+// кейсы!
+//    cmpl  $2, %eax #  case 2 ?
+//  je  case2         # да
+//  cmpl    $2, %eax # case 2?
+//  jg  third_or_4  # нет, больше
+    cmpl    $1, %eax # case 1?
+    je  case1 # yes
+//  jmp default
+
+/*
+third_or_4:
+    cmpl    $3, %eax # case 3?
+    je  case3         # yes
+    cmpl    $4, %eax # case 4?
+    je  case4 # yes
+    jmp default
+
+*/
+case1:
+    movl    -12(%ebp), %eax # *p в eax
+    movzbl  (%eax), %eax # достаем значение (формат пикселя)
+    movzbl  %al, %eax # кладем в eax
+    jmp unlock
+
+/*case2:
+    movl    -12(%ebp), %eax # *p в eax
+    movzwl  (%eax), %eax # достаем значение (формат пикселя)
+    movzwl  %ax, %eax # приводим к шестнадцатибитному пикселю
+    jmp ret
+/*case3:
+    # p[0]     p[1]     p[2]
+    # |xxxxyyyy|zzzzvvvv|bbbbnnnn|
+    # al       dl
+
+    //     if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
+    movl    -12(%ebp), %eax  # *p в eax
+    movzbl  (%eax), %eax # достаем значение (формат пикселя)
+    movzbl  %al, %eax # p[0]
+    movl    -12(%ebp), %edx  # *p в edx
+    addl    $1, %edx # увеличиваем на 1
+    movzbl  (%edx), %edx # достаем p[1]
+    movzbl  %dl, %edx # кладем p[1] в edx
+
+
+    # EDX = 00000000.00000000.00000000.zzzzvvvv
+    sall    $8, %edx # p[1] << 8
+    # EDX = 00000000.00000000.zzzzvvvv.00000000
+    # EAX = 00000000.00000000.00000000.xxxxyyyy
+    orl %eax, %edx # установить в edx 1, если в edx или eax он был
+    # EDX = 00000000.00000000.zzzzvvvv.xxxxyyyy
+
+    movl    -12(%ebp), %eax  # *p в eax
+    addl    $2, %eax # адрес + 2
+    movzbl  (%eax), %eax
+    movzbl  %al, %eax  # p[2] в eax
+    # EDX = 00000000.zzzzvvvv.xxxxyyyy
+
+    sall    $16, %eax # двигаем на 16 бит
+    orl %edx, %eax # если где-то 1, ставим 1 в eax
+    jmp ret
+
+case4:
+    movl    -12(%ebp), %eax  # *p в eax
+    movl    (%eax), %eax # достаем значение
+    jmp ret
+
+
+default:
+    movl    $0, %eax #  ничего не подошло
+    */
+
+unlock:
+    movl gSurface, %eax
+    push %eax
+    call SDL_UnlockSurface
+    sub  $4, %esp
+ret:
+    leave
+    NEXT
+
+
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: grawpix
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+
+defcode "drawpix",7,, DRAWPIX
+
+    .globl  _Z9DrawPixelP11SDL_Surfaceiihhh
+    .type   _Z9DrawPixelP11SDL_Surfaceiihhh, @function
+
+// пролог
+    pushl   %ebp
+    movl    %esp, %ebp
+
+    pushl   %ebx # screen ?
+    subl    $52, %esp
+//params
+    movl    20(%ebp), %ecx #R
+    movl    24(%ebp), %edx #G
+    movl    28(%ebp), %eax #B
+
+    movb    %cl, -44(%ebp)
+    movb    %dl, -48(%ebp)
+    movb    %al, -52(%ebp)
+
+    movzbl  -52(%ebp), %ebx
+    movzbl  -48(%ebp), %ecx
+    movzbl  -44(%ebp), %edx
+
+    movl    8(%ebp), %eax # screen
+    movl    4(%eax), %eax # screen->format
+    pushl   %ebx #B
+    pushl   %ecx #G
+    pushl   %edx #R
+    pushl   %eax # screen->format
+
+    call    SDL_MapRGB
+    addl    $16, %esp
+    movl    %eax, -28(%ebp)
+.LBB2:
+
+    movl    8(%ebp), %eax # screen
+    movl    4(%eax), %eax # screen->format
+    movzbl  9(%eax), %eax # format->BytesPerPixel
+    movzbl  %al, %eax     # BytesPerPixel
+//cases
+    cmpl    $2, %eax
+    je  case_2
+    jg  third_or_fotrh
+
+    cmpl    $1, %eax
+    je  case_1
+
+    jmp ret_fr_cases
+
+third_or_fotrh:
+
+    cmpl    $3, %eax
+    je  case_3
+    jg  case_4
+
+    jmp ret_fr_cases
+case_1:
+
+    movl    8(%ebp), %eax  # screen
+    movl    20(%eax), %edx # screen->pixels
+
+    movl    8(%ebp), %eax  # лишнее
+    movl    16(%eax), %eax # screen->pitch
+    imull   16(%ebp), %eax # y * screen->pitch
+    movl    %eax, %ecx     # save result
+    movl    12(%ebp), %eax # x
+    addl    %ecx, %eax     # (y*screen->pitch) + x
+    addl    %edx, %eax     # screen->pixels +
+                           # ((y*screen->pitch) + x)
+    movl    %eax, -24(%ebp)# *bufp = result
+
+    movl    -28(%ebp), %edx # color
+    movl    -24(%ebp), %eax # *bufp
+    movb    %dl, (%eax)     # *bufp = color
+.LBE4:
+    jmp ret_fr_cases
+case_2:
+    movl    8(%ebp), %eax   # screen
+    movl    20(%eax), %edx  # screen->pixels
+
+    movl    8(%ebp), %eax   # лишнее
+    movl    16(%eax), %eax  # screen->pitch
+    imull   16(%ebp), %eax  # y * screen->pitch
+    movl    %eax, %ecx      # save result
+    shrl    $31, %ecx       # двигаем байт, чтоб сохранить знак
+    addl    %ecx, %eax      # знак  + (y*screen->pitch)
+    sarl    %eax            # (y*screen->pitch) / 2
+    movl    %eax, %ecx      # save result
+    movl    12(%ebp), %eax  # x
+    addl    %ecx, %eax      # (y*screen->pitch/2) + x
+    addl    %eax, %eax      # ?
+    addl    %edx, %eax      #
+    movl    %eax, -20(%ebp) # *bufp = save result
+
+    movl    -28(%ebp), %eax # color
+    movl    %eax, %edx      #
+    movl    -20(%ebp), %eax # *bufp
+    movw    %dx, (%eax)     # *bufp = color
+.LBE5:
+    jmp ret_fr_cases
+case_3:
+    movl    8(%ebp), %eax  #  screen
+    movl    20(%eax), %ecx # screen->pixels
+    movl    8(%ebp), %eax  # лишнее
+    movl    16(%eax), %eax # screen->pitch
+    imull   16(%ebp), %eax #  y * screen->pitch
+    movl    %eax, %ebx     # save result
+    movl    12(%ebp), %edx # х
+    movl    %edx, %eax     # x
+    addl    %eax, %eax     # x + x
+    addl    %edx, %eax     # 2x + x
+    addl    %ebx, %eax     # saved result + 3x
+    addl    %ecx, %eax     # screen->pixels + new result
+    movl    %eax, -16(%ebp) # save
+
+   //  if(SDL_BYTEORDER == SDL_LIL_ENDIAN)
+
+    movl    -28(%ebp), %eax # color
+    movl    %eax, %edx
+    movl    -16(%ebp), %eax # *bufp
+    movb    %dl, (%eax)     # bufp[0] = color
+
+    movl    -16(%ebp), %eax # *bufp
+    addl    $1, %eax        #  bufp[1]
+    movl    -28(%ebp), %edx #  color
+    shrl    $8, %edx        # color >> 8
+    movb    %dl, (%eax)     # bufp[1] = color >> 8
+
+    movl    -16(%ebp), %eax # bufp
+    addl    $2, %eax        # bufp[2]
+    movl    -28(%ebp), %edx # color
+    shrl    $16, %edx       # color >> 16
+    movb    %dl, (%eax)     #  bufp[2] = color >> 16
+.LBE6:
+    jmp ret_fr_cases
+case_4:
+
+    movl    8(%ebp), %eax   # screen
+    movl    20(%eax), %edx  # screen->pixels
+
+    movl    8(%ebp), %eax
+    movl    16(%eax), %eax  # screen->pitch
+    imull   16(%ebp), %eax  # y*screen->pitch
+    leal    3(%eax), %ecx   # ?
+    testl   %eax, %eax      # check
+    cmovs   %ecx, %eax      # move r16,r/m16 if negative
+    sarl    $2, %eax        # делим на 2
+    movl    %eax, %ecx      # save
+    movl    12(%ebp), %eax  # x
+    addl    %ecx, %eax      # result + x
+    sall    $2, %eax        # делим на 2
+    addl    %edx, %eax      # screen->pixels + result
+    movl    %eax, -12(%ebp) # save in bufp
+
+    movl    -12(%ebp), %eax # bufp
+    movl    -28(%ebp), %edx # color
+    movl    %edx, (%eax)    # *bufp = color
+.LBE7:
+ret_fr_cases:
+    movl    -4(%ebp), %ebx # ?
+    leave
+    NEXT
+
+
+
+##############################################################
 
    .text
    .align 4
