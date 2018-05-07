@@ -144,23 +144,22 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 
 int main( int argc, char* args[] )
 {
-       if( !init() ) {
+    if ( !init() ) {
         printf( "Failed to initialize!\n" );
+    } else if ( !window() ) {
+        printf ("Failed to create window!\n" );
+    } else if ( !surface() ) {
+        printf ("Failed to create surface!\n" );
     }
 
-       else if ( !window() ) {
-           printf ("Failed to create window!\n" );
-    }
-       else if ( !surface() ) {
-           printf ("Failed to create surface!\n" );
-       }
+    getpixel (gScreenSurface, 20, 150);
 
-       getpixel (gScreenSurface, 20, 150);
-
-       DrawPixel(gScreenSurface, 100, 150,
+    DrawPixel(gScreenSurface, 100, 150,
                  255, 0, 0);
 
-       SDL_UpdateWindowSurface( gWindow );
+    SDL_UpdateWindowSurface( gWindow );
 
-       SDL_Delay( 5000 );
+    SDL_Delay( 5000 );
+
+    SDL_Quit();
 }
