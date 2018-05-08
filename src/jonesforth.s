@@ -295,7 +295,6 @@ defcode "delay",5,, DELAY
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: getpix
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-
 defcode "getpix",6,, GETPIX
 
     .text
