@@ -247,14 +247,14 @@ _Z8getpixelP11SDL_Surfaceii:
     imull   16(%ebp), %eax
     movl    %eax, %ecx
     movl    12(%ebp), %eax
-    imull   -16(%ebp), %eax
+    imull   -16(%ebp), %eax     ; -16(ebp) = bpp
     addl    %ecx, %eax
-    .loc 1 66 0                 ; write *p = ...
+    .loc 1 66 0                 ; -12(%ebp) = *p = ...
     addl    %edx, %eax
     movl    %eax, -12(%ebp)
     .loc 1 69 0                 ; -20(%ebp) = Uint32 retval = 0;
     movl    $0, -20(%ebp)
-    .loc 1 71 0                 ; switch
+    .loc 1 71 0                 ; switch ( -16(ebp) = bpp )
     movl    -16(%ebp), %eax
     cmpl    $2, %eax
     je  .L12                    ; =2 ---+
@@ -265,6 +265,7 @@ _Z8getpixelP11SDL_Surfaceii:
     jmp .L11                    ;     | | |
     ;; ------------------------ ;-----|-|-|----(default)--+
 .L13:                           ;<----+ | |               |
+    ;; >2                       ;       | |               |
     cmpl    $3, %eax            ;       | |               |
     je  .L19                    ; =3 -+ | |               |
     cmpl    $4, %eax            ;     | | |               |
@@ -272,7 +273,7 @@ _Z8getpixelP11SDL_Surfaceii:
     jmp .L11                    ;     | | | |             |
     ;; -------------------------------|-|-|-|--(default)--+
 .L14:                           ;<----|-|-+ |             |
-    ;; =1                       ;     | |   |             |
+    ;; =1 | retval = *p;        ;     | |   |             |
     .loc 1 73 0                 ;     | |   |             |
     movl    -12(%ebp), %eax     ;     | |   |             |
     movzbl  (%eax), %eax        ;     | |   |             |
@@ -282,7 +283,7 @@ _Z8getpixelP11SDL_Surfaceii:
     jmp .L17                    ;     | |   |             |
     ;; -------------------------;-----|-|---|--(end)--+   |
 .L12:                           ;<----|-+   |         |   |
-    ;; =2                       ;     |     |         |   |
+    ;; =2 | retval = *(Uint16 *)p;    |     |         |   |
     .loc 1 77 0                 ;     |     |         |   |
     movl    -12(%ebp), %eax     ;     |     |         |   |
     movzwl  (%eax), %eax        ;     |     |         |   |
@@ -292,7 +293,12 @@ _Z8getpixelP11SDL_Surfaceii:
     jmp .L17                    ;     |     |         |   |
     ;; -------------------------;-----|-----|--(end)--+   |
 .L19:                           ;<----+     |         |   |
-    ;; =3                       ;           |         |   |
+    ;; =3 | retval = p[0] << 16 | p[1] << 8 | p[2];   |   |
+    ;; другую часть IF-а оптимизатор выкинул, потому что SDL_BYTEORDER - это
+    ;; макрос времени компиляции.
+    ;; Таким образом IF будет всегда возвращать одно и тоже значение и это
+    ;; можно установить во время компиляции. Следовательно, одну из его веток
+    ;; можно выкинуть (оптимизация называется dead code elimination, DCE)
     .loc 1 84 0                 ;           |         |   |
     movl    -12(%ebp), %eax     ;           |         |   |
     movzbl  (%eax), %eax        ;           |         |   |
@@ -314,13 +320,14 @@ _Z8getpixelP11SDL_Surfaceii:
     jmp .L17                    ;           |         |   |
     ;; -------------------------;-----------|--(end)--+   |
 .L16:                           ;<----------+         |   |
-    ;; =4                       ;                     |   |
+    ;; =4 | retval = *(Uint32 *)p;                    |   |
     .loc 1 88 0                 ;                     |   |
     movl    -12(%ebp), %eax     ;                     |   |
     movl    (%eax), %eax        ;                     |   |
     movl    %eax, -20(%ebp)     ;                     |   |
     .loc 1 89 0                 ;                     |   |
     jmp .L17                    ;                     |   |
+    ;; -------------------------;--------------(end)--+   |
 .L11:                           ;<--------------------|---+
     ;; =default                 ;                     |
     .loc 1 92 0                 ;                     |
