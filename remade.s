@@ -177,35 +177,46 @@ _Z8getpixelP11SDL_Surfaceii:
 	pushl	%ebp
 	movl	%esp, %ebp
 
-	subl	$16, %esp
+	subl	$24, %esp
 
-	movl	gScreenSurface, %eax  # указатель на поверхность в eax
-	pushl	%eax # указатель на поверхность в стеке
+    call    __x86.get_pc_thunk.bx
+    addl    $_GLOBAL_OFFSET_TABLE_, %ebx
+
+	movl    gScreenSurface@GOTOFF(%ebx), %eax  # указатель на поверхность в eax
+	pushl   %eax # указатель на поверхность в стеке
 	call	SDL_LockSurface # залочили поверхность
 
     addl	$4, %esp
 
-    movl	gScreenSurface, %eax # опять поместили указатель на поверхность в eax
+    movl    gScreenSurface@GOTOFF(%ebx), %eax # опять поместили указатель на поверхность в eax
 	movl	4(%eax), %eax # gScreenSurface->format
 	movzbl	9(%eax), %eax # видимо format->BytesPerPixel
 	movzbl	%al, %eax # ? eax = bpp
-	movl	%eax, -16(%ebp) # поместить адрес (байт?) на 16 выше ebp - это место где хранится bpp
+	movl	%eax, -16(%ebp)  # -16(%ebp) = int bpp  =  gScreenSurface->format->BytesPerPixel
 
-	movl	gScreenSurface, %eax # поместить указатель на поверхность в eax
+    // Uint8 *p =
+    //   (Uint8 *)gScreenSurface->pixels + y *  gScreenSurface->pitch               + x * bpp
+
+
+    movl    gScreenSurface@GOTOFF(%ebx), %eax # поместить указатель на поверхность в eax
 	movl	20(%eax), %edx  # - (Uint8 *)gScreenSurface->pixels
 
-    movl	gScreenSurface, %eax # лишнее
-	movl	16(%eax), %eax # получить адрес  pitch
-	imull	16(%ebp), %eax # y *  gScreenSurface->pitch
-	movl	%eax, %ecx # сохранить результат в ECX
-	movl	12(%ebp), %eax # поместить адрес bpp
+    movl    gScreenSurface@GOTOFF(%ebx), %eax # лишнее
+	movl	16(%eax), %eax                    # получить адрес  pitch
+	imull	16(%ebp), %eax                    # y *  gScreenSurface->                                                                 pitch
+	movl	%eax, %ecx                        # сохранить результат в                                                                   ECX
+	movl	12(%ebp), %eax                    # поместить адрес bpp
 	imull	-16(%ebp), %eax  # x * bpp
 	addl	%ecx, %eax # (y * gScreenSurface->pitch) + (x * bpp);
 	addl	%edx, %eax # (Uint8 *)gScreenSurface->pixels + результат выше
 	movl	%eax, -12(%ebp) # *p в стек (?)
-	movl	-16(%ebp), %eax # поместить результат №197 в eax
 
 // кейсы!
+    movl    $0, -20(%ebp)   # -20(%ebp) = Uint32 retval = 0;
+
+    # switch ( -16(ebp) = bpp )
+    movl	-16(%ebp), %eax # поместить результат №197 в eax
+
     cmpl	$2, %eax #  case 2 ?
 	je	case2         # да
 	cmpl	$2, %eax # case 2?
@@ -225,13 +236,15 @@ case1:
 	movl	-12(%ebp), %eax # *p в eax
 	movzbl	(%eax), %eax # достаем значение (формат пикселя)
 	movzbl	%al, %eax # кладем в eax
-	jmp	ret
+    movl    %eax, -20(%ebp)
+    jmp	unlock
 
 case2:
 	movl	-12(%ebp), %eax # *p в eax
 	movzwl	(%eax), %eax # достаем значение (формат пикселя)
 	movzwl	%ax, %eax # приводим к шестнадцатибитному пикселю
-	jmp	ret
+    movl    %eax, -20(%ebp)
+    jmp	unlock
 case3:
     # p[0]     p[1]     p[2]
     # |xxxxyyyy|zzzzvvvv|bbbbnnnn|
@@ -262,21 +275,25 @@ case3:
 
     sall	$16, %eax # двигаем на 16 бит
 	orl	%edx, %eax # если где-то 1, ставим 1 в eax
-	jmp	ret
+    movl    %eax, -20(%ebp)
+    jmp	unlock
 
 case4:
 	movl	-12(%ebp), %eax  # *p в eax
 	movl	(%eax), %eax # достаем значение
-	jmp	ret
+    movl    %eax, -20(%ebp)
+    jmp	unlock
 
 default:
-	movl	$0, %eax #  ничего не подошло
+	movl	$0, 20(%ebp) #  ничего не подошло
 
 unlock:
-    movl gScreenSurface, %eax
+    movl    gScreenSurface@GOTOFF(%ebx), %eax
     push %eax
     call SDL_UnlockSurface
-    sub  $4, %esp
+    movl    -20(%ebp), %eax
+    movl    -4(%ebp), %ebx
+    sub  $24, %esp
 ret:
 	leave
 	ret

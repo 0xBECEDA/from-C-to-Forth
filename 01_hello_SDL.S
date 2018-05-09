@@ -252,10 +252,12 @@ _Z8getpixelP11SDL_Surfaceii:
     .loc 1 66 0                 ; -12(%ebp) = *p = ...
     addl    %edx, %eax
     movl    %eax, -12(%ebp)
+
     .loc 1 69 0                 ; -20(%ebp) = Uint32 retval = 0;
     movl    $0, -20(%ebp)
     .loc 1 71 0                 ; switch ( -16(ebp) = bpp )
     movl    -16(%ebp), %eax
+
     cmpl    $2, %eax
     je  .L12                    ; =2 ---+
     cmpl    $2, %eax            ;       |

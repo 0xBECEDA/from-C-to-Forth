@@ -289,128 +289,241 @@ defcode "delay",5,, DELAY
     .text
 
     call    SDL_Delay
+    add     $4, %esp
     NEXT
+
+
+
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: getpix
     # ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    .section .rodata # Read-Only data section for word "getpix"
+
+bpp_msg:
+    .string ":: bpp = 0x%X\n"
+pixels_msg:
+    .string ":: %d = gSurface->pixels \n"
+pitch_msg:
+    .string ":: %d = gSurface->pitch \n"
+y_mul_pitch_msg:
+    .string ":: %d = y * gScreenSurface->pitch \n"
+x_msg:
+    .string ":: %d = x \n"
+y_msg:
+    .string ":: %d = y \n"
+x_mul_bpp_msg:
+    .string ":: %d = x * bpp \n"
+subresult_msg:
+    .string ":: %d = (y * gScreenSurface->pitch) + (x * bpp) \n"
+result_msg:
+    .string ":: %d = gScreenSurface->pixels + (y *  gScreenSurface->pitch) + (x * bpp) \n"
+
+    # text section for word "getpix"
+    .text
+
+
 defcode "getpix",6,, GETPIX
 
     .text
 
-//пролог
-    pushl   %ebp
-    movl    %esp, %ebp
+    pushl	%ebp
+	movl	%esp, %ebp
 
-    subl    $16, %esp
+    push    %ebx
 
-    movl    gSurface, %eax  # указатель на поверхность в eax
+	subl	$20, %esp
+
+    call    __x86.get_pc_thunk.bx
+    addl    $_GLOBAL_OFFSET_TABLE_, %ebx
+
+    # (!!!) Кажется, ошибка найдена: игрек - это 8(%ebp) а не 16(%ebp)
+
+    #;; dbgout
+    movl    8(%ebp), %eax
+    push    %eax
+    push    $y_msg
+    call    printf
+    addl    $8, %esp           # clear stack
+
+
+
+
+    #;; SDL_LockSurface(gScreenSurface)
+	movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
+    subl    $12, %esp
     pushl   %eax # указатель на поверхность в стеке
-    call    SDL_LockSurface # залочили поверхность
+	call	SDL_LockSurface # залочили поверхность
+    addl	$16, %esp #  очистили стек
 
-    addl    $4, %esp
+    #;; -16(%ebp)
+    #;;     = int bpp
+    #;;     =  gScreenSurface->format->BytesPerPixel
+    movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
+	movl	4(%eax), %eax # gScreenSurface->format
+	movzbl	9(%eax), %eax # gScreenSurface->format->BytesPerPixel
+	movzbl	%al, %eax     # eax = bpp
+	movl	%eax, -16(%ebp)  # сохраняем -16(%ebp) = int bpp
 
-    movl    gSurface, %eax # опять поместили указатель на поверхность в eax
-    movl    4(%eax), %eax # gScreenSurface->format
-    movzbl  9(%eax), %eax # видимо format->BytesPerPixel
-    movzbl  %al, %eax # ? eax = bpp
-    movl    %eax, -16(%ebp) # поместить адрес (байт?) на 16 выше ebp - это место где хранится bpp
+    #;; dbgout
+    push    %eax
+    push    $bpp_msg
+    call    printf
+    addl    $8, %esp           # clear stack
 
-    movl    gSurface, %eax # поместить указатель на поверхность в eax
-    movl    20(%eax), %edx  # - (Uint8 *)gScreenSurface->pixels
-
-    movl    gSurface, %eax # лишнее
-    movl    16(%eax), %eax # получить адрес  pitch
-    imull   16(%ebp), %eax # y *  gScreenSurface->pitch
-    movl    %eax, %ecx # сохранить результат в ECX
-    movl    12(%ebp), %eax # поместить адрес bpp
-    imull   -16(%ebp), %eax  # x * bpp
-    addl    %ecx, %eax # (y * gScreenSurface->pitch) + (x * bpp);
-    addl    %edx, %eax # (Uint8 *)gScreenSurface->pixels + результат выше
-    movl    %eax, -12(%ebp) # *p в стек (?)
-    movl    -16(%ebp), %eax # поместить результат №197 в eax
-
-// кейсы!
-//    cmpl  $2, %eax #  case 2 ?
-//  je  case2         # да
-//  cmpl    $2, %eax # case 2?
-//  jg  third_or_4  # нет, больше
-//    cmpl    $1, %eax # case 1?
-  //  je  case1 # yes
-//  jmp default
-
-/*
-third_or_4:
-    cmpl    $3, %eax # case 3?
-    je  case3         # yes
-    cmpl    $4, %eax # case 4?
-    je  case4 # yes
-    jmp default
-
-*/
-//case1:
-  //  movl    -12(%ebp), %eax # *p в eax
-   // movzbl  (%eax), %eax # достаем значение (формат пикселя)
-   // movzbl  %al, %eax # кладем в eax
-   // jmp unlock
-
-/*case2:
-    movl    -12(%ebp), %eax # *p в eax
-    movzwl  (%eax), %eax # достаем значение (формат пикселя)
-    movzwl  %ax, %eax # приводим к шестнадцатибитному пикселю
-    jmp ret
-/*case3:
-    # p[0]     p[1]     p[2]
-    # |xxxxyyyy|zzzzvvvv|bbbbnnnn|
-    # al       dl
-
-    //     if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
-    movl    -12(%ebp), %eax  # *p в eax
-    movzbl  (%eax), %eax # достаем значение (формат пикселя)
-    movzbl  %al, %eax # p[0]
-    movl    -12(%ebp), %edx  # *p в edx
-    addl    $1, %edx # увеличиваем на 1
-    movzbl  (%edx), %edx # достаем p[1]
-    movzbl  %dl, %edx # кладем p[1] в edx
+    #;; dbgout
+    movl    16(%ebp), %eax
+    push    %eax
+    push    $y_msg
+    call    printf
+    addl    $8, %esp           # clear stack
 
 
-    # EDX = 00000000.00000000.00000000.zzzzvvvv
-    sall    $8, %edx # p[1] << 8
-    # EDX = 00000000.00000000.zzzzvvvv.00000000
-    # EAX = 00000000.00000000.00000000.xxxxyyyy
-    orl %eax, %edx # установить в edx 1, если в edx или eax он был
-    # EDX = 00000000.00000000.zzzzvvvv.xxxxyyyy
+    #;; Uint8 *p =
+    #;; (Uint8 *)gScreenSurface->pixels
+    #;;     + y *  gScreenSurface->pitch
+    #;;     + x * bpp
+    movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
+	movl	20(%eax), %edx # edx = (Uint8 *)gSurface->pixels
+     #;; dbgout
+     push    %edx
+     push    $pixels_msg
+     call    printf
+     addl    $8, %esp
+    movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
+	movl	16(%eax), %eax # получить адрес gSurface->pitch
+     #;; dbgout
+     push    %eax
+     push    $pitch_msg
+     call    printf
+     addl    $8, %esp
+	imull	16(%ebp), %eax # eax = y * gScreenSurface->pitch
+     #;; dbgout
+     push    %eax
+     push    $y_mul_pitch_msg
+     call    printf
+     addl    $8, %esp
+	movl	%eax, %ecx  # сохранить результат в ECX
 
-    movl    -12(%ebp), %eax  # *p в eax
-    addl    $2, %eax # адрес + 2
-    movzbl  (%eax), %eax
-    movzbl  %al, %eax  # p[2] в eax
-    # EDX = 00000000.zzzzvvvv.xxxxyyyy
+	movl	12(%ebp), %eax   # поместить X в eax
+     #;; dbgout
+     push    %eax
+     push    $x_msg
+     call    printf
+     addl    $8, %esp
+	imull	-16(%ebp), %eax  # x * bpp
+     #;; dbgout
+     push    %eax
+     push    $x_mul_bpp_msg
+     call    printf
+     addl    $8, %esp
+	addl	%ecx, %eax # (y * gScreenSurface->pitch) + (x * bpp)
+     #;; dbgout
+     push    %eax
+     push    $subresult_msg
+     call    printf
+     addl    $8, %esp
+	addl	%edx, %eax # (Uint8 *)gScreenSurface->pixels + result^
+     #;; dbgout
+     push    %eax
+     push    $result_msg
+     call    printf
+     addl    $8, %esp
+	movl	%eax, -12(%ebp) # *p в локальную переменную в стеке
 
-    sall    $16, %eax # двигаем на 16 бит
-    orl %edx, %eax # если где-то 1, ставим 1 в eax
-    jmp ret
+    #;; -20(%ebp) = Uint32 retval = 0
+    movl    $0, -20(%ebp)   # -20(%ebp) = Uint32 retval = 0
 
-case4:
-    movl    -12(%ebp), %eax  # *p в eax
-    movl    (%eax), %eax # достаем значение
-    jmp ret
+    #;; switch ( -16(ebp) = bpp )
+    movl	-16(%ebp), %eax # поместить результат №197 в eax
 
+    #;; switch
+    cmpl    $2, %eax
+    je  _second                 # =2 ---+
+    cmpl    $2, %eax            #       |
+    jg  _third_or_fourth        # >2 -+ |
+    cmpl    $1, %eax            #     | |
+    je  _first                  # =1 -|-|-+
+    jmp _default                #     | | |
+    # ------------------------- #-----|-|-|----(default)--+
+_third_or_fourth:               #<----+ | |               |
+    # >2                        #       | |               |
+    cmpl    $3, %eax            #       | |               |
+    je  _third                  # =3 -+ | |               |
+    cmpl    $4, %eax            #     | | |               |
+    je  _fourth                 # =4 -|-|-|-+             |
+    jmp _default                #     | | | |             |
+    # --------------------------------|-|-|-|--(default)--+
+_first:                         #<----|-|-+ |             |
+    # =1 | retval = *p          #     | |   |             |
+    movl    -12(%ebp), %eax     #     | |   |             |
+    movzbl  (%eax), %eax        #     | |   |             |
+    movzbl  %al, %eax           #     | |   |             |
+    movl    %eax, -20(%ebp)     #     | |   |             |
+    jmp _endswitch              #     | |   |             |
+    # --------------------------#-----|-|---|--(end)--+   |
+_second:                        #<----|-+   |         |   |
+    # =2 | retval = *(Uint16 *)p#     |     |         |   |
+    movl    -12(%ebp), %eax     #     |     |         |   |
+    movzwl  (%eax), %eax        #     |     |         |   |
+    movzwl  %ax, %eax           #     |     |         |   |
+    movl    %eax, -20(%ebp)     #     |     |         |   |
+    jmp _endswitch              #     |     |         |   |
+    # ---=----------------------#-----|-----|--(end)--+   |
+_third:                         #<----+     |         |   |
+    # =3 | retval = p[0] << 16 | p[1] << 8 | p[2]     |   |
+    movl    -12(%ebp), %eax     #           |         |   |
+    movzbl  (%eax), %eax        #           |         |   |
+    movzbl  %al, %eax           #           |         |   |
+    movl    -12(%ebp), %edx     #           |         |   |
+    addl    $1, %edx            #           |         |   |
+    movzbl  (%edx), %edx        #           |         |   |
+    movzbl  %dl, %edx           #           |         |   |
+    sall    $8, %edx            #           |         |   |
+    orl %eax, %edx              #           |         |   |
+    movl    -12(%ebp), %eax     #           |         |   |
+    addl    $2, %eax            #           |         |   |
+    movzbl  (%eax), %eax        #           |         |   |
+    movzbl  %al, %eax           #           |         |   |
+    sall    $16, %eax           #           |         |   |
+    orl %edx, %eax              #           |         |   |
+    movl    %eax, -20(%ebp)     #           |         |   |
+    jmp _endswitch              #           |         |   |
+    # --------------------------#-----------|--(end)--+   |
+_fourth:                        #<----------+         |   |
+    # =4 | retval = *(Uint32 *)p#                     |   |
+    movl    -12(%ebp), %eax     #                     |   |
+    movl    (%eax), %eax        #                     |   |
+    movl    %eax, -20(%ebp)     #                     |   |
+    jmp _endswitch              #                     |   |
+    # =-------------------------#--------------(end)--+   |
+_default:                       #<--------------------|---+
+    # =default                  #                     |
+    movl    $0, -20(%ebp)       #                     |
+_endswitch:                     #<--------------------+
+    movl    gSurface@GOTOFF(%ebx), %eax
+    subl    $12, %esp
+    push    %eax
+    call SDL_UnlockSurface@PLT
+    addl    $16, %esp
+    # return retval
+    movl    -20(%ebp), %eax
+    movl    -4(%ebp), %ebx
+	leave
+	NEXT
 
-default:
-    movl    $0, %eax #  ничего не подошло
-    */
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: rungetpix
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
 
-unlock:
-    movl gSurface, %eax
-    push %eax
-    call SDL_UnlockSurface
-    sub  $4, %esp
-ret:
-    leave
+defcode "rungetpix",9,, RUNGETPIX
+    pushl   $150
+    pushl   $20
+    movl    gSurface@GOTOFF(%ebx), %eax
+    pushl   %eax
     NEXT
-
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
