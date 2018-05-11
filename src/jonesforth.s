@@ -350,7 +350,6 @@ defcode "getpix",6,, GETPIX
 
 
 
-
     #;; SDL_LockSurface(gScreenSurface)
 	movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
     subl    $12, %esp
@@ -399,7 +398,7 @@ defcode "getpix",6,, GETPIX
      push    $pitch_msg
      call    printf
      addl    $8, %esp
-	imull	16(%ebp), %eax # eax = y * gScreenSurface->pitch
+	imull	8(%ebp), %eax # eax = y * gScreenSurface->pitch
      #;; dbgout
      push    %eax
      push    $y_mul_pitch_msg
@@ -407,7 +406,7 @@ defcode "getpix",6,, GETPIX
      addl    $8, %esp
 	movl	%eax, %ecx  # сохранить результат в ECX
 
-	movl	12(%ebp), %eax   # поместить X в eax
+	movl	4(%ebp), %eax   # поместить X в eax
      #;; dbgout
      push    %eax
      push    $x_msg
