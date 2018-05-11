@@ -293,8 +293,25 @@ defcode "delay",5,, DELAY
     NEXT
 
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # macro for debugging
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+.macro DBGOUT msg, arg1, args:vararg
+    .set  clearcnt, 0
 
+    .macro pusher parg1, pargs:vararg
+        .ifnb \parg1
+            pusher  \pargs
+            push    \parg1
+            .set clearcnt, clearcnt + 4
+        .endif
+    .endm
 
+    pusher  \arg1 \args
+    push    \msg
+    call    printf
+    addl    $4+clearcnt, %esp  # clear stack
+.endm
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: getpix
@@ -329,6 +346,8 @@ defcode "getpix",6,, GETPIX
 
     .text
 
+    pushl   %ebp # это как бы адрес возврата
+
     pushl	%ebp
 	movl	%esp, %ebp
 
@@ -342,14 +361,8 @@ defcode "getpix",6,, GETPIX
     # (!!!) Кажется, ошибка найдена: игрек - это 8(%ebp) а не 16(%ebp)
 
     #;; dbgout
-    movl    8(%ebp), %eax
-    push    %eax
-    push    $y_msg
-    call    printf
-    addl    $8, %esp           # clear stack
-
-
-
+    movl    16(%ebp), %eax
+    DBGOUT  $y_msg, %eax
 
     #;; SDL_LockSurface(gScreenSurface)
 	movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
