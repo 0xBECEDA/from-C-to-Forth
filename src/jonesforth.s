@@ -297,20 +297,24 @@ defcode "delay",5,, DELAY
     # macro for debugging
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 .macro PUSHER parg1, pargs:vararg
-    .ifnb \parg1
-        pusher  \pargs
-        push    \parg1
-        .set clearcnt, clearcnt + 4
+    .ifnb \parg1  # если не пробел, выполняем дальше. Если пробел, то ничего невыполняем, возвращаемся на то место, откуда вызвали макрос                   # и идем дальше.
+       pusher  \pargs  # передаем все аргументы и вызываем еще раз (херня какая-то, потому что цикл замкнется и до вывода параметра мы не                        # дойдем)
+        push    \parg1  # пушим первый аргумент (то есть последний из параметров, если верить дизасу)
+        .set clearcnt, clearcnt + 4   # увеличиваем счетчик, видимо за тем, чтоб потом корректно очистить стек
     .endif
 .endm
 
 .macro DBGOUT msg, arg1, args:vararg
-    .set  clearcnt, 0
-    PUSHER  \arg1 \args
-    push    \msg
-    call    printf
+    .set  clearcnt, 0 # установили 0 в счетчик
+    PUSHER  \arg1 \args  # передали все аргументы пушеру
+    push    \msg    # передали строку
+    call    printf  # вызвали принтф
     addl    $4+clearcnt, %esp  # clear stack
 .endm
+
+
+
+
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: getpix
@@ -374,9 +378,9 @@ defcode "getpix",6,, GETPIX
     # - 4(ebp)  - y
 
     #;; Выведем параметры:
-    movl    4(%ebp), %eax       ; y
-    movl    8(%ebp), %ecx       ; x
-    movl    12(%ebp), %edx      ; surface
+    movl    4(%ebp), %eax      # ; y
+    movl    8(%ebp), %ecx      # ; x
+    movl    12(%ebp), %edx     # ; surface
     DBGOUT  $getpix_params, %edx, %ecx, %eax
 
     # Теперь осталось все аккуратно пересчитать...
@@ -548,10 +552,14 @@ _endswitch:                     #<--------------------+
     # return retval
     movl    -20(%ebp), %eax
 */
-    movl    -4(%ebp), %ebx      ; restore EBX
+    movl    -4(%ebp), %ebx    #  ; restore EBX
 
 	leave
 	NEXT
+
+
+   DBGOUT "hello I am macros"
+
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: rungetpix
