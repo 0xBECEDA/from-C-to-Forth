@@ -297,28 +297,46 @@ defcode "delay",5,, DELAY
     # macro for debugging
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 .macro PUSHER parg1, pargs:vararg
-    .ifnb \parg1  # если не пробел, выполняем дальше. Если пробел, то ничего невыполняем,
-                  # возвращаемся на то место, откуда вызвали макрос
-                  # и идем дальше.
-    pusher  \pargs  # передаем все аргументы и вызываем еще раз
-                    # (херня какая-то, потому что цикл замкнется и до вывода параметра
-                    # мы не  дойдем)
-        push    \parg1  # пушим первый аргумент (то есть последний из параметров, если верить дизасу)
-        .set clearcnt, clearcnt + 4   # увеличиваем счетчик, видимо за тем, чтоб потом корректно очистить стек
-    .endif11
+    .ifnb \parg1        # Если не пробел (т.е. пока pargs не пуст):
+        PUSHER  \pargs  # - передаем все аргументы кроме первого рекурсивному вызову
+        push    \parg1  # - пушим первый аргумент
+        .set clearcnt, clearcnt + 4   # увеличиваем счетчик, чтобы потом корректно очистить стек
+    .endif
 .endm
 
 .macro DBGOUT msg, arg1, args:vararg
     .set  clearcnt, 0 # установили 0 в счетчик
-    PUSHER  \arg1 \args  # передали все аргументы пушеру
+    PUSHER  \arg1 \args  # передали все аргументы (кроме msg) в PUSHER
     push    \msg    # передали строку
     call    printf  # вызвали принтф
     addl    $4+clearcnt, %esp  # clear stack
 .endm
 
+/*
+    DBGOUT  $getpix_params, %edx, %ecx, %eax
 
+    Шаг 0: вызов DBGOUT раскрывается в:
 
+    .set  clearcnt, 0
+    PUSHER  %edx, %ecx, %eax
+    push    $getpix_param
+    call    printf
+    addl    $4 + clearcnt, %esp
 
+    Шаг 1: раскрытие вызова PUSHER:
+
+    <<...добавь раскрытие сюда...>>
+    push    $getpix_param
+    call    printf
+    addl    $4 + clearcnt, %esp
+
+    Шаг 2: раскрытие рекурсивного вызова PUSHER
+
+    <<...добавь все необходимое сюда...>>
+
+    и делай уже осмысленные отступы, а то читать невозможно
+
+*/
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: getpix
