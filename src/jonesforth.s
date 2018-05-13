@@ -296,18 +296,17 @@ defcode "delay",5,, DELAY
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # macro for debugging
     # ~~~~~~~~~~~~~~~~~~~~~~~~
+.macro PUSHER parg1, pargs:vararg
+    .ifnb \parg1
+        pusher  \pargs
+        push    \parg1
+        .set clearcnt, clearcnt + 4
+    .endif
+.endm
+
 .macro DBGOUT msg, arg1, args:vararg
     .set  clearcnt, 0
-
-    .macro pusher parg1, pargs:vararg
-        .ifnb \parg1
-            pusher  \pargs
-            push    \parg1
-            .set clearcnt, clearcnt + 4
-        .endif
-    .endm
-
-    pusher  \arg1 \args
+    PUSHER  \arg1 \args
     push    \msg
     call    printf
     addl    $4+clearcnt, %esp  # clear stack
@@ -319,6 +318,8 @@ defcode "delay",5,, DELAY
 
     .section .rodata # Read-Only data section for word "getpix"
 
+getpix_params:
+    .string ":: surface: 0x%X, x: %d, y: %d \n"
 bpp_msg:
     .string ":: bpp = 0x%X\n"
 pixels_msg:
@@ -346,33 +347,46 @@ defcode "getpix",6,, GETPIX
 
     .text
 
-    pushl   %ebp # это как бы адрес возврата
-
+    #;; prolog
     pushl	%ebp
-	movl	%esp, %ebp
+    movl	%esp, %ebp
 
+    #;; save EBX
     push    %ebx
 
+    #;; reservation for locals
 	subl	$20, %esp
 
+    #;; EBX is _GOT now
     call    __x86.get_pc_thunk.bx
     addl    $_GLOBAL_OFFSET_TABLE_, %ebx
 
+    # В оригинальном исходнике getpixel
+    # принимает три параметра:
+    # - surface
+    # - x
+    # - y
+    # Если мы их будем передавать в форте,
+    # то после пролога к ним можно будет
+    # получить доступ, соответственно:
+    # - 12(ebp) - surface
+    # - 8(ebp)  - x
+    # - 4(ebp)  - y
+
+    #;; Выведем параметры:
+    movl    4(%ebp), %eax       ; y
+    movl    8(%ebp), %ecx       ; x
+    movl    12(%ebp), %edx      ; surface
+    DBGOUT  $getpix_params, %edx, %ecx, %eax
+
+    # Теперь осталось все аккуратно пересчитать...
+
+/*
     # (!!!) Кажется, ошибка найдена: игрек - это 8(%ebp) а не 16(%ebp)
 
     #;; dbgout
-<<<<<<< HEAD
-    movl    8(%ebp), %eax
-    push    %eax
-    push    $y_msg
-    call    printf
-    addl    $8, %esp           # clear stack
-
-
-=======
     movl    16(%ebp), %eax
     DBGOUT  $y_msg, %eax
->>>>>>> 7064ad06b137e967653bc1b4cff703edbbb77557
 
     #;; SDL_LockSurface(gScreenSurface)
 	movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
@@ -533,7 +547,9 @@ _endswitch:                     #<--------------------+
     addl    $16, %esp
     # return retval
     movl    -20(%ebp), %eax
-    movl    -4(%ebp), %ebx
+*/
+    movl    -4(%ebp), %ebx      ; restore EBX
+
 	leave
 	NEXT
 
