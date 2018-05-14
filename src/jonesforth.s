@@ -407,23 +407,15 @@ defcode "getpix",6,, GETPIX
 
     # Теперь осталось все аккуратно пересчитать...
 
-/*
-    # (!!!) Кажется, ошибка найдена: игрек - это 8(%ebp) а не 16(%ebp)
-
-    #;; dbgout
-    movl    16(%ebp), %eax
-    DBGOUT  $y_msg, %eax
-
     #;; SDL_LockSurface(gScreenSurface)
 	movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
-    subl    $12, %esp
     pushl   %eax # указатель на поверхность в стеке
 	call	SDL_LockSurface # залочили поверхность
-    addl	$16, %esp #  очистили стек
+    addl	$4, %esp #  очистили стек
 
     #;; -16(%ebp)
     #;;     = int bpp
-    #;;     =  gScreenSurface->format->BytesPerPixel
+    #;;     = gScreenSurface->format->BytesPerPixel
     movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
 	movl	4(%eax), %eax # gScreenSurface->format
 	movzbl	9(%eax), %eax # gScreenSurface->format->BytesPerPixel
@@ -431,11 +423,11 @@ defcode "getpix",6,, GETPIX
 	movl	%eax, -16(%ebp)  # сохраняем -16(%ebp) = int bpp
 
     #;; dbgout
+    mov     -16(%ebp), %eax
     push    %eax
-    push    $bpp_msg
-    call    printf
-    addl    $8, %esp           # clear stack
+    DBGOUT  $bpp_msg, %eax
 
+/*
     #;; dbgout
     movl    16(%ebp), %eax
     push    %eax
@@ -580,7 +572,7 @@ _endswitch:                     #<--------------------+
 	NEXT
 
 
-   DBGOUT "hello I am macros"
+/*   DBGOUT "hello I am macros" */
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
