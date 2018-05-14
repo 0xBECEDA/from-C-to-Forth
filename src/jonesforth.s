@@ -326,38 +326,37 @@ defcode "delay",5,, DELAY
     Шаг 1: раскрытие вызова PUSHER:
     .ifnb %edx        # Если не пробел (т.е. пока pargs не пуст):
         PUSHER  %ecx, %eax  # - передаем все аргументы кроме первого рекурсивному вызову
-        push    %edx  # - пушим первый аргумент
-        .set clearcnt, clearcnt + 4   - clearcnt = 4
-    .endif
-    <<...добавь раскрытие сюда...>>
-    push    $getpix_param
-    call    printf
-    addl    $4 + clearcnt, %esp
 
     Шаг 2: раскрытие рекурсивного вызова PUSHER
     .ifnb %ecx        # Если не пробел (т.е. пока pargs не пуст):
-        PUSHER  %eax  # - передаем все аргументы кроме первого рекурсивному вызову
-        push    %ecx  # - пушим первый аргумент
-        .set clearcnt, clearcnt + 4   - clearcnt = 8
-    .endif
+        PUSHER  %eax  # - передаем все аргументы кроме первого рекурси
 
     Шаг 3: продолжение рекурсии
     .ifnb %eax        # Если не пробел (т.е. пока pargs не пуст):
-        PUSHER  0  # - передаем все аргументы кроме первого рекурсивному вызову
-        push    %eax  # - пушим первый аргумент
-        .set clearcnt, clearcnt + 4   - clearcnt = 12
-    .endif
+        PUSHER  0  # - передаем все аргументы кроме первого рекурсивму вызову
 
     Шаг 4: последний шаг рекурсии
-    .ifnb 0         # Пробел! Условие не выполнилось, возвращаемся в DBGOUT
-        ...
+    .ifnb 0         # Пробел! Условие не выполнилось, выходим.
 
-    Шаг 5: возвращение в DBGOUT
+    Шаг 5: возвращение в шаг 3
+     push    %eax
+        .set clearcnt, clearcnt + 4    -  clearcnt = 4
+    .endif
+
+    Шаг 6: возвращение в шаг 2
+     push    %ecx
+        .set clearcnt, clearcnt + 4    -  clearcnt = 8
+    .endif
+
+    Шаг 7: возвращение в шаг 1
+     push    %edx
+        .set clearcnt, clearcnt + 4    -  clearcnt = 12
+    .endif
+
+    Шаг 8: возвращение в DBGOUT
     push    \msg    # передали строку
     call    printf  # вызвали принтф
     addl    $4+clearcnt, %esp  # очистили стек на 16 байт
-
-
 
 */
 
