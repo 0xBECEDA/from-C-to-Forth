@@ -367,7 +367,7 @@ defcode "delay",5,, DELAY
     .section .rodata # Read-Only data section for word "getpix"
 
 getpix_params:
-    .string ":: surface: 0x%X, x: %d, y: %d \n"
+    .string ":: surface: 0x%X, у: %d, x: %d \n"
 bpp_msg:
     .string ":: bpp = 0x%X\n"
 pixels_msg:
@@ -418,12 +418,12 @@ defcode "getpix",6,, GETPIX
     # то после пролога к ним можно будет
     # получить доступ, соответственно:
     # - 12(ebp) - surface
-    # - 8(ebp)  - x
-    # - 4(ebp)  - y
+    # - 8(ebp)  - y
+    # - 4(ebp)  - x
 
     #;; Выведем параметры:
-    movl    4(%ebp), %eax      # ; y
-    movl    8(%ebp), %ecx      # ; x
+    movl    4(%ebp), %eax      # ; x
+    movl    8(%ebp), %ecx      # ; y
     movl    12(%ebp), %edx     # ; surface
     DBGOUT  $getpix_params, %edx, %ecx, %eax
 
@@ -449,26 +449,27 @@ defcode "getpix",6,, GETPIX
     push    %eax
     DBGOUT  $bpp_msg, %eax
 
-/*
+
     #;; dbgout
-    movl    16(%ebp), %eax
+    movl    8(%ebp), %eax
     push    %eax
     push    $y_msg
     call    printf
     addl    $8, %esp           # clear stack
+/*
 
-
-    #;; Uint8 *p =
+    # Uint8 *p =
     #;; (Uint8 *)gScreenSurface->pixels
     #;;     + y *  gScreenSurface->pitch
     #;;     + x * bpp
+*/
     movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
 	movl	20(%eax), %edx # edx = (Uint8 *)gSurface->pixels
      #;; dbgout
-     push    %edx
-     push    $pixels_msg
-     call    printf
-     addl    $8, %esp
+    // push    %edx
+  //   push    $pixels_msg
+    // call    printf
+    // addl    $8, %esp
     movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
 	movl	16(%eax), %eax # получить адрес gSurface->pitch
      #;; dbgout
@@ -476,7 +477,9 @@ defcode "getpix",6,, GETPIX
      push    $pitch_msg
      call    printf
      addl    $8, %esp
-	imull	8(%ebp), %eax # eax = y * gScreenSurface->pitch
+
+// что здесь происходит?!
+    imull	8(%ebp), %eax # eax = y * gScreenSurface->pitch
      #;; dbgout
      push    %eax
      push    $y_mul_pitch_msg
@@ -490,12 +493,15 @@ defcode "getpix",6,, GETPIX
      push    $x_msg
      call    printf
      addl    $8, %esp
-	imull	-16(%ebp), %eax  # x * bpp
+
+// что здесь происходит?!
+    imull	-16(%ebp), %eax  # x * bpp
      #;; dbgout
      push    %eax
      push    $x_mul_bpp_msg
      call    printf
      addl    $8, %esp
+// что здесь происходит?!
 	addl	%ecx, %eax # (y * gScreenSurface->pitch) + (x * bpp)
      #;; dbgout
      push    %eax
@@ -514,7 +520,7 @@ defcode "getpix",6,, GETPIX
     movl    $0, -20(%ebp)   # -20(%ebp) = Uint32 retval = 0
 
     #;; switch ( -16(ebp) = bpp )
-    movl	-16(%ebp), %eax # поместить результат №197 в eax
+    movl	-16(%ebp), %eax # поместить результат bpp в eax
 
     #;; switch
     cmpl    $2, %eax
@@ -587,7 +593,7 @@ _endswitch:                     #<--------------------+
     addl    $16, %esp
     # return retval
     movl    -20(%ebp), %eax
-*/
+
     movl    -4(%ebp), %ebx    #  ; restore EBX
 
 	leave
