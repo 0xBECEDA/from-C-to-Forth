@@ -317,24 +317,47 @@ defcode "delay",5,, DELAY
 
     Шаг 0: вызов DBGOUT раскрывается в:
 
-    .set  clearcnt, 0
-    PUSHER  %edx, %ecx, %eax
+    .set  clearcnt, 0 - установили счетчик в ноль
+    PUSHER  %edx, %ecx, %eax  - передали пушеру все аргументы кроме первого
     push    $getpix_param
     call    printf
     addl    $4 + clearcnt, %esp
 
     Шаг 1: раскрытие вызова PUSHER:
-
+    .ifnb %edx        # Если не пробел (т.е. пока pargs не пуст):
+        PUSHER  %ecx, %eax  # - передаем все аргументы кроме первого рекурсивному вызову
+        push    %edx  # - пушим первый аргумент
+        .set clearcnt, clearcnt + 4   - clearcnt = 4
+    .endif
     <<...добавь раскрытие сюда...>>
     push    $getpix_param
     call    printf
     addl    $4 + clearcnt, %esp
 
     Шаг 2: раскрытие рекурсивного вызова PUSHER
+    .ifnb %ecx        # Если не пробел (т.е. пока pargs не пуст):
+        PUSHER  %eax  # - передаем все аргументы кроме первого рекурсивному вызову
+        push    %ecx  # - пушим первый аргумент
+        .set clearcnt, clearcnt + 4   - clearcnt = 8
+    .endif
 
-    <<...добавь все необходимое сюда...>>
+    Шаг 3: продолжение рекурсии
+    .ifnb %eax        # Если не пробел (т.е. пока pargs не пуст):
+        PUSHER  0  # - передаем все аргументы кроме первого рекурсивному вызову
+        push    %eax  # - пушим первый аргумент
+        .set clearcnt, clearcnt + 4   - clearcnt = 12
+    .endif
 
-    и делай уже осмысленные отступы, а то читать невозможно
+    Шаг 4: последний шаг рекурсии
+    .ifnb 0         # Пробел! Условие не выполнилось, возвращаемся в DBGOUT
+        ...
+
+    Шаг 5: возвращение в DBGOUT
+    push    \msg    # передали строку
+    call    printf  # вызвали принтф
+    addl    $4+clearcnt, %esp  # очистили стек на 16 байт
+
+
 
 */
 
