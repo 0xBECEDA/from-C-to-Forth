@@ -1,0 +1,10 @@
+* Последовательность запуска
+
+- make -f Makeforth
+- gdb ./forth
+- r
+- скопировать в консоль содержимое src/jonesforth.f чтобы получить доступ к
+  высокоуровневым словам
+- 1 2 3 4 5 SDLINIT . SDLWND DUP . SURFACE DUP . 3 7 GETPIX
+- SDLQUIT
+- Ctrl+d
