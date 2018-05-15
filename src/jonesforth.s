@@ -326,44 +326,58 @@ defcode "delay",5,, DELAY
     Шаг 1: раскрытие вызова PUSHER:
 
     .set  clearcnt, 0 - установили счетчик в ноль
+        ;; Раскрываем вызов [ PUSHER  %edx, %ecx, %eax ]
         PUSHER  %ecx, %eax  # - передаем все аргументы кроме первого рекурсивному вызову
         push    %edx        # - пушим первый агрумент
+       .set clearcnt, clearcnt + 4   # увеличиваем счетчик, чтобы потом корректно очистить стек
     push    $getpix_param
     call    printf
     addl    $4 + clearcnt, %esp
 
-    <--  раскрывай дальше -->
-
     Шаг 2: раскрытие рекурсивного вызова PUSHER
-    .ifnb %ecx        # Если не пробел (т.е. пока parg1 не пуст):
-        PUSHER  %ecx, %eax  # - передаем все аргументы кроме первого
+
+    .set  clearcnt, 0 - установили счетчик в ноль
+            ;; Раскрываем вызов [ PUSHER %ecx, %eax ] полученный на предыдущем шаге
+            PUSHER  %eax
+            push    %ecx
+            .set clearcnt, clearcnt + 4
+        push    %edx
+       .set clearcnt, clearcnt + 4
+    push    $getpix_param
+    call    printf
+    addl    $4 + clearcnt, %esp
 
     Шаг 3: продолжение рекурсии
-    .ifnb %eax        # Если не пробел (т.е. пока pargs не пуст):
-        PUSHER  0  # - передаем все аргументы кроме первого рекурсивму вызову
 
-    Шаг 4: последний шаг рекурсии
-    .ifnb 0         # Пробел! Условие не выполнилось, выходим.
+    .set  clearcnt, 0 - установили счетчик в ноль
+                ;; Раскрываем вызов [ PUSHER %eax ] полученный на предыдущем шаге
+                PUSHER _        ;  здесь передается пустой параметр "_", так как pargs не передан
+                push   %eax
+                .set clearcnt, clearcnt + 4
+            push    %ecx
+            .set clearcnt, clearcnt + 4
+        push    %edx
+       .set clearcnt, clearcnt + 4
+    push    $getpix_param
+    call    printf
+    addl    $4 + clearcnt, %esp
 
-    Шаг 5: возвращение в шаг 3
-     push    %eax
-        .set clearcnt, clearcnt + 4    -  clearcnt = 4
-    .endif
+    Шаг 4: последний шаг рекурсии. В него передается пустой параметр _ ,
+    поэтому при выполнении .ifnb \parg1 то что находится у нее внутри
+    не раскрывается. Поэтому на этом шаге раскрытие возвращает
+    пустую строку "". Таким образом, в итоге, если убрать отступы,
+    которые для наглядности, то получается следующий код:
 
-    Шаг 6: возвращение в шаг 2
-     push    %ecx
-        .set clearcnt, clearcnt + 4    -  clearcnt = 8
-    .endif
-
-    Шаг 7: возвращение в шаг 1
-     push    %edx
-        .set clearcnt, clearcnt + 4    -  clearcnt = 12
-    .endif
-
-    Шаг 8: возвращение в DBGOUT
-    push    \msg    # передали строку
-    call    printf  # вызвали принтф
-    addl    $4+clearcnt, %esp  # очистили стек на 16 байт
+    .set clearcnt, 0 - установили счетчик в ноль
+    push    %eax
+    .set clearcnt, clearcnt + 4 ; =4
+    push    %ecx
+    .set clearcnt, clearcnt + 4 ; =8
+    push    %edx
+    .set clearcnt, clearcnt + 4 ; =12
+    push    $getpix_param
+    call    printf
+    addl    $4 + clearcnt, %esp ; = addl 16, %esp
 
 */
 
