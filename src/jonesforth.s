@@ -137,7 +137,7 @@ sdlinit_ok_msg:
     # text section for word "sdlinit"
     .text
 
-defcode "sdlinit",7,, SDLINIT
+defcode "SDLINIT",7,, SDLINIT   # ( -- bool )
     # get of SDL_Version
     push    $version_of_SDL
     call    SDL_GetVersion
@@ -167,7 +167,7 @@ _sdlinit_err:                   #  |    # show error msg
     pushl   $sdlinit_err_msg    #  |
     call    printf              #  |
     addl    $8, %esp            #  |
-    movl    $0, %eax            #  |    # return false
+    xor     %eax, %eax          #  |    # return false
     jmp _sdlinit_ret            #--|--+
     # ------------------------- #  |  |
 _sdlinit_success: # <--------------+  |
@@ -176,10 +176,11 @@ _sdlinit_success: # <--------------+  |
     addl    $4, %esp            #     |
     movl    $1, %eax            #     | # return true
 _sdlinit_ret: # <---------------------+
+    push    %eax                #       # push return value
     NEXT
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: sdlquit
+    # forth primitive: SDLQUIT
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
     .section .rodata # Read-Only data section for word "sdlinit"
@@ -190,7 +191,7 @@ sdlquit_msg:
     # text section for word "sdlinit"
     .text
 
-defcode "sdlquit",7,, SDLQUIT
+defcode "SDLQUIT",7,, SDLQUIT   # ( -- )
     call    SDL_Quit
     pushl   $sdlquit_msg
     call    puts
@@ -198,7 +199,7 @@ defcode "sdlquit",7,, SDLQUIT
     NEXT
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: sdlwnd
+    # forth primitive: SDLWND
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
     .section .rodata # Read-Only data section for word "sdlwnd"
@@ -208,15 +209,10 @@ sdlwnd_header:
 sdlwnd_err_msg:
     .string ":: Didn't create window! SDL_Error: %s\n"
 
-    .bss # BSS section for word "sdlwnd"
-
-gWindow: # descriptor of sdlwnd
-    .zero   4
-
     # text section for word "sdlwnd"
     .text
 
-defcode "sdlwnd",6,,SDLWND
+defcode "SDLWND",6,,SDLWND      # ( -- windescr )
     # push params and call CreateWindow
     pushl   $4                  # SDL_WINDOW_SHOWN = 4
     pushl   $480                # SCREEN_HEIGHT = 480
@@ -226,9 +222,8 @@ defcode "sdlwnd",6,,SDLWND
     pushl   $sdlwnd_header      # addr of "SDL Tutorial" string
     call    SDL_CreateWindow
     addl    $24, %esp           # clear stack 6*4 bytes
-    movl    %eax, gWindow       # save retval to gWindow
     testl   %eax, %eax          # check retval by NULL
-    jne _sdlwnd_ready_window    #--+
+    jne _sdlwnd_ret             #--+  # return window descriptor
     # ------------------------- #  |
 _sdlwnd_failed_window:          #  |
     call    SDL_GetError        #  |
@@ -236,15 +231,13 @@ _sdlwnd_failed_window:          #  |
     pushl   sdlwnd_err_msg      #  |
     call    printf              #  |
     addl    $8, %esp            #  |
-    jmp _sdlwnd_ret             #--|--+
-    # --------------------------#  |  |
-_sdlwnd_ready_window: # <----------+  |
-    movl $1, %eax               #     |
-_sdlwnd_ret:   # <--------------------+
+    xor     %eax, %eax          #  |  # return false
+_sdlwnd_ret:   # <-----------------+
+    push    %eax
     NEXT
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: surface
+    # forth primitive: SURFACE
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
     .section .rodata # Read-Only data section for word "surface"
@@ -252,40 +245,32 @@ _sdlwnd_ret:   # <--------------------+
 surface_err_msg:
     .string ":: Didn't create surface! SDL_Error: %s\n"
 
-    .bss # BSS section for word "surface"
-
-gSurface: # descriptor of surface
-    .zero 4
-
     # text section for word "surface"
 
     .text
-defcode "surface",7,,SURFACE
-    movl    gWindow, %eax         # параметр для SDL_GetWindowSurface
-    pushl   %eax
+defcode "SURFACE",7,,SURFACE    # ( wnddescr -- surface )
+    # параметр для SDL_GetWindowSurface уже в стеке
     call    SDL_GetWindowSurface
-
-    movl    %eax, gSurface        # получить полученный указатель
-    testl   %eax, %eax            # удостовериться, что он не 0
-    jne _surface_success          #-+
-_surface_err:                     # |
-    call    SDL_GetError          # |
-    pushl   %eax                  # |
-    pushl   $surface_err_msg      # |
-    call    printf                # |
-    addl    $12, %esp             # |
-    jmp     _surface_ret          #-----+
-    # --------------------------- # |   |
-_surface_success: # <-------------- +   |
-    mov $1, %eax                  #     |
-_surface_ret:  # <----------------------+
+    addl    $4, %esp            # уберем из стека wnddescr
+    # возвращенный указатель в EAX
+    testl   %eax, %eax          # удостовериться, что он не 0
+    jne _surface_ret            #--+
+_surface_err:                   #  |
+    call    SDL_GetError        #  |
+    pushl   %eax                #  |
+    pushl   $surface_err_msg    #  |
+    call    printf              #  |
+    addl    $8, %esp            #  |
+    xor     %eax, %eax          #  | return false
+_surface_ret:  # <-----------------+
+    pushl   %eax
     NEXT
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: delay
+    # forth primitive: DELAY
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-defcode "delay",5,, DELAY
+defcode "DELAY",5,, DELAY       # ( delay -- )
     .text
 
     call    SDL_Delay
@@ -300,16 +285,24 @@ defcode "delay",5,, DELAY
     .ifnb \parg1        # Если не пробел (т.е. пока parg1 не пуст):
         PUSHER  \pargs  # - передаем все аргументы кроме первого рекурсивному вызову
         push    \parg1  # - пушим первый аргумент
-        .set clearcnt, clearcnt + 4   # увеличиваем счетчик, чтобы потом корректно очистить стек
     .endif
 .endm
 
+
+.macro POPER parg1, pargs:vararg
+    .ifnb \parg1        # Если не пробел (т.е. пока parg1 не пуст):
+        pop     \parg1  # - попим первый аргумент
+        POPER   \pargs  # - передаем все аргументы кроме первого рекурсивному вызову
+    .endif
+.endm
+
+
 .macro DBGOUT msg, arg1, args:vararg
-    .set  clearcnt, 0 # установили 0 в счетчик
     PUSHER  \arg1 \args  # передали все аргументы (кроме msg) в PUSHER
     push    \msg    # передали строку
     call    printf  # вызвали принтф
-    addl    $4+clearcnt, %esp  # clear stack
+    addl    $4, %esp
+    POPER   \arg1 \args
 .endm
 
 /*
@@ -382,21 +375,21 @@ defcode "delay",5,, DELAY
 */
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: getpix
+    # forth primitive: GETPIX
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
     .section .rodata # Read-Only data section for word "getpix"
 
 getpix_params:
-    .string ":: surface: 0x%X, у: %d, x: %d \n"
+    .string ":: surface: 0x%X, x: %d, y: %d \n"
 bpp_msg:
-    .string ":: bpp = 0x%X\n"
+    .string ":: %d = bpp\n"
 pixels_msg:
-    .string ":: %d = gSurface->pixels \n"
+    .string ":: 0x%X = Surface->pixels \n"
 pitch_msg:
-    .string ":: %d = gSurface->pitch \n"
+    .string ":: %d = Surface->pitch \n"
 y_mul_pitch_msg:
-    .string ":: %d = y * gScreenSurface->pitch \n"
+    .string ":: %d = y * Surface->pitch \n"
 x_msg:
     .string ":: %d = x \n"
 y_msg:
@@ -404,27 +397,27 @@ y_msg:
 x_mul_bpp_msg:
     .string ":: %d = x * bpp \n"
 subresult_msg:
-    .string ":: %d = (y * gScreenSurface->pitch) + (x * bpp) \n"
+    .string ":: %d = (y * Surface->pitch) + (x * bpp) \n"
 result_msg:
-    .string ":: %d = gScreenSurface->pixels + (y *  gScreenSurface->pitch) + (x * bpp) \n"
+    .string ":: 0x%X = Surface->pixels + (y * Surface->pitch) + (x * bpp) \n"
 
     # text section for word "getpix"
     .text
 
 
-defcode "getpix",6,, GETPIX
+defcode "GETPIX",6,, GETPIX
 
     .text
 
     #;; prolog
-    pushl	%ebp
-    movl	%esp, %ebp
+    pushl   %ebp
+    movl    %esp, %ebp
 
     #;; save EBX
     push    %ebx
 
     #;; reservation for locals
-	subl	$20, %esp
+    subl    $20, %esp
 
     #;; EBX is _GOT now
     call    __x86.get_pc_thunk.bx
@@ -439,109 +432,108 @@ defcode "getpix",6,, GETPIX
     # то после пролога к ним можно будет
     # получить доступ, соответственно:
     # - 12(ebp) - surface
-    # - 8(ebp)  - y
-    # - 4(ebp)  - x
+    # - 8(ebp)  - x
+    # - 4(ebp)  - y
 
     #;; Выведем параметры:
-    movl    4(%ebp), %eax      # ; x
-    movl    8(%ebp), %ecx      # ; y
+    movl    4(%ebp), %eax      # ; y
+    movl    8(%ebp), %ecx      # ; x
     movl    12(%ebp), %edx     # ; surface
     DBGOUT  $getpix_params, %edx, %ecx, %eax
 
-    # Теперь осталось все аккуратно пересчитать...
-
-    #;; SDL_LockSurface(gScreenSurface)
-	movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
+    #;; SDL_LockSurface(Surface)
+    movl    12(%ebp), %eax  # EAX := Surface
     pushl   %eax # указатель на поверхность в стеке
-	call	SDL_LockSurface # залочили поверхность
-    addl	$4, %esp #  очистили стек
+    call    SDL_LockSurface # залочили поверхность
+    addl    $4, %esp #  очистили стек
 
     #;; -16(%ebp)
     #;;     = int bpp
-    #;;     = gScreenSurface->format->BytesPerPixel
-    movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
-	movl	4(%eax), %eax # gScreenSurface->format
-	movzbl	9(%eax), %eax # gScreenSurface->format->BytesPerPixel
-	movzbl	%al, %eax     # eax = bpp
-	movl	%eax, -16(%ebp)  # сохраняем -16(%ebp) = int bpp
+    #;;     = Surface->format->BytesPerPixel
+    movl    12(%ebp), %eax   # EAX := Surface
+    movl    4(%eax), %eax    # Surface->format
+    movzbl  9(%eax), %eax    # Surface->format->BytesPerPixel
+    movzbl  %al, %eax        # eax = bpp
+    movl    %eax, -16(%ebp)  # сохраняем -16(%ebp) = int bpp
 
-    #;; dbgout
+    #;; dbgout [bpp]
     mov     -16(%ebp), %eax
-    push    %eax
     DBGOUT  $bpp_msg, %eax
 
+    #;; dbgout [y]
+    movl    4(%ebp), %eax
+    DBGOUT  $y_msg, %eax
 
-    #;; dbgout
-    movl    8(%ebp), %eax
-    push    %eax
-    push    $y_msg
-    call    printf
-    addl    $8, %esp           # clear stack
-/*
-
+    # Начинается вычисление
     # Uint8 *p =
-    #;; (Uint8 *)gScreenSurface->pixels
-    #;;     + y *  gScreenSurface->pitch
-    #;;     + x * bpp
-*/
-    movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
-	movl	20(%eax), %edx # edx = (Uint8 *)gSurface->pixels
-     #;; dbgout
-    // push    %edx
-  //   push    $pixels_msg
-    // call    printf
-    // addl    $8, %esp
-    movl    gSurface@GOTOFF(%ebx), %eax # -> на поверхность в eax
-	movl	16(%eax), %eax # получить адрес gSurface->pitch
-     #;; dbgout
-     push    %eax
-     push    $pitch_msg
-     call    printf
-     addl    $8, %esp
+    #    (Uint8 *)Surface->pixels
+    #        + y *  Surface->pitch
+    #        + x * bpp
 
-// что здесь происходит?!
-    imull	8(%ebp), %eax # eax = y * gScreenSurface->pitch
-     #;; dbgout
-     push    %eax
-     push    $y_mul_pitch_msg
-     call    printf
-     addl    $8, %esp
-	movl	%eax, %ecx  # сохранить результат в ECX
+    movl    12(%ebp), %eax # EAX := Surface
+    movl    20(%eax), %edx # EDX := (Uint8 *)Surface->pixels
 
-	movl	4(%ebp), %eax   # поместить X в eax
-     #;; dbgout
-     push    %eax
-     push    $x_msg
-     call    printf
-     addl    $8, %esp
+    #;; dbgout [Surface->pixels]
+    DBGOUT  $pixels_msg, %edx
 
-// что здесь происходит?!
-    imull	-16(%ebp), %eax  # x * bpp
-     #;; dbgout
-     push    %eax
-     push    $x_mul_bpp_msg
-     call    printf
-     addl    $8, %esp
-// что здесь происходит?!
-	addl	%ecx, %eax # (y * gScreenSurface->pitch) + (x * bpp)
-     #;; dbgout
-     push    %eax
-     push    $subresult_msg
-     call    printf
-     addl    $8, %esp
-	addl	%edx, %eax # (Uint8 *)gScreenSurface->pixels + result^
-     #;; dbgout
-     push    %eax
-     push    $result_msg
-     call    printf
-     addl    $8, %esp
-	movl	%eax, -12(%ebp) # *p в локальную переменную в стеке
+    movl    12(%ebp), %eax # EAX := Surface
+    movl    16(%eax), %eax # EAX := Surface->pitch
+
+    #;; dbgout [Surface->pitch]
+    DBGOUT  $pitch_msg, %eax
+
+    # Q: что здесь происходит?!
+    # A: координата Y умножается на кол-во Surface->pitch
+    #    т.е. на "length of a row of pixels in bytes",
+    #    как написано в https://wiki.libsdl.org/SDL_Surface
+
+    mull    4(%ebp) # eax := y * Surface->pitch
+    movl    %eax, %ecx  # сохранить результат в ECX
+
+    #;; dbgout [y * Surface->pitch]
+    DBGOUT  $y_mul_pitch_msg, %ecx
+
+    # поместить X в eax
+    movl    8(%ebp), %eax
+
+    #;; dbgout [x]
+    DBGOUT   $x_msg, %eax
+
+    # Q: что здесь происходит?!
+    # A: bpp, сохраненный в локальной переменной -16(ebp)
+    #    умножается на [x], который в EAX
+    mull    -16(%ebp)  # eax := x * bpp
+
+    #;; dbgout [x * bpp]
+    DBGOUT   $x_mul_bpp_msg, %eax
+
+    # Q: что здесь происходит?!
+    # A: результаты двух предыдущих подготовительных операций
+    #    складываются
+    addl    %ecx, %eax # (y * Surface->pitch) + (x * bpp)
+
+    #;; dbgout [ (y * Surface->pitch) + (x * bpp) ]
+    DBGOUT  $subresult_msg, %eax
+
+    # Получившееся значение (назовем его subresult) складываем с
+    # (Uint8 *)Surface->pixels
+    addl    %edx, %eax # (Uint8 *)Surface->pixels+subresult
+
+    #;; dbgout Uint8 *p =
+    #            (Uint8 *)Surface->pixels
+    #                + y * Surface->pitch
+    #                + x * bpp
+
+    DBGOUT  $result_msg, %eax
+
+    # Перекладываем результат в локальную переменную -12(%ebp)
+    movl    %eax, -12(%ebp) # *p в локальную переменную в стеке
 
     #;; -20(%ebp) = Uint32 retval = 0
     movl    $0, -20(%ebp)   # -20(%ebp) = Uint32 retval = 0
 
     #;; switch ( -16(ebp) = bpp )
-    movl	-16(%ebp), %eax # поместить результат bpp в eax
+    movl    -16(%ebp), %eax # поместить результат bpp в eax
 
     #;; switch
     cmpl    $2, %eax
@@ -607,7 +599,7 @@ _default:                       #<--------------------|---+
     # =default                  #                     |
     movl    $0, -20(%ebp)       #                     |
 _endswitch:                     #<--------------------+
-    movl    gSurface@GOTOFF(%ebx), %eax
+    movl    12(%ebp), %eax  # EAX := Surface
     subl    $12, %esp
     push    %eax
     call SDL_UnlockSurface@PLT
@@ -617,30 +609,15 @@ _endswitch:                     #<--------------------+
 
     movl    -4(%ebp), %ebx    #  ; restore EBX
 
-	leave
-	NEXT
-
-
-/*   DBGOUT "hello I am macros" */
-
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: rungetpix
-    # ~~~~~~~~~~~~~~~~~~~~~~~~
-
-defcode "rungetpix",9,, RUNGETPIX
-    pushl   $150
-    pushl   $20
-    movl    gSurface@GOTOFF(%ebx), %eax
-    pushl   %eax
+    leave
     NEXT
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: grawpix
+    # forth primitive: GRAWPIX
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
-defcode "drawpix",7,, DRAWPIX
+defcode "DRAWPIX",7,, DRAWPIX
 
     .globl  _Z9DrawPixelP11SDL_Surfaceiihhh
     .type   _Z9DrawPixelP11SDL_Surfaceiihhh, @function
