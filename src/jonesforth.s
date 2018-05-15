@@ -297,7 +297,7 @@ defcode "delay",5,, DELAY
     # macro for debugging
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 .macro PUSHER parg1, pargs:vararg
-    .ifnb \parg1        # Если не пробел (т.е. пока pargs не пуст):
+    .ifnb \parg1        # Если не пробел (т.е. пока parg1 не пуст):
         PUSHER  \pargs  # - передаем все аргументы кроме первого рекурсивному вызову
         push    \parg1  # - пушим первый аргумент
         .set clearcnt, clearcnt + 4   # увеличиваем счетчик, чтобы потом корректно очистить стек
@@ -324,12 +324,19 @@ defcode "delay",5,, DELAY
     addl    $4 + clearcnt, %esp
 
     Шаг 1: раскрытие вызова PUSHER:
-    .ifnb %edx        # Если не пробел (т.е. пока pargs не пуст):
+
+    .set  clearcnt, 0 - установили счетчик в ноль
         PUSHER  %ecx, %eax  # - передаем все аргументы кроме первого рекурсивному вызову
+        push    %edx        # - пушим первый агрумент
+    push    $getpix_param
+    call    printf
+    addl    $4 + clearcnt, %esp
+
+    <--  раскрывай дальше -->
 
     Шаг 2: раскрытие рекурсивного вызова PUSHER
-    .ifnb %ecx        # Если не пробел (т.е. пока pargs не пуст):
-        PUSHER  %eax  # - передаем все аргументы кроме первого рекурси
+    .ifnb %ecx        # Если не пробел (т.е. пока parg1 не пуст):
+        PUSHER  %ecx, %eax  # - передаем все аргументы кроме первого
 
     Шаг 3: продолжение рекурсии
     .ifnb %eax        # Если не пробел (т.е. пока pargs не пуст):
