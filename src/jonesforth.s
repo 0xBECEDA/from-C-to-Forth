@@ -283,26 +283,22 @@ defcode "DELAY",5,, DELAY       # ( delay -- )
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 .macro PUSHER parg1, pargs:vararg
     .ifnb \parg1        # Если не пробел (т.е. пока parg1 не пуст):
-        PUSHER  \pargs  # - передаем все аргументы кроме первого рекурсивному вызову
+        PUSHER  \pargs  # - передаем все аргументы кроме первого
+                        # рекурсивному вызову
         push    \parg1  # - пушим первый аргумент
+        .set clearcnt, clearcnt + 4  # увеличиваем счетчик, чтобы
+                        # потом корректно очистить стек
     .endif
 .endm
-
-
-.macro POPER parg1, pargs:vararg
-    .ifnb \parg1        # Если не пробел (т.е. пока parg1 не пуст):
-        pop     \parg1  # - попим первый аргумент
-        POPER   \pargs  # - передаем все аргументы кроме первого рекурсивному вызову
-    .endif
-.endm
-
 
 .macro DBGOUT msg, arg1, args:vararg
+    pushal               # сохранили все регистры
+    .set clearcnt, 0     # установили 0 в счетчик
     PUSHER  \arg1 \args  # передали все аргументы (кроме msg) в PUSHER
-    push    \msg    # передали строку
-    call    printf  # вызвали принтф
-    addl    $4, %esp
-    POPER   \arg1 \args
+    push    \msg                 # передали строку
+    call    printf               # вызвали принтф
+    addl    $4 + clearcnt, %esp  # clear stack
+    popal                # восстановили все регистры
 .endm
 
 /*
@@ -470,12 +466,7 @@ defcode "GETPIX",6,, GETPIX
     #        + y *  Surface->pitch
     #        + x * bpp
 
-    movl    12(%ebp), %eax # EAX := Surface
-    movl    20(%eax), %edx # EDX := (Uint8 *)Surface->pixels
-
-    #;; dbgout [Surface->pixels]
-    DBGOUT  $pixels_msg, %edx
-
+    # ;; Сначала вычислим Surface->pitch
     movl    12(%ebp), %eax # EAX := Surface
     movl    16(%eax), %eax # EAX := Surface->pitch
 
@@ -487,6 +478,7 @@ defcode "GETPIX",6,, GETPIX
     #    т.е. на "length of a row of pixels in bytes",
     #    как написано в https://wiki.libsdl.org/SDL_Surface
 
+    #;; Здесь важно, что результат mull затирает EDX (!)
     mull    4(%ebp) # eax := y * Surface->pitch
     movl    %eax, %ecx  # сохранить результат в ECX
 
@@ -502,6 +494,7 @@ defcode "GETPIX",6,, GETPIX
     # Q: что здесь происходит?!
     # A: bpp, сохраненный в локальной переменной -16(ebp)
     #    умножается на [x], который в EAX
+    #;; Здесь важно, что результат mull затирает EDX (!)
     mull    -16(%ebp)  # eax := x * bpp
 
     #;; dbgout [x * bpp]
@@ -509,21 +502,27 @@ defcode "GETPIX",6,, GETPIX
 
     # Q: что здесь происходит?!
     # A: результаты двух предыдущих подготовительных операций
-    #    складываются
+    #    складываются, получается "subresult"
     addl    %ecx, %eax # (y * Surface->pitch) + (x * bpp)
 
     #;; dbgout [ (y * Surface->pitch) + (x * bpp) ]
     DBGOUT  $subresult_msg, %eax
 
-    # Получившееся значение (назовем его subresult) складываем с
-    # (Uint8 *)Surface->pixels
+    #;; Вычисляем Surface->pixels
+    movl    12(%ebp), %edx # EAX := Surface
+    movl    20(%edx), %edx # EDX := (Uint8 *)Surface->pixels
+
+    #;; dbgout [Surface->pixels]
+    DBGOUT  $pixels_msg, %edx
+
+    # Cкладываем subresult с (Uint8 *)Surface->pixels
     addl    %edx, %eax # (Uint8 *)Surface->pixels+subresult
 
-    #;; dbgout Uint8 *p =
+    # Выводим получившийся резульат
+    # dbgout Uint8 *p =
     #            (Uint8 *)Surface->pixels
     #                + y * Surface->pitch
     #                + x * bpp
-
     DBGOUT  $result_msg, %eax
 
     # Перекладываем результат в локальную переменную -12(%ebp)
