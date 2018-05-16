@@ -621,6 +621,24 @@ defcode "DRAWPIX",7,, DRAWPIX
     .globl  _Z9DrawPixelP11SDL_Surfaceiihhh
     .type   _Z9DrawPixelP11SDL_Surfaceiihhh, @function
 
+    # Принимает на входе 6 параметров
+    # - x
+    # - y
+    # - surface
+    # - Uint8 R
+    # - Uint8 G
+    # - Uint8 B
+
+
+    # - 12(ebp) - surface
+    # - 8(ebp)  - x ?
+    # - 4(ebp)  - y ?
+    # - 20(ebp) - R ?
+    # - 24(ebp) - G ?
+    # - 28(ebp) - B ?
+
+
+
 // пролог
     pushl   %ebp
     movl    %esp, %ebp
@@ -640,7 +658,7 @@ defcode "DRAWPIX",7,, DRAWPIX
     movzbl  -48(%ebp), %ecx
     movzbl  -44(%ebp), %edx
 
-    movl    8(%ebp), %eax # screen
+    movl    12(%ebp), %eax # screen
     movl    4(%eax), %eax # screen->format
     pushl   %ebx #B
     pushl   %ecx #G
@@ -652,12 +670,12 @@ defcode "DRAWPIX",7,, DRAWPIX
     movl    %eax, -28(%ebp)
 .LBB2:
 
-    movl    8(%ebp), %eax # screen
+    movl    12(%ebp), %eax # screen
     movl    4(%eax), %eax # screen->format
     movzbl  9(%eax), %eax # format->BytesPerPixel
     movzbl  %al, %eax     # BytesPerPixel
 //cases
-    cmpl    $2, %eax
+   /* cmpl    $2, %eax
     je  case_2
     jg  third_or_fotrh
 
@@ -676,15 +694,15 @@ third_or_fotrh:
 case_1:
 
     movl    8(%ebp), %eax  # screen
-    movl    20(%eax), %edx # screen->pixels
+    movl    20(%eax), %ebx # screen->pixels
 
-    movl    8(%ebp), %eax  # лишнее
     movl    16(%eax), %eax # screen->pitch
-    imull   16(%ebp), %eax # y * screen->pitch
-    movl    %eax, %ecx     # save result
+    mull   16(%ebp) #%eax # y * screen->pitch
+    movl    %eax, %ecx
+    addl    %edx, %ecx     # save result
     movl    12(%ebp), %eax # x
     addl    %ecx, %eax     # (y*screen->pitch) + x
-    addl    %edx, %eax     # screen->pixels +
+    addl    %ebx, %eax     # screen->pixels +
                            # ((y*screen->pitch) + x)
     movl    %eax, -24(%ebp)# *bufp = result
 
@@ -699,7 +717,7 @@ case_2:
 
     movl    8(%ebp), %eax   # лишнее
     movl    16(%eax), %eax  # screen->pitch
-    imull   16(%ebp), %eax  # y * screen->pitch
+    mull   16(%ebp) #%eax  # y * screen->pitch
     movl    %eax, %ecx      # save result
     shrl    $31, %ecx       # двигаем байт, чтоб сохранить знак
     addl    %ecx, %eax      # знак  + (y*screen->pitch)
@@ -722,8 +740,9 @@ case_3:
     movl    20(%eax), %ecx # screen->pixels
     movl    8(%ebp), %eax  # лишнее
     movl    16(%eax), %eax # screen->pitch
-    imull   16(%ebp), %eax #  y * screen->pitch
-    movl    %eax, %ebx     # save result
+    mull   16(%ebp)  #%eax #  y * screen->pitch
+    movl    %eax, %ebx
+    addl    %edx, %ebx     # save result
     movl    12(%ebp), %edx # х
     movl    %edx, %eax     # x
     addl    %eax, %eax     # x + x
@@ -759,7 +778,8 @@ case_4:
 
     movl    8(%ebp), %eax
     movl    16(%eax), %eax  # screen->pitch
-    imull   16(%ebp), %eax  # y*screen->pitch
+    mull   16(%ebp) # %eax  # y*screen->pitch
+    addl    %edx, %eax
     leal    3(%eax), %ecx   # ?
     testl   %eax, %eax      # check
     cmovs   %ecx, %eax      # move r16,r/m16 if negative
@@ -774,7 +794,8 @@ case_4:
     movl    -12(%ebp), %eax # bufp
     movl    -28(%ebp), %edx # color
     movl    %edx, (%eax)    # *bufp = color
-.LBE7:
+*/
+    .LBE7:
 ret_fr_cases:
     movl    -4(%ebp), %ebx # ?
     leave
