@@ -627,8 +627,12 @@ defcode "DRAWPIX",7,, DRAWPIX
     # - surface
     # - Uint8 R
     # - Uint8 G
-    # - Uint8 B
-
+    # - Uint8 B - если  есть пролог (4 байта на сохранение EBP)
+    #             а потом установка EBP равным текущему на этот момент ESP,
+    #             то последний параметр может быт адресован как 4(ebp),
+    #             а не как у тебя 28(ebp). Соответственно, предпоследний
+    #             может быть адресован как 8(ebp) и так далее. Я не очень понял
+    #             модель, которая побудила тебя написать то что ниже
 
     # - 12(ebp) - surface
     # - 8(ebp)  - x ?
@@ -637,29 +641,27 @@ defcode "DRAWPIX",7,, DRAWPIX
     # - 24(ebp) - G ?
     # - 28(ebp) - B ?
 
-
-
 // пролог
     pushl   %ebp
     movl    %esp, %ebp
 
-    pushl   %ebx # screen ?
+    pushl   %ebx # screen ? нет, мы сохраняли (и восстанавливали при выходе) EBX потому что использовали его чтобы адресоваться к GOT
     subl    $52, %esp
 //params
-    movl    20(%ebp), %ecx #R
-    movl    24(%ebp), %edx #G
-    movl    28(%ebp), %eax #B
-
-    movb    %cl, -44(%ebp)
-    movb    %dl, -48(%ebp)
-    movb    %al, -52(%ebp)
+    movl    20(%ebp), %ecx #R  Тут происходит забирание параметров цвета и перекладывание их в локальные переменные.
+    movl    24(%ebp), %edx #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
+    movl    28(%ebp), %eax #B  которую стоит загуглить и которая превращает три параметра цвета в одно 32-битное значение
+                           #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
+    movb    %cl, -44(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
+    movb    %dl, -48(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
+    movb    %al, -52(%ebp) #   идти в правильном порядке при вызове слова DRAWPIX.
 
     movzbl  -52(%ebp), %ebx
     movzbl  -48(%ebp), %ecx
     movzbl  -44(%ebp), %edx
 
-    movl    12(%ebp), %eax # screen
-    movl    4(%eax), %eax # screen->format
+    movl    12(%ebp), %eax # 12(ebp) = surface (на счет того что именно 12 я не уверен, но допустим), запомним это
+    movl    4(%eax), %eax  # surface->format
     pushl   %ebx #B
     pushl   %ecx #G
     pushl   %edx #R
@@ -669,11 +671,11 @@ defcode "DRAWPIX",7,, DRAWPIX
     addl    $16, %esp
     movl    %eax, -28(%ebp)
 .LBB2:
-
-    movl    12(%ebp), %eax # screen
-    movl    4(%eax), %eax # screen->format
-    movzbl  9(%eax), %eax # format->BytesPerPixel
-    movzbl  %al, %eax     # BytesPerPixel
+    # switch ( screen->format->BytesPerPixel )
+    movl    12(%ebp), %eax # surface
+    movl    4(%eax), %eax  # surface->format
+    movzbl  9(%eax), %eax  # surface->format->BytesPerPixel
+    movzbl  %al, %eax      # BytesPerPixel (кажется эта строчка лишняя, ведь у нас уже был movzbl)
 //cases
    /* cmpl    $2, %eax
     je  case_2
@@ -693,38 +695,40 @@ third_or_fotrh:
     jmp ret_fr_cases
 case_1:
 
-    movl    8(%ebp), %eax  # screen
-    movl    20(%eax), %ebx # screen->pixels
+    movl    8(%ebp), %eax  # surface # странно, мы вроде ранее договорились что surface = 12(ebp)
+    movl    20(%eax), %ebx # EBX := surface->pixels
 
-    movl    16(%eax), %eax # screen->pitch
-    mull   16(%ebp) #%eax # y * screen->pitch
-    movl    %eax, %ecx
-    addl    %edx, %ecx     # save result
+    movl    16(%eax), %eax # EAX := surface->pitch
+    mull    16(%ebp)       # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
+    movl    %eax, %ecx     # ECX := y * surface->pitch
+    addl    %edx, %ecx     # save result # NB(!) Тут очевидная ошибка!
     movl    12(%ebp), %eax # x
-    addl    %ecx, %eax     # (y*screen->pitch) + x
-    addl    %ebx, %eax     # screen->pixels +
-                           # ((y*screen->pitch) + x)
-    movl    %eax, -24(%ebp)# *bufp = result
+    addl    %ecx, %eax     # (y*surface->pitch) + x
+    addl    %ebx, %eax     # surface->pixels + ((y*surface->pitch) + x)
+                           # Возможно проще было бы сначала сложить (surface->pixels + x), а
+                           # потом прибавить к результу (y*surface->pitch) но это надо проверить
 
+    movl    %eax, -24(%ebp) # *bufp = result (1)
     movl    -28(%ebp), %edx # color
-    movl    -24(%ebp), %eax # *bufp
+    movl    -24(%ebp), %eax # *bufp (2)
+                            # (1) и (2) образуют тавтологию
     movb    %dl, (%eax)     # *bufp = color
 .LBE4:
     jmp ret_fr_cases
 case_2:
-    movl    8(%ebp), %eax   # screen
-    movl    20(%eax), %edx  # screen->pixels
+    movl    8(%ebp), %eax   # surface  # странно, мы вроде ранее договорились что surface = 12(ebp)
+    movl    20(%eax), %edx  # surface->pixels
 
     movl    8(%ebp), %eax   # лишнее
-    movl    16(%eax), %eax  # screen->pitch
-    mull   16(%ebp) #%eax  # y * screen->pitch
-    movl    %eax, %ecx      # save result
+    movl    16(%eax), %eax  # surface->pitch
+    mull    16(%ebp)        # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
+    movl    %eax, %ecx      # ECX := y * surface->pitch
     shrl    $31, %ecx       # двигаем байт, чтоб сохранить знак
-    addl    %ecx, %eax      # знак  + (y*screen->pitch)
-    sarl    %eax            # (y*screen->pitch) / 2
+    addl    %ecx, %eax      # знак  + (y*surface->pitch)
+    sarl    %eax            # (y*surface->pitch) / 2
     movl    %eax, %ecx      # save result
     movl    12(%ebp), %eax  # x
-    addl    %ecx, %eax      # (y*screen->pitch/2) + x
+    addl    %ecx, %eax      # (y*surface->pitch/2) + x
     addl    %eax, %eax      # ?
     addl    %edx, %eax      #
     movl    %eax, -20(%ebp) # *bufp = save result
@@ -736,19 +740,19 @@ case_2:
 .LBE5:
     jmp ret_fr_cases
 case_3:
-    movl    8(%ebp), %eax  #  screen
-    movl    20(%eax), %ecx # screen->pixels
+    movl    8(%ebp), %eax  #  surface
+    movl    20(%eax), %ecx # surface->pixels
     movl    8(%ebp), %eax  # лишнее
-    movl    16(%eax), %eax # screen->pitch
-    mull   16(%ebp)  #%eax #  y * screen->pitch
-    movl    %eax, %ebx
-    addl    %edx, %ebx     # save result
+    movl    16(%eax), %eax # surface->pitch
+    mull    16(%ebp)       # y * surface->pitch
+    movl    %eax, %ebx     # EBX := y * surface->pitch
+    addl    %edx, %ebx     # Ошибка(!)
     movl    12(%ebp), %edx # х
     movl    %edx, %eax     # x
     addl    %eax, %eax     # x + x
     addl    %edx, %eax     # 2x + x
     addl    %ebx, %eax     # saved result + 3x
-    addl    %ecx, %eax     # screen->pixels + new result
+    addl    %ecx, %eax     # surface->pixels + new result
     movl    %eax, -16(%ebp) # save
 
    //  if(SDL_BYTEORDER == SDL_LIL_ENDIAN)
@@ -773,13 +777,13 @@ case_3:
     jmp ret_fr_cases
 case_4:
 
-    movl    8(%ebp), %eax   # screen
-    movl    20(%eax), %edx  # screen->pixels
+    movl    8(%ebp), %eax   # surface
+    movl    20(%eax), %edx  # surface->pixels
 
     movl    8(%ebp), %eax
-    movl    16(%eax), %eax  # screen->pitch
-    mull   16(%ebp) # %eax  # y*screen->pitch
-    addl    %edx, %eax
+    movl    16(%eax), %eax  # surface->pitch
+    mull    16(%ebp)        # y*surface->pitch
+    addl    %edx, %eax      # Ошибка!
     leal    3(%eax), %ecx   # ?
     testl   %eax, %eax      # check
     cmovs   %ecx, %eax      # move r16,r/m16 if negative
@@ -788,7 +792,7 @@ case_4:
     movl    12(%ebp), %eax  # x
     addl    %ecx, %eax      # result + x
     sall    $2, %eax        # делим на 2
-    addl    %edx, %eax      # screen->pixels + result
+    addl    %edx, %eax      # surface->pixels + result
     movl    %eax, -12(%ebp) # save in bufp
 
     movl    -12(%ebp), %eax # bufp
@@ -797,7 +801,7 @@ case_4:
 */
     .LBE7:
 ret_fr_cases:
-    movl    -4(%ebp), %ebx # ?
+    movl    -4(%ebp), %ebx # ? восстановление EBX который используется внутри функции
     leave
     NEXT
 
