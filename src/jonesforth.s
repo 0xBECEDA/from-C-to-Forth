@@ -114,6 +114,8 @@ defconst "O_TRUNC",7,,__O_TRUNC,01000
 defconst "O_APPEND",8,,__O_APPEND,02000
 defconst "O_NONBLOCK",10,,__O_NONBLOCK,04000
 
+defconst "SUR_POINTER",11,,SUR_POINTER,0
+defvar "WND_POINTER",11,,WND_POINTER,0
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: sdlinit
     # ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -208,7 +210,8 @@ sdlwnd_header:
     .string "SDL Tutorial"
 sdlwnd_err_msg:
     .string ":: Didn't create window! SDL_Error: %s\n"
-
+sdlwnd_pointer:
+    .string ":: wnd_pointer: 0x%X, eax: 0x%X, ebx: 0x%X \n"
     # text section for word "sdlwnd"
     .text
 
@@ -233,6 +236,15 @@ _sdlwnd_failed_window:          #  |
     addl    $8, %esp            #  |
     xor     %eax, %eax          #  |  # return false
 _sdlwnd_ret:   # <-----------------+
+    # попытка занести значение в константу(переменную) и вывести его. DBGOUT не сработал, сказал, что у него такой инструкции.
+   #проблема в этой строке
+  // movl %eax, WND_POINTER
+  //  movl $WND_POINTER, %ebx
+  // push %eax
+  //  push %ebx
+  //  push $sdlwnd_pointer
+  //  call printf
+
     push    %eax
     NEXT
 
@@ -598,24 +610,39 @@ _default:                       #<--------------------|---+
     # =default                  #                     |
     movl    $0, -20(%ebp)       #                     |
 _endswitch:                     #<--------------------+
-    movl    12(%ebp), %eax  # EAX := Surface
+    movl    12(%ebp), %edx  # EDX := Surface
+    DBGOUT $surface_msg, %edx  # выводим Surface
+    movl   %edx, %edi  #UNLOCK меняет регистры (точно не знаю какие, но edi не трогает). Так я сохраняю Surface
     subl    $12, %esp
-    push    %eax
+    push    %edx
     call SDL_UnlockSurface@PLT
     addl    $16, %esp
+    movl   %edi, %edx   # восстанавливаю surface
+    DBGOUT $surface_msg, %edx #проверка
     # return retval
     movl    -20(%ebp), %eax
 
     movl    -4(%ebp), %ebx    #  ; restore EBX
-
     leave
+    DBGOUT $surface_msg, %edx
+    push   %edx # отправляем surface в стек здесь. В противном случае leave при pop ebp возьмет не ebp, а наш указатель, и след. функция его не увидит.
     NEXT
+
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: GRAWPIX
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
+    .section .rodata # Read-Only data section for word "drawpix"
+
+colors:
+    .string ":: %d = G, %d = R, %d = B \n"
+
+surface_msg:
+    .string ":: 0x%X = Surface \n"
+coordinats:
+    .string ":: %d = x, %d = y,\n"
 defcode "DRAWPIX",7,, DRAWPIX
 
     .globl  _Z9DrawPixelP11SDL_Surfaceiihhh
@@ -634,24 +661,32 @@ defcode "DRAWPIX",7,, DRAWPIX
     #             может быть адресован как 8(ebp) и так далее. Я не очень понял
     #             модель, которая побудила тебя написать то что ниже
 
-    # - 12(ebp) - surface
-    # - 8(ebp)  - x ?
-    # - 4(ebp)  - y ?
-    # - 20(ebp) - R ?
-    # - 24(ebp) - G ?
-    # - 28(ebp) - B ?
+    # - 24(ebp) - surface
+    # - 20(ebp)  - x
+    # - 16(ebp)  - y
+    # - 12(ebp) - R ? Это точно цвета, просто не уверена, что это точно красный и т.д.
+    # - 8(ebp) - G ?
+    # - 4(ebp) - B ?
 
 // пролог
     pushl   %ebp
     movl    %esp, %ebp
 
-    pushl   %ebx # screen ? нет, мы сохраняли (и восстанавливали при выходе) EBX потому что использовали его чтобы адресоваться к GOT
+    pushl   %ebx # мы сохраняли (и восстанавливали при выходе) EBX потому что использовали его чтобы адресоваться к GOT
     subl    $52, %esp
 //params
-    movl    20(%ebp), %ecx #R  Тут происходит забирание параметров цвета и перекладывание их в локальные переменные.
-    movl    24(%ebp), %edx #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
-    movl    28(%ebp), %eax #B  которую стоит загуглить и которая превращает три параметра цвета в одно 32-битное значение
-                           #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
+    movl    12(%ebp), %ecx #R  Тут происходит забирание параметров цвета и перекладывание их в локальные переменные.
+
+    movl    8(%ebp), %edx #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
+
+    movl    4(%ebp), %eax #B  которую стоит загуглить и которая превращает три параметра цвета в одно 32-битное значение
+    DBGOUT $colors, %edx, %ecx, %eax
+
+    movl    20(%ebp), %eax # x
+    movl    16(%ebp), %ebx # y
+
+    DBGOUT  $coordinats, %eax, %ebx
+    #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
     movb    %cl, -44(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
     movb    %dl, -48(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
     movb    %al, -52(%ebp) #   идти в правильном порядке при вызове слова DRAWPIX.
@@ -660,7 +695,10 @@ defcode "DRAWPIX",7,, DRAWPIX
     movzbl  -48(%ebp), %ecx
     movzbl  -44(%ebp), %edx
 
-    movl    12(%ebp), %eax # 12(ebp) = surface (на счет того что именно 12 я не уверен, но допустим), запомним это
+    movl    24(%ebp), %eax # 24(ebp) = surface (на счет того что именно 12 я не уверен, но допустим), запомним это
+
+    DBGOUT $surface_msg, %eax
+
     movl    4(%eax), %eax  # surface->format
     pushl   %ebx #B
     pushl   %ecx #G
@@ -677,7 +715,7 @@ defcode "DRAWPIX",7,, DRAWPIX
     movzbl  9(%eax), %eax  # surface->format->BytesPerPixel
     movzbl  %al, %eax      # BytesPerPixel (кажется эта строчка лишняя, ведь у нас уже был movzbl)
 //cases
-   /* cmpl    $2, %eax
+    cmpl    $2, %eax
     je  case_2
     jg  third_or_fotrh
 
@@ -695,14 +733,14 @@ third_or_fotrh:
     jmp ret_fr_cases
 case_1:
 
-    movl    8(%ebp), %eax  # surface # странно, мы вроде ранее договорились что surface = 12(ebp)
+    movl    24(%ebp), %eax  # surface # странно, мы вроде ранее договорились что surface = 12(ebp)
     movl    20(%eax), %ebx # EBX := surface->pixels
 
     movl    16(%eax), %eax # EAX := surface->pitch
     mull    16(%ebp)       # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
     movl    %eax, %ecx     # ECX := y * surface->pitch
     addl    %edx, %ecx     # save result # NB(!) Тут очевидная ошибка!
-    movl    12(%ebp), %eax # x
+    movl    20(%ebp), %eax # x
     addl    %ecx, %eax     # (y*surface->pitch) + x
     addl    %ebx, %eax     # surface->pixels + ((y*surface->pitch) + x)
                            # Возможно проще было бы сначала сложить (surface->pixels + x), а
@@ -716,18 +754,18 @@ case_1:
 .LBE4:
     jmp ret_fr_cases
 case_2:
-    movl    8(%ebp), %eax   # surface  # странно, мы вроде ранее договорились что surface = 12(ebp)
+    movl    24(%ebp), %eax   # surface
     movl    20(%eax), %edx  # surface->pixels
-
-    movl    8(%ebp), %eax   # лишнее
     movl    16(%eax), %eax  # surface->pitch
+
     mull    16(%ebp)        # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
     movl    %eax, %ecx      # ECX := y * surface->pitch
     shrl    $31, %ecx       # двигаем байт, чтоб сохранить знак
     addl    %ecx, %eax      # знак  + (y*surface->pitch)
     sarl    %eax            # (y*surface->pitch) / 2
     movl    %eax, %ecx      # save result
-    movl    12(%ebp), %eax  # x
+
+    movl    20(%ebp), %eax  # x
     addl    %ecx, %eax      # (y*surface->pitch/2) + x
     addl    %eax, %eax      # ?
     addl    %edx, %eax      #
@@ -739,15 +777,16 @@ case_2:
     movw    %dx, (%eax)     # *bufp = color
 .LBE5:
     jmp ret_fr_cases
+
 case_3:
-    movl    8(%ebp), %eax  #  surface
+    movl    24(%ebp), %eax  #  surface
     movl    20(%eax), %ecx # surface->pixels
-    movl    8(%ebp), %eax  # лишнее
     movl    16(%eax), %eax # surface->pitch
+
     mull    16(%ebp)       # y * surface->pitch
     movl    %eax, %ebx     # EBX := y * surface->pitch
-    addl    %edx, %ebx     # Ошибка(!)
-    movl    12(%ebp), %edx # х
+    addl    %edx, %ebx     # Ошибка(!) Почему? Я прибавляю остаток после mull
+    movl    20(%ebp), %edx # х
     movl    %edx, %eax     # x
     addl    %eax, %eax     # x + x
     addl    %edx, %eax     # 2x + x
@@ -777,19 +816,18 @@ case_3:
     jmp ret_fr_cases
 case_4:
 
-    movl    8(%ebp), %eax   # surface
+    movl    24(%ebp), %eax   # surface
     movl    20(%eax), %edx  # surface->pixels
 
-    movl    8(%ebp), %eax
     movl    16(%eax), %eax  # surface->pitch
     mull    16(%ebp)        # y*surface->pitch
-    addl    %edx, %eax      # Ошибка!
+    addl    %edx, %eax      # Ошибка! Почему? Я прибавляю остаток после mull
     leal    3(%eax), %ecx   # ?
     testl   %eax, %eax      # check
     cmovs   %ecx, %eax      # move r16,r/m16 if negative
     sarl    $2, %eax        # делим на 2
     movl    %eax, %ecx      # save
-    movl    12(%ebp), %eax  # x
+    movl    20(%ebp), %eax  # x
     addl    %ecx, %eax      # result + x
     sall    $2, %eax        # делим на 2
     addl    %edx, %eax      # surface->pixels + result
@@ -798,7 +836,7 @@ case_4:
     movl    -12(%ebp), %eax # bufp
     movl    -28(%ebp), %edx # color
     movl    %edx, (%eax)    # *bufp = color
-*/
+
     .LBE7:
 ret_fr_cases:
     movl    -4(%ebp), %ebx # ? восстановление EBX который используется внутри функции
