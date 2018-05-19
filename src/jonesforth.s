@@ -643,6 +643,13 @@ surface_msg:
     .string ":: 0x%X = Surface \n"
 coordinats:
     .string ":: %d = x, %d = y,\n"
+
+subresult_draw_msg:
+    .string ":: %d = subresult \n"
+
+result_draw_msg:
+    .string ":: %d = (surface->pixels) + (y*screen->pitch)/4 + x \n"
+
 defcode "DRAWPIX",7,, DRAWPIX
 
     .globl  _Z9DrawPixelP11SDL_Surfaceiihhh
@@ -710,7 +717,7 @@ defcode "DRAWPIX",7,, DRAWPIX
     movl    %eax, -28(%ebp)
 .LBB2:
     # switch ( screen->format->BytesPerPixel )
-    movl    12(%ebp), %eax # surface
+    movl    24(%ebp), %eax # surface
     movl    4(%eax), %eax  # surface->format
     movzbl  9(%eax), %eax  # surface->format->BytesPerPixel
     movzbl  %al, %eax      # BytesPerPixel (кажется эта строчка лишняя, ведь у нас уже был movzbl)
@@ -733,13 +740,17 @@ third_or_fotrh:
     jmp ret_fr_cases
 case_1:
 
-    movl    24(%ebp), %eax  # surface # странно, мы вроде ранее договорились что surface = 12(ebp)
+    movl    24(%ebp), %eax  # surface
     movl    20(%eax), %ebx # EBX := surface->pixels
 
     movl    16(%eax), %eax # EAX := surface->pitch
+
+    DBGOUT  $pitch_msg, %eax
     mull    16(%ebp)       # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
     movl    %eax, %ecx     # ECX := y * surface->pitch
-    addl    %edx, %ecx     # save result # NB(!) Тут очевидная ошибка!
+
+    DBGOUT $y_mul_pitch_msg, %ecx
+
     movl    20(%ebp), %eax # x
     addl    %ecx, %eax     # (y*surface->pitch) + x
     addl    %ebx, %eax     # surface->pixels + ((y*surface->pitch) + x)
@@ -758,8 +769,13 @@ case_2:
     movl    20(%eax), %edx  # surface->pixels
     movl    16(%eax), %eax  # surface->pitch
 
+    DBGOUT  $pitch_msg, %eax
+
     mull    16(%ebp)        # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
+
     movl    %eax, %ecx      # ECX := y * surface->pitch
+    DBGOUT $y_mul_pitch_msg, %ecx
+
     shrl    $31, %ecx       # двигаем байт, чтоб сохранить знак
     addl    %ecx, %eax      # знак  + (y*surface->pitch)
     sarl    %eax            # (y*surface->pitch) / 2
@@ -768,7 +784,6 @@ case_2:
     movl    20(%ebp), %eax  # x
     addl    %ecx, %eax      # (y*surface->pitch/2) + x
     addl    %eax, %eax      # ?
-    addl    %edx, %eax      #
     movl    %eax, -20(%ebp) # *bufp = save result
 
     movl    -28(%ebp), %eax # color
@@ -782,10 +797,12 @@ case_3:
     movl    24(%ebp), %eax  #  surface
     movl    20(%eax), %ecx # surface->pixels
     movl    16(%eax), %eax # surface->pitch
+    DBGOUT  $pitch_msg, %eax
 
     mull    16(%ebp)       # y * surface->pitch
     movl    %eax, %ebx     # EBX := y * surface->pitch
-    addl    %edx, %ebx     # Ошибка(!) Почему? Я прибавляю остаток после mull
+    DBGOUT $y_mul_pitch_msg, %ebx
+
     movl    20(%ebp), %edx # х
     movl    %edx, %eax     # x
     addl    %eax, %eax     # x + x
@@ -814,23 +831,38 @@ case_3:
     movb    %dl, (%eax)     #  bufp[2] = color >> 16
 .LBE6:
     jmp ret_fr_cases
-case_4:
+case_4:   # Uint32 *bufp = (Uint32 *)(surface->pixels) +
+                                    (y*screen->pitch)/4 + x
 
     movl    24(%ebp), %eax   # surface
     movl    20(%eax), %edx  # surface->pixels
+    DBGOUT $pixels_msg, %edx
 
     movl    16(%eax), %eax  # surface->pitch
+    DBGOUT  $pitch_msg, %eax
+
     mull    16(%ebp)        # y*surface->pitch
-    addl    %edx, %eax      # Ошибка! Почему? Я прибавляю остаток после mull
+    DBGOUT $y_mul_pitch_msg, %eax
+
     leal    3(%eax), %ecx   # ?
     testl   %eax, %eax      # check
     cmovs   %ecx, %eax      # move r16,r/m16 if negative
-    sarl    $2, %eax        # делим на 2
+    sarl    $2, %eax        # сдвигаем все биты в eax на 2 разряда вправо
     movl    %eax, %ecx      # save
+    DBGOUT $subresult_draw_msg, %ecx
+
     movl    20(%ebp), %eax  # x
     addl    %ecx, %eax      # result + x
-    sall    $2, %eax        # делим на 2
+    DBGOUT $subresult_draw_msg, %eax
+
+    #!проблема здесь, кажется
+    sall    $2, %eax        # сдвинуть все биты в eax на 2 разряда влево
+    DBGOUT $subresult_draw_msg, %eax
+
     addl    %edx, %eax      # surface->pixels + result
+
+    DBGOUT $result_draw_msg, %eax
+
     movl    %eax, -12(%ebp) # save in bufp
 
     movl    -12(%ebp), %eax # bufp
