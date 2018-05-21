@@ -877,9 +877,9 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     mull    16(%ebp)        # y*surface->pitch
     DBGOUT $y_mul_pitch_msg, %eax
 
-    leal    3(%eax), %ecx   # ?
-    testl   %eax, %eax      # check
-    cmovs   %ecx, %eax      # move r16,r/m16 if negative
+   // leal    3(%eax), %ecx   # ?
+   // testl   %eax, %eax      # check
+   // cmovs   %ecx, %eax      # move r16,r/m16 if negative
     sarl    $2, %eax        # сдвигаем все биты в eax на 2 разряда вправо
     movl    %eax, %ecx      # save
     DBGOUT $subresult_draw_msg, %ecx
@@ -889,7 +889,7 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     DBGOUT $subresult_draw_msg, %eax
 
     #!проблема здесь, кажется
-    sall    $2, %eax        # сдвинуть все биты в eax на 2 разряда влево
+   // sall    $2, %eax        # сдвинуть все биты в eax на 2 разряда влево
     DBGOUT $subresult_draw_msg, %eax
 
     addl    %edx, %eax      # surface->pixels + result
@@ -899,7 +899,10 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     movl    %eax, -12(%ebp) # save in bufp
 
     movl    -12(%ebp), %eax # bufp
-    movl    -28(%ebp), %edx # color
+    movl    -28(%ebp), %edx # color -28(ebp) = surface->format
+    DBGOUT $result_draw_msg, %edx
+
+    #! обвал тут
     movl    %edx, (%eax)    # *bufp = color
 
     .LBE7:
