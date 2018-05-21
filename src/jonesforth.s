@@ -413,7 +413,7 @@ result_msg:
     .text
 
 
-defcode "GETPIX",6,, GETPIX
+defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
 
     .text
 
@@ -506,6 +506,7 @@ defcode "GETPIX",6,, GETPIX
     # Q: что здесь происходит?!
     # A: bpp, сохраненный в локальной переменной -16(ebp)
     #    умножается на [x], который в EAX
+
     #;; Здесь важно, что результат mull затирает EDX (!)
     mull    -16(%ebp)  # eax := x * bpp
 
@@ -540,6 +541,7 @@ defcode "GETPIX",6,, GETPIX
     # Перекладываем результат в локальную переменную -12(%ebp)
     movl    %eax, -12(%ebp) # *p в локальную переменную в стеке
 
+    # Инициализируем retval значением 0
     #;; -20(%ebp) = Uint32 retval = 0
     movl    $0, -20(%ebp)   # -20(%ebp) = Uint32 retval = 0
 
@@ -610,28 +612,48 @@ _default:                       #<--------------------|---+
     # =default                  #                     |
     movl    $0, -20(%ebp)       #                     |
 _endswitch:                     #<--------------------+
-    movl    12(%ebp), %edx  # EDX := Surface
-    DBGOUT $surface_msg, %edx  # выводим Surface
-    movl   %edx, %edi  #UNLOCK меняет регистры (точно не знаю какие, но edi не трогает). Так я сохраняю Surface
-    subl    $12, %esp
+    #;; SDL_UnlockSurface(Surface)
     push    %edx
     call SDL_UnlockSurface@PLT
-    addl    $16, %esp
-    movl   %edi, %edx   # восстанавливаю surface
-    DBGOUT $surface_msg, %edx #проверка
+    addl    $4, %esp
+
+    # SDL_Unlock меняет регистры
+    # Поэтому можно перенести извлечение Surface из параметра
+    # и отладочный вывод ниже чем SDL_Unlock
+
+    movl    12(%ebp), %edx      # EDX := Surface
+    DBGOUT $surface_msg, %edx   # выводим Surface
+
     # return retval
+    # Тут непонятно, зачем нам retval если мы с ним ничего не делаем
     movl    -20(%ebp), %eax
 
     movl    -4(%ebp), %ebx    #  ; restore EBX
     leave
-    DBGOUT $surface_msg, %edx
-    push   %edx # отправляем surface в стек здесь. В противном случае leave при pop ebp возьмет не ebp, а наш указатель, и след. функция его не увидит.
+
+    # отправляем surface в стек здесь. В противном случае leave
+    # при pop ebp возьмет не ebp, а наш указатель, и след. функция
+    # его не увидит.
+    push   %edx
+    # Я думаю, тут ошибка. Слово GETPIX должно принимать на вход
+    # поверхность и координаты икс и игрек, а возвращать значения
+    # цветовых составляющих в этой точке, как и указано в сигнатуре
+    # слова: ( surface x y --  r g b )
+    #
+    # Мы могли бы использовать функцию, обратную SDL_MapRGB, чтобы
+    # чтобы получить эти возвращаемые значения
+    #
+    # У нас же оно не только не вынимает параметры, но и накидывает
+    # сверху surface еще раз. И получается:
+    # ( surface x y -- surface x y surface )
+
+
     NEXT
 
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: GRAWPIX
+    # forth primitive: DRAWPIX
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
     .section .rodata # Read-Only data section for word "drawpix"
@@ -642,7 +664,11 @@ colors:
 surface_msg:
     .string ":: 0x%X = Surface \n"
 coordinats:
-    .string ":: %d = x, %d = y,\n"
+    .string ":: %d = x, %d = y \n"
+
+map_rgb_msg:
+    .string ":: 0x%X = RGB \n"
+
 
 subresult_draw_msg:
     .string ":: %d = subresult \n"
@@ -650,15 +676,23 @@ subresult_draw_msg:
 result_draw_msg:
     .string ":: %d = (surface->pixels) + (y*screen->pitch)/4 + x \n"
 
-defcode "DRAWPIX",7,, DRAWPIX
+    # Еще было бы логичнее, если бы surface шел первым параметром.
+    # Тогда бы мы могли получить его как возвращаемое значение
+    # слова SURFACE и сдублировать словом DUP необходимое количество
+    # раз для вызова таких слов как GETPIX и DRAWPIX. Иначе придется
+    # выполнять более сложные перестановки в стеке.
+
+    # Я отлаживал так: SDLINIT SDLWND SURFACE 7 5 FF 00 00 DRAWPIX
+
+defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
 
     .globl  _Z9DrawPixelP11SDL_Surfaceiihhh
     .type   _Z9DrawPixelP11SDL_Surfaceiihhh, @function
 
     # Принимает на входе 6 параметров
+    # - surface
     # - x
     # - y
-    # - surface
     # - Uint8 R
     # - Uint8 G
     # - Uint8 B - если  есть пролог (4 байта на сохранение EBP)
@@ -683,16 +717,14 @@ defcode "DRAWPIX",7,, DRAWPIX
     subl    $52, %esp
 //params
     movl    12(%ebp), %ecx #R  Тут происходит забирание параметров цвета и перекладывание их в локальные переменные.
-
-    movl    8(%ebp), %edx #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
-
-    movl    4(%ebp), %eax #B  которую стоит загуглить и которая превращает три параметра цвета в одно 32-битное значение
+    movl    8(%ebp), %edx  #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
+    movl    4(%ebp), %eax  #B  которую стоит загуглить и которая превращает три параметра цвета в одно 32-битное значение
     DBGOUT $colors, %edx, %ecx, %eax
 
     movl    20(%ebp), %eax # x
-    movl    16(%ebp), %ebx # y
+    movl    16(%ebp), %ecx # y
+    DBGOUT  $coordinats, %eax, %ecx
 
-    DBGOUT  $coordinats, %eax, %ebx
     #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
     movb    %cl, -44(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
     movb    %dl, -48(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
@@ -702,8 +734,7 @@ defcode "DRAWPIX",7,, DRAWPIX
     movzbl  -48(%ebp), %ecx
     movzbl  -44(%ebp), %edx
 
-    movl    24(%ebp), %eax # 24(ebp) = surface (на счет того что именно 12 я не уверен, но допустим), запомним это
-
+    movl    24(%ebp), %eax # 24(ebp) = surface, запомним это
     DBGOUT $surface_msg, %eax
 
     movl    4(%eax), %eax  # surface->format
@@ -715,6 +746,8 @@ defcode "DRAWPIX",7,, DRAWPIX
     call    SDL_MapRGB
     addl    $16, %esp
     movl    %eax, -28(%ebp)
+    DBGOUT $map_rgb_msg, %eax
+
 .LBB2:
     # switch ( screen->format->BytesPerPixel )
     movl    24(%ebp), %eax # surface
@@ -831,10 +864,10 @@ case_3:
     movb    %dl, (%eax)     #  bufp[2] = color >> 16
 .LBE6:
     jmp ret_fr_cases
-case_4:   # Uint32 *bufp = (Uint32 *)(surface->pixels) +
-                                    (y*screen->pitch)/4 + x
+case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
+          #                    (y*Surface->pitch)/4 + x
 
-    movl    24(%ebp), %eax   # surface
+    movl    24(%ebp), %eax  # surface
     movl    20(%eax), %edx  # surface->pixels
     DBGOUT $pixels_msg, %edx
 
