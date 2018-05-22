@@ -206,6 +206,13 @@ defcode "SDLQUIT",7,, SDLQUIT   # ( -- )
 
     .section .rodata # Read-Only data section for word "sdlwnd"
 
+# gWindow declaration
+    .align 4
+    .globl  gWindow
+    .type   gWindow, @object
+    .size   gWindow, 4
+gWindow:
+    .zero   4
 sdlwnd_header:
     .string "SDL Tutorial"
 sdlwnd_err_msg:
@@ -225,6 +232,7 @@ defcode "SDLWND",6,,SDLWND      # ( -- windescr )
     pushl   $sdlwnd_header      # addr of "SDL Tutorial" string
     call    SDL_CreateWindow
     addl    $24, %esp           # clear stack 6*4 bytes
+    movl    %eax, %edi
     testl   %eax, %eax          # check retval by NULL
     jne _sdlwnd_ret             #--+  # return window descriptor
     # ------------------------- #  |
@@ -238,14 +246,7 @@ _sdlwnd_failed_window:          #  |
 _sdlwnd_ret:   # <-----------------+
     # попытка занести значение в константу(переменную) и вывести его. DBGOUT не сработал, сказал, что у него такой инструкции.
    #проблема в этой строке
-  // movl %eax, WND_POINTER
-  //  movl $WND_POINTER, %ebx
-  // push %eax
-  //  push %ebx
-  //  push $sdlwnd_pointer
-  //  call printf
-
-    push    %eax
+    push %eax
     NEXT
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -884,14 +885,7 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     mull    16(%ebp)        # y*surface->pitch
     DBGOUT $y_mul_pitch_msg, %eax
 
-   /*
-   // leal    3(%eax), %ecx   # ?
-   // testl   %eax, %eax      # check
-   // cmovs   %ecx, %eax      # move r16,r/m16 if negative
-    sarl    $2, %eax        # сдвигаем все биты в eax на 2 разряда вправо
-    */
-
-    shr     $2, %eax        # (y*surface->pitch)/4
+    sarl     $2, %eax        # (y*surface->pitch)/4
     DBGOUT $y_mul_pitch_div_4_msg, %eax
 
     add     20(%ebp), %eax  # (y*surface->pitch)/4 + x
@@ -906,38 +900,32 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     #;; Выводим
     DBGOUT $result_draw_msg, %eax
 
-/*
-    movl    %eax, %ecx      # save
-    DBGOUT $subresult_draw_msg, %ecx
-
-    movl    20(%ebp), %eax  # x
-    addl    %ecx, %eax      # result + x
-    DBGOUT $subresult_draw_msg, %eax
-
-    #!проблема здесь, кажется
-   // sall    $2, %eax        # сдвинуть все биты в eax на 2 разряда влево
-    DBGOUT $subresult_draw_msg, %eax
-
-    addl    %edx, %eax      # surface->pixels + result
-
-    DBGOUT $result_draw_msg, %eax
-
     movl    %eax, -12(%ebp) # save in bufp
 
     movl    -12(%ebp), %eax # bufp
     movl    -28(%ebp), %edx # color -28(ebp) = surface->format
     DBGOUT $result_draw_msg, %edx
-*/
-    mov     $0xFFFFFFFF, %edx
-    #! обвал тут
+
+ //   mov     $0xFFFFFFFF, %edx
+
     movl    %edx, (%eax)    # *bufp = color
 
     .LBE7:
 ret_fr_cases:
     movl    -4(%ebp), %ebx # ? восстановление EBX который используется внутри функции
+    addl    $36, %esp
+    movl    24(%ebp), %edx
     leave
+    push    %edx
     NEXT
 
+
+defcode "UPDATESUR",9,,UPDATE
+
+    push    %edi
+    call	SDL_UpdateWindowSurface
+    addl    $4, %esp
+    NEXT
 
 
 ##############################################################
