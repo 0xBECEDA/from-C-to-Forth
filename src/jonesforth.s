@@ -928,7 +928,7 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     movl    -28(%ebp), %edx # color -28(ebp) = surface->format
     DBGOUT $result_draw_msg, %edx
 */
-    mov     $0xFFFFFFFF, %edx
+    mov      -28(%ebp), %edx
     #! обвал тут
     movl    %edx, (%eax)    # *bufp = color
 
