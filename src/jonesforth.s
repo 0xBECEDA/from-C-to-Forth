@@ -906,11 +906,11 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     movl    -28(%ebp), %edx # color -28(ebp) = surface->format
     DBGOUT $result_draw_msg, %edx
 
-=======
+#=======
 
     mov      -28(%ebp), %edx
     #! обвал тут
->>>>>>> 7bef6d1d82a43199fa0d30890a6ae893638c19fc
+#>>>>>>> 7bef6d1d82a43199fa0d30890a6ae893638c19fc
     movl    %edx, (%eax)    # *bufp = color
 
 .LBE7:
