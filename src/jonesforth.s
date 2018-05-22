@@ -206,13 +206,6 @@ defcode "SDLQUIT",7,, SDLQUIT   # ( -- )
 
     .section .rodata # Read-Only data section for word "sdlwnd"
 
-# gWindow declaration
-    .align 4
-    .globl  gWindow
-    .type   gWindow, @object
-    .size   gWindow, 4
-gWindow:
-    .zero   4
 sdlwnd_header:
     .string "SDL Tutorial"
 sdlwnd_err_msg:
@@ -232,7 +225,6 @@ defcode "SDLWND",6,,SDLWND      # ( -- windescr )
     pushl   $sdlwnd_header      # addr of "SDL Tutorial" string
     call    SDL_CreateWindow
     addl    $24, %esp           # clear stack 6*4 bytes
-    movl    %eax, %edi
     testl   %eax, %eax          # check retval by NULL
     jne _sdlwnd_ret             #--+  # return window descriptor
     # ------------------------- #  |
@@ -246,7 +238,7 @@ _sdlwnd_failed_window:          #  |
 _sdlwnd_ret:   # <-----------------+
     # попытка занести значение в константу(переменную) и вывести его. DBGOUT не сработал, сказал, что у него такой инструкции.
    #проблема в этой строке
-    push %eax
+    push    %eax
     NEXT
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -676,11 +668,6 @@ y_mul_pitch_div_4_msg:
 y_mul_pitch_div_4_plus_x_msg:
     .string ":: %d = (y*surface->pitch)/4 + x \n"
 
-
-subresult_draw_msg:
-    .string ":: %d = subresult \n"
-
-
 result_draw_msg:
     .string ":: 0x%X = (surface->pixels) + (y*screen->pitch)/4 + x \n"
 
@@ -693,9 +680,6 @@ result_draw_msg:
     # Я отлаживал так: SDLINIT SDLWND SURFACE 7 5 FF 00 00 DRAWPIX
 
 defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
-
-    .globl  _Z9DrawPixelP11SDL_Surfaceiihhh
-    .type   _Z9DrawPixelP11SDL_Surfaceiihhh, @function
 
     # Принимает на входе 6 параметров
     # - surface
@@ -885,7 +869,7 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     mull    16(%ebp)        # y*surface->pitch
     DBGOUT $y_mul_pitch_msg, %eax
 
-    sarl     $2, %eax        # (y*surface->pitch)/4
+    shrl    $2, %eax        # (y*surface->pitch)/4
     DBGOUT $y_mul_pitch_div_4_msg, %eax
 
     add     20(%ebp), %eax  # (y*surface->pitch)/4 + x
@@ -900,34 +884,30 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     #;; Выводим
     DBGOUT $result_draw_msg, %eax
 
-    movl    %eax, -12(%ebp) # save in bufp
-
-    movl    -12(%ebp), %eax # bufp
-    movl    -28(%ebp), %edx # color -28(ebp) = surface->format
-    DBGOUT $result_draw_msg, %edx
-
-#=======
-
+    #;; Извлекаем значение цвета в EDX
     mov      -28(%ebp), %edx
-    #! обвал тут
-#>>>>>>> 7bef6d1d82a43199fa0d30890a6ae893638c19fc
+
+    #;; Записываем его по полученному указателю
     movl    %edx, (%eax)    # *bufp = color
 
-.LBE7:
 ret_fr_cases:
     movl    -4(%ebp), %ebx # ? восстановление EBX который используется внутри функции
     addl    $36, %esp
     movl    24(%ebp), %edx
     leave
-    push    %edx
+    #;; Очищаем стек данных от всех параметров
+    add     $24, %esp           # 6*4 = 24
     NEXT
 
 
-defcode "UPDATESUR",9,,UPDATE
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+    # forth primitive: SDLUPD
+    # ~~~~~~~~~~~~~~~~~~~~~~~~
+defcode "SDLUPD",6,, SDLUPD     # (wnddescr -- )
+    .text
 
-    push    %edi
-    call	SDL_UpdateWindowSurface
-    addl    $4, %esp
+    call    SDL_UpdateWindowSurface
+    add     $4, %esp
     NEXT
 
 
