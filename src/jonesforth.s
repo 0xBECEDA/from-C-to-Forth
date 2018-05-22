@@ -669,12 +669,19 @@ coordinats:
 map_rgb_msg:
     .string ":: 0x%X = RGB \n"
 
+y_mul_pitch_div_4_msg:
+    .string ":: %d = (y*surface->pitch)/4 \n"
+
+y_mul_pitch_div_4_plus_x_msg:
+    .string ":: %d = (y*surface->pitch)/4 + x \n"
+
 
 subresult_draw_msg:
     .string ":: %d = subresult \n"
 
+
 result_draw_msg:
-    .string ":: %d = (surface->pixels) + (y*screen->pitch)/4 + x \n"
+    .string ":: 0x%X = (surface->pixels) + (y*screen->pitch)/4 + x \n"
 
     # Еще было бы логичнее, если бы surface шел первым параметром.
     # Тогда бы мы могли получить его как возвращаемое значение
@@ -877,10 +884,29 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     mull    16(%ebp)        # y*surface->pitch
     DBGOUT $y_mul_pitch_msg, %eax
 
+   /*
    // leal    3(%eax), %ecx   # ?
    // testl   %eax, %eax      # check
    // cmovs   %ecx, %eax      # move r16,r/m16 if negative
     sarl    $2, %eax        # сдвигаем все биты в eax на 2 разряда вправо
+    */
+
+    shr     $2, %eax        # (y*surface->pitch)/4
+    DBGOUT $y_mul_pitch_div_4_msg, %eax
+
+    add     20(%ebp), %eax  # (y*surface->pitch)/4 + x
+    DBGOUT $y_mul_pitch_div_4_plus_x_msg, %eax
+
+    #;; Вычисляем Surface->pixels
+    movl    24(%ebp), %edx # EВX := Surface
+    movl    20(%edx), %edx # EDX := Surface->pixels
+    #;; Прибавляем  Surface->pixels к EAX
+    add     %edx, %eax     # EAX := Surface->pixels
+                           #          + (y*surface->pitch)/4 + x
+    #;; Выводим
+    DBGOUT $result_draw_msg, %eax
+
+/*
     movl    %eax, %ecx      # save
     DBGOUT $subresult_draw_msg, %ecx
 
@@ -901,7 +927,8 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     movl    -12(%ebp), %eax # bufp
     movl    -28(%ebp), %edx # color -28(ebp) = surface->format
     DBGOUT $result_draw_msg, %edx
-
+*/
+    mov     $0xFFFFFFFF, %edx
     #! обвал тут
     movl    %edx, (%eax)    # *bufp = color
 
