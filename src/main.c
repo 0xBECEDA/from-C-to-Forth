@@ -21,6 +21,7 @@ SDL_Texture*  snake_texture = NULL;
 SDL_Texture*  field_texture = NULL;
 
 /* объявления функций */
+void hello_from_c_code ();
 bool init_sdl ();
 bool window ();
 bool surface ();
@@ -28,6 +29,12 @@ Uint32 getpixel ( SDL_Surface *surface, int x, int y );
 void DrawPixel ( SDL_Surface *screen, int x, int y, Uint8 R, Uint8 G, Uint8 B );
 void cppsdl ();
 int main ( int argc, char* args[] );
+
+void hello_from_c_code ()
+{
+    printf( ":: hello from c code (in src/mainc) ! \n" );
+}
+
 
 /* инициализация SDL */
 bool init_sdl ()
@@ -203,11 +210,10 @@ void cppsdl () {
 
 int main ( int argc, char* args[] )
 {
-    /*
-    __asm("call forth_asm_start");
-    */
 
     cppsdl();
+
+    __asm("call forth_asm_start");
 
     /* gameover_flag = 0; */
     /* int delay = 16; */

@@ -139,6 +139,13 @@ sdlinit_ok_msg:
     # text section for word "sdlinit"
     .text
 
+
+defcode "HELLO_FROM_C",12,, HELLO_FROM_C  # ( -- )
+    pusha
+    call    hello_from_c_code
+    popa
+    NEXT
+
 defcode "SDLINIT",7,, SDLINIT   # ( -- bool )
     # get of SDL_Version
     push    $version_of_SDL
