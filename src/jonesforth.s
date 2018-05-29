@@ -608,6 +608,8 @@ _default:                       #<--------------------|---+
     movl    $0, -20(%ebp)       #                     |
 _endswitch:                     #<--------------------+
     #;; SDL_UnlockSurface(Surface)
+    movl    12(%ebp), %edx   # у нас до этого изменился edx. См. 4 кейс и 521 строку
+
     push    %edx
     call SDL_UnlockSurface@PLT
     addl    $4, %esp
@@ -722,18 +724,19 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
     movl    4(%ebp), %eax  #B  которую стоит загуглить и которая превращает три параметра цвета в одно 32-битное значение
     DBGOUT $colors, %edx, %ecx, %eax
 
-    movl    20(%ebp), %eax # x
-    movl    16(%ebp), %ecx # y
-    DBGOUT  $coordinats, %eax, %ecx
+ //   movl    20(%ebp), %eax # x
+   // movl    16(%ebp), %ecx # y
+   // DBGOUT  $coordinats, %eax, %ecx
 
+    # ! Странность где-то здесь.
     #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
     movb    %cl, -44(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
     movb    %dl, -48(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
     movb    %al, -52(%ebp) #   идти в правильном порядке при вызове слова DRAWPIX.
 
-    movzbl  -52(%ebp), %ebx
-    movzbl  -48(%ebp), %ecx
-    movzbl  -44(%ebp), %edx
+    movzbl  -52(%ebp), %ebx # B
+    movzbl  -48(%ebp), %ecx # G
+    movzbl  -44(%ebp), %edx # R
 
     movl    24(%ebp), %eax # 24(ebp) = surface, запомним это
     DBGOUT $surface_msg, %eax
@@ -743,6 +746,8 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
     pushl   %ecx #G
     pushl   %edx #R
     pushl   %eax # screen->format
+
+    DBGOUT $colors, %ecx, %edx, %ebx
 
     call    SDL_MapRGB
     addl    $16, %esp
@@ -907,14 +912,22 @@ ret_fr_cases:
   # ;;  Очищаем стек данных от всех параметров
     add     $24, %esp           # 6*4 = 24
 
+    DBGOUT $surface_msg, %edx
     push    %edx
+
     NEXT
 
 
 defcode "UPDATESUR",9,,UPDATE
 
+
     call	SDL_UpdateWindowSurface
-    addl    $4, %esp
+
+    pop     %edx
+    DBGOUT $surface_msg, %edx
+
+    push    %edx  # новый указатель на поверхность!
+
     NEXT
 
 
