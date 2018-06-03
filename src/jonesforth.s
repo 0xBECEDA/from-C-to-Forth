@@ -404,6 +404,9 @@ subresult_msg:
 result_msg:
     .string ":: 0x%X = Surface->pixels + (y * Surface->pitch) + (x * bpp) \n"
 
+color:
+    .string ":: %d = color \n"
+
     # text section for word "getpix"
     .text
 
@@ -600,7 +603,9 @@ _fourth:                        #<----------+         |   |
     # =4 | retval = *(Uint32 *)p#                     |   |
     movl    -12(%ebp), %eax     #                     |   |
     movl    (%eax), %eax        #                     |   |
+    DBGOUT  $color, %eax
     movl    %eax, -20(%ebp)     #                     |   |
+    DBGOUT  $color, %eax
     jmp _endswitch              #                     |   |
     # =-------------------------#--------------(end)--+   |
 _default:                       #<--------------------|---+
@@ -613,8 +618,7 @@ _endswitch:                     #<--------------------+
     push    %edx
     call SDL_UnlockSurface@PLT
     addl    $4, %esp
-
-    # SDL_Unlock меняет регистры
+       # SDL_Unlock меняет регистры
     # Поэтому можно перенести извлечение Surface из параметра
     # и отладочный вывод ниже чем SDL_Unlock
 
@@ -623,16 +627,17 @@ _endswitch:                     #<--------------------+
 
     # return retval
     # Тут непонятно, зачем нам retval если мы с ним ничего не делаем
-    movl    -20(%ebp), %eax
-
     movl    -4(%ebp), %ebx    #  ; restore EBX
     leave
     addl     $12, %esp
 
+    pop      %ecx   # - взяли указатель на wnd
+    push     %eax   # - пушнули цвет
+    push     %ecx   # - пушнули укзаатель на wnd
     # отправляем surface в стек здесь. В противном случае leave
     # при pop ebp возьмет не ebp, а наш указатель, и след. функция
     # его не увидит.
-    push   %edx
+    push   %edx     # - пушнули указатель на поверхность
     # Я думаю, тут ошибка. Слово GETPIX должно принимать на вход
     # поверхность и координаты икс и игрек, а возвращать значения
     # цветовых составляющих в этой точке, как и указано в сигнатуре
@@ -902,6 +907,7 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
    # ;;  Извлекаем значение цвета в EDX
 
     mov      -28(%ebp), %edx
+    DBGOUT    $color,   %edx
     movl    %edx, (%eax)    # *bufp = color
 
 .LBE7:
@@ -926,7 +932,7 @@ defcode "UPDATESUR",9,,UPDATE
     pop     %edx
     DBGOUT $surface_msg, %edx
 
-    push    %edx  # новый указатель на поверхность!
+    push    %edx  # новый указатель на окно!
 
     NEXT
 
