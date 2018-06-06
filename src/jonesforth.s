@@ -205,6 +205,8 @@ defcode "SDLQUIT",7,, SDLQUIT   # ( -- )
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
     .section .rodata # Read-Only data section for word "sdlwnd"
+wnd_msg:
+    .string ":: 0x%X = wnd \n"
 
 sdlwnd_header:
     .string "SDL Tutorial"
@@ -238,8 +240,7 @@ _sdlwnd_failed_window:          #  |
     addl    $8, %esp            #  |
     xor     %eax, %eax          #  |  # return false
 _sdlwnd_ret:   # <-----------------+
-    # попытка занести значение в константу(переменную) и вывести его. DBGOUT не сработал, сказал, что у него такой инструкции.
-   #проблема в этой строке
+
     push %eax
     NEXT
 
@@ -470,7 +471,7 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     movl    4(%ebp), %eax
     DBGOUT  $y_msg, %eax
 
-    # Начинается вычисление
+    # Начинается вычисление адреса пикселя, который мы хотим вернуть
     # Uint8 *p =
     #    (Uint8 *)Surface->pixels
     #        + y *  Surface->pitch
@@ -723,17 +724,77 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
 
     pushl   %ebx # мы сохраняли (и восстанавливали при выходе) EBX потому что использовали его чтобы адресоваться к GOT
     subl    $52, %esp
-//params
+
+    movl    24(%ebp), %eax   # EAX := Surface
+    movl    4(%eax), %eax    # Surface->format
+    movzbl  9(%eax), %eax    # Surface->format->BytesPerPixel
+    movzbl  %al, %eax        # eax = bpp
+    movl    %eax, -16(%ebp)  # сохраняем -16(%ebp) = int bpp
+
+
+    # Вычислим адрес пикеля,в который записываем цвет
+    # Uint8 *p =
+    #    (Uint8 *)Surface->pixels
+    #        + y *  Surface->pitch
+    #        + x * bpp
+
+    # ;; Сначала вычислим Surface->pitch
+    movl    24(%ebp), %eax # EAX := Surface
+    movl    16(%eax), %eax # EAX := Surface->pitch
+
+    #;; dbgout [Surface->pitch]
+    DBGOUT  $pitch_msg, %eax
+
+    #;; Здесь важно, что результат mull затирает EDX (!)
+    mull    16(%ebp) # eax := y * Surface->pitch
+    movl    %eax, %ecx  # сохранить результат в ECX
+
+    #;; dbgout [y * Surface->pitch]
+    DBGOUT  $y_mul_pitch_msg, %ecx
+
+    # поместить X в eax
+    movl    20(%ebp), %eax
+
+    #;; dbgout [x]
+    DBGOUT   $x_msg, %eax
+
+    #;; Здесь важно, что результат mull затирает EDX (!)
+    mull    -16(%ebp)  # eax := x * bpp
+
+    #;; dbgout [x * bpp]
+    DBGOUT   $x_mul_bpp_msg, %eax
+
+    addl    %ecx, %eax # (y * Surface->pitch) + (x * bpp)
+
+    #;; dbgout [ (y * Surface->pitch) + (x * bpp) ]
+    DBGOUT  $subresult_msg, %eax
+
+    #;; Вычисляем Surface->pixels
+    movl    24(%ebp), %edx # EAX := Surface
+    movl    20(%edx), %edx # EDX := (Uint8 *)Surface->pixels
+
+    #;; dbgout [Surface->pixels]
+    DBGOUT  $pixels_msg, %edx
+
+    # Cкладываем subresult с (Uint8 *)Surface->pixels
+    addl    %edx, %eax # (Uint8 *)Surface->pixels+subresult
+
+    # Выводим получившийся резульат
+    # dbgout Uint8 *p =
+    #            (Uint8 *)Surface->pixels
+    #                + y * Surface->pitch
+    #                + x * bpp
+    DBGOUT  $result_msg, %eax
+
+    # Перекладываем результат в локальную переменную -12(%ebp)
+  //  movl    %eax, -12(%ebp) # *p в локальную переменную в стеке
+
+    //params
     movl    12(%ebp), %ecx #R  Тут происходит забирание параметров цвета и перекладывание их в локальные переменные.
     movl    8(%ebp), %edx  #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
     movl    4(%ebp), %eax  #B  которую стоит загуглить и которая превращает три параметра цвета в одно 32-битное значение
     DBGOUT $colors, %edx, %ecx, %eax
 
- //   movl    20(%ebp), %eax # x
-   // movl    16(%ebp), %ecx # y
-   // DBGOUT  $coordinats, %eax, %ecx
-
-    # ! Странность где-то здесь.
     #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
     movb    %cl, -44(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
     movb    %dl, -48(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
@@ -761,6 +822,7 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
 
 .LBB2:
     # switch ( screen->format->BytesPerPixel )
+    # выясняем, сколько бит приходится на пиксель. В зависимости от этого будем записывать цвет особым образом.
     movl    24(%ebp), %eax # surface
     movl    4(%eax), %eax  # surface->format
     movzbl  9(%eax), %eax  # surface->format->BytesPerPixel
@@ -910,6 +972,10 @@ case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
     DBGOUT    $color,   %edx
     movl    %edx, (%eax)    # *bufp = color
 
+    movl    (%eax), %eax
+    DBGOUT  $color, %eax
+
+
 .LBE7:
 ret_fr_cases:
     movl    -4(%ebp), %ebx # ? восстановление EBX который используется внутри функции
@@ -930,7 +996,7 @@ defcode "UPDATESUR",9,,UPDATE
     call	SDL_UpdateWindowSurface
 
     pop     %edx
-    DBGOUT $surface_msg, %edx
+    DBGOUT $wnd_msg, %edx
 
     push    %edx  # новый указатель на окно!
 
