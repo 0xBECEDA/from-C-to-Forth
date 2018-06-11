@@ -424,7 +424,7 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     push    %ebx
 
     #;; reservation for locals
-    subl    $20, %esp
+    subl    $24, %esp
 
     #;; EBX is _GOT now
     call    __x86.get_pc_thunk.bx
@@ -461,36 +461,38 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     movl    4(%eax), %eax    # Surface->format
     movzbl  9(%eax), %eax    # Surface->format->BytesPerPixel
     movzbl  %al, %eax        # eax = bpp
-    movl    %eax, -16(%ebp)  # сохраняем -16(%ebp) = int bpp
+    movl    %eax, -20(%ebp)  # сохраняем -20(%ebp) = int bpp
 
     #;; dbgout [bpp]
-    mov     -16(%ebp), %eax
+    mov     -20(%ebp), %eax
     DBGOUT  $bpp_msg, %eax
 
     #;; dbgout [y]
     movl    4(%ebp), %eax
     DBGOUT  $y_msg, %eax
 
+//  Uint32 ppr = gScreenSurface->pitch/bpp;
+    movl    12(%ebp), %eax    # surface
+	movl	16(%eax), %eax    # gScreenSurface->pitch
+    cltd                      # преведение к типу, кажется
+	idivl	-20(%ebp)         # gScreenSurface->pitch/bpp
+	movl	%eax, -16(%ebp)   # ppr
+
+
     # Начинается вычисление адреса пикселя, который мы хотим вернуть
     # Uint8 *p =
     #    (Uint8 *)Surface->pixels
-    #        + y *  Surface->pitch
-    #        + x * bpp
-
-    # ;; Сначала вычислим Surface->pitch
-    movl    12(%ebp), %eax # EAX := Surface
-    movl    16(%eax), %eax # EAX := Surface->pitch
+    #        + (y * ppr + x) * bpp
 
     #;; dbgout [Surface->pitch]
-    DBGOUT  $pitch_msg, %eax
+    #  DBGOUT  $pitch_msg, %eax
 
-    # Q: что здесь происходит?!
-    # A: координата Y умножается на кол-во Surface->pitch
-    #    т.е. на "length of a row of pixels in bytes",
-    #    как написано в https://wiki.libsdl.org/SDL_Surface
+    #  координата Y умножается на кол-во Surface->pitch
+    #    т.е. на "length of a row of pixels in bytes"
 
     #;; Здесь важно, что результат mull затирает EDX (!)
-    mull    4(%ebp) # eax := y * Surface->pitch
+    movl    -16(%ebp), %eax # ppr
+    mull    4(%ebp) # eax := y * ppr
     movl    %eax, %ecx  # сохранить результат в ECX
 
     #;; dbgout [y * Surface->pitch]
@@ -502,33 +504,24 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     #;; dbgout [x]
     DBGOUT   $x_msg, %eax
 
-    # Q: что здесь происходит?!
-    # A: bpp, сохраненный в локальной переменной -16(ebp)
-    #    умножается на [x], который в EAX
-
-    #;; Здесь важно, что результат mull затирает EDX (!)
-    mull    -16(%ebp)  # eax := x * bpp
+    #    (y * ppr + x )
+    addl	%eax, %ecx
 
     #;; dbgout [x * bpp]
-    DBGOUT   $x_mul_bpp_msg, %eax
+    DBGOUT   $x_mul_bpp_msg, %ecx
 
-    # Q: что здесь происходит?!
-    # A: результаты двух предыдущих подготовительных операций
-    #    складываются, получается "subresult"
-    addl    %ecx, %eax # (y * Surface->pitch) + (x * bpp)
+    movl	-20(%ebp), %eax  # bpp
+	imull	%ecx, %eax       # (y * ppr + x )* bpp
 
-    #;; dbgout [ (y * Surface->pitch) + (x * bpp) ]
-    DBGOUT  $subresult_msg, %eax
-
-    #;; Вычисляем Surface->pixels
     movl    12(%ebp), %edx # EAX := Surface
     movl    20(%edx), %edx # EDX := (Uint8 *)Surface->pixels
 
     #;; dbgout [Surface->pixels]
     DBGOUT  $pixels_msg, %edx
 
-    # Cкладываем subresult с (Uint8 *)Surface->pixels
-    addl    %edx, %eax # (Uint8 *)Surface->pixels+subresult
+    addl	%edx, %eax       # gScreenSurface->pixels
+                             #              + (y * ppr + x )* bpp
+	movl	%eax, -12(%ebp)  # *p
 
     # Выводим получившийся резульат
     # dbgout Uint8 *p =
@@ -541,11 +534,11 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     movl    %eax, -12(%ebp) # *p в локальную переменную в стеке
 
     # Инициализируем retval значением 0
-    #;; -20(%ebp) = Uint32 retval = 0
-    movl    $0, -20(%ebp)   # -20(%ebp) = Uint32 retval = 0
+    #;; -24(%ebp) = Uint32 retval = 0
+    movl    $0, -24(%ebp)   # -24(%ebp) = Uint32 retval = 0
 
-    #;; switch ( -16(ebp) = bpp )
-    movl    -16(%ebp), %eax # поместить результат bpp в eax
+    #;; switch ( -20(ebp) = bpp )
+    movl    -20(%ebp), %eax # поместить результат bpp в eax
 
     #;; switch
     cmpl    $2, %eax
@@ -569,7 +562,7 @@ _first:                         #<----|-|-+ |             |
     movl    -12(%ebp), %eax     #     | |   |             |
     movzbl  (%eax), %eax        #     | |   |             |
     movzbl  %al, %eax           #     | |   |             |
-    movl    %eax, -20(%ebp)     #     | |   |             |
+    movl    %eax, -24(%ebp)     #     | |   |             |
     jmp _endswitch              #     | |   |             |
     # --------------------------#-----|-|---|--(end)--+   |
 _second:                        #<----|-+   |         |   |
@@ -577,7 +570,7 @@ _second:                        #<----|-+   |         |   |
     movl    -12(%ebp), %eax     #     |     |         |   |
     movzwl  (%eax), %eax        #     |     |         |   |
     movzwl  %ax, %eax           #     |     |         |   |
-    movl    %eax, -20(%ebp)     #     |     |         |   |
+    movl    %eax, -24(%ebp)     #     |     |         |   |
     jmp _endswitch              #     |     |         |   |
     # ---=----------------------#-----|-----|--(end)--+   |
 _third:                         #<----+     |         |   |
@@ -597,7 +590,7 @@ _third:                         #<----+     |         |   |
     movzbl  %al, %eax           #           |         |   |
     sall    $16, %eax           #           |         |   |
     orl %edx, %eax              #           |         |   |
-    movl    %eax, -20(%ebp)     #           |         |   |
+    movl    %eax, -24(%ebp)     #           |         |   |
     jmp _endswitch              #           |         |   |
     # --------------------------#-----------|--(end)--+   |
 _fourth:                        #<----------+         |   |
@@ -605,13 +598,13 @@ _fourth:                        #<----------+         |   |
     movl    -12(%ebp), %eax     #                     |   |
     movl    (%eax), %eax        #                     |   |
     DBGOUT  $color, %eax
-    movl    %eax, -20(%ebp)     #                     |   |
+    movl    %eax, -24(%ebp)     #                     |   |
     DBGOUT  $color, %eax
     jmp _endswitch              #                     |   |
     # =-------------------------#--------------(end)--+   |
 _default:                       #<--------------------|---+
     # =default                  #                     |
-    movl    $0, -20(%ebp)       #                     |
+    movl    $0, -24(%ebp)       #                     |
 _endswitch:                     #<--------------------+
     #;; SDL_UnlockSurface(Surface)
     movl    12(%ebp), %edx   # у нас до этого изменился edx. См. 4 кейс и 521 строку
@@ -627,7 +620,6 @@ _endswitch:                     #<--------------------+
     DBGOUT $surface_msg, %edx   # выводим Surface
 
     # return retval
-    # Тут непонятно, зачем нам retval если мы с ним ничего не делаем
     movl    -4(%ebp), %ebx    #  ; restore EBX
     leave
     addl     $12, %esp
@@ -724,71 +716,6 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
 
     pushl   %ebx # мы сохраняли (и восстанавливали при выходе) EBX потому что использовали его чтобы адресоваться к GOT
     subl    $52, %esp
-
-    movl    24(%ebp), %eax   # EAX := Surface
-    movl    4(%eax), %eax    # Surface->format
-    movzbl  9(%eax), %eax    # Surface->format->BytesPerPixel
-    movzbl  %al, %eax        # eax = bpp
-    movl    %eax, -16(%ebp)  # сохраняем -16(%ebp) = int bpp
-
-
-    # Вычислим адрес пикеля,в который записываем цвет
-    # Uint8 *p =
-    #    (Uint8 *)Surface->pixels
-    #        + y *  Surface->pitch
-    #        + x * bpp
-
-    # ;; Сначала вычислим Surface->pitch
-    movl    24(%ebp), %eax # EAX := Surface
-    movl    16(%eax), %eax # EAX := Surface->pitch
-
-    #;; dbgout [Surface->pitch]
-    DBGOUT  $pitch_msg, %eax
-
-    #;; Здесь важно, что результат mull затирает EDX (!)
-    mull    16(%ebp) # eax := y * Surface->pitch
-    movl    %eax, %ecx  # сохранить результат в ECX
-
-    #;; dbgout [y * Surface->pitch]
-    DBGOUT  $y_mul_pitch_msg, %ecx
-
-    # поместить X в eax
-    movl    20(%ebp), %eax
-
-    #;; dbgout [x]
-    DBGOUT   $x_msg, %eax
-
-    #;; Здесь важно, что результат mull затирает EDX (!)
-    mull    -16(%ebp)  # eax := x * bpp
-
-    #;; dbgout [x * bpp]
-    DBGOUT   $x_mul_bpp_msg, %eax
-
-    addl    %ecx, %eax # (y * Surface->pitch) + (x * bpp)
-
-    #;; dbgout [ (y * Surface->pitch) + (x * bpp) ]
-    DBGOUT  $subresult_msg, %eax
-
-    #;; Вычисляем Surface->pixels
-    movl    24(%ebp), %edx # EAX := Surface
-    movl    20(%edx), %edx # EDX := (Uint8 *)Surface->pixels
-
-    #;; dbgout [Surface->pixels]
-    DBGOUT  $pixels_msg, %edx
-
-    # Cкладываем subresult с (Uint8 *)Surface->pixels
-    addl    %edx, %eax # (Uint8 *)Surface->pixels+subresult
-
-    # Выводим получившийся резульат
-    # dbgout Uint8 *p =
-    #            (Uint8 *)Surface->pixels
-    #                + y * Surface->pitch
-    #                + x * bpp
-    DBGOUT  $result_msg, %eax
-
-    # Перекладываем результат в локальную переменную -12(%ebp)
-  //  movl    %eax, -12(%ebp) # *p в локальную переменную в стеке
-
     //params
     movl    12(%ebp), %ecx #R  Тут происходит забирание параметров цвета и перекладывание их в локальные переменные.
     movl    8(%ebp), %edx  #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
