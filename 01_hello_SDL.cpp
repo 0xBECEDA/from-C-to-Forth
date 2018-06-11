@@ -149,7 +149,9 @@ int main( int argc, char* args[] )
 
     getpix (Surface, 20, 150);
 
-    setpix(Surface, 100, 150, 255, 0, 0);
+    setpix (Surface, 100, 150, 255, 0, 0);
+
+    printf("= 0x%X\n", getpix (Surface, 100, 150));
 
     SDL_UpdateWindowSurface( Window );
 
