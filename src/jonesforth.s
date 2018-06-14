@@ -454,7 +454,7 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     call    SDL_LockSurface # залочили поверхность
     addl    $4, %esp #  очистили стек
 
-    #;; -16(%ebp)
+    #;; -20(%ebp)
     #;;     = int bpp
     #;;     = Surface->format->BytesPerPixel
     movl    12(%ebp), %eax   # EAX := Surface
@@ -484,18 +484,14 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     #    (Uint8 *)Surface->pixels
     #        + (y * ppr + x) * bpp
 
-    #;; dbgout [Surface->pitch]
-    #  DBGOUT  $pitch_msg, %eax
 
-    #  координата Y умножается на кол-во Surface->pitch
-    #    т.е. на "length of a row of pixels in bytes"
-
+    #По правилам сначала нужно вычислить Surface->pixels, но следующие    # вычисления все равно затрут этот адрес, поэтому я его вычислю       # перед непосредственным использованием.
     #;; Здесь важно, что результат mull затирает EDX (!)
     movl    -16(%ebp), %eax # ppr
     mull    4(%ebp) # eax := y * ppr
     movl    %eax, %ecx  # сохранить результат в ECX
 
-    #;; dbgout [y * Surface->pitch]
+    #;; dbgout [y * ppr]
     DBGOUT  $y_mul_pitch_msg, %ecx
 
     # поместить X в eax
@@ -513,7 +509,7 @@ defcode "GETPIX",6,, GETPIX     # ( surface x y -- r g b )
     movl	-20(%ebp), %eax  # bpp
 	imull	%ecx, %eax       # (y * ppr + x )* bpp
 
-    movl    12(%ebp), %edx # EAX := Surface
+    movl    12(%ebp), %edx # EDX := Surface
     movl    20(%edx), %edx # EDX := (Uint8 *)Surface->pixels
 
     #;; dbgout [Surface->pixels]
@@ -671,13 +667,19 @@ y_mul_pitch_div_4_msg:
 y_mul_pitch_div_4_plus_x_msg:
     .string ":: %d = (y*surface->pitch)/4 + x \n"
 
+braces:
+    .string ":: %d = (y*ppr + x) \n"
 
 subresult_draw_msg:
-    .string ":: %d = subresult \n"
+    .string ":: %d = subresult draw \n"
+bpp:
+    .string ":: %d = bpp \n"
 
+ppr:
+    .string ":: %d = ppr \n"
 
 result_draw_msg:
-    .string ":: 0x%X = (surface->pixels) + (y*screen->pitch)/4 + x \n"
+    .string ":: 0x%X = (surface->pixels) + (y*ppr + x) *bpp \n"
 
     # Еще было бы логичнее, если бы surface шел первым параметром.
     # Тогда бы мы могли получить его как возвращаемое значение
@@ -715,7 +717,7 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
     movl    %esp, %ebp
 
     pushl   %ebx # мы сохраняли (и восстанавливали при выходе) EBX потому что использовали его чтобы адресоваться к GOT
-    subl    $52, %esp
+    subl    $36, %esp
     //params
     movl    12(%ebp), %ecx #R  Тут происходит забирание параметров цвета и перекладывание их в локальные переменные.
     movl    8(%ebp), %edx  #G  Эту часть вполне можно соптимизировать, потому что делается это для функции SDL_MapRGB
@@ -723,13 +725,13 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
     DBGOUT $colors, %edx, %ecx, %eax
 
     #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
-    movb    %cl, -44(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
-    movb    %dl, -48(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
-    movb    %al, -52(%ebp) #   идти в правильном порядке при вызове слова DRAWPIX.
+    movb    %cl, -28(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
+    movb    %dl, -32(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
+    movb    %al, -36(%ebp) #   идти в правильном порядке при вызове слова DRAWPIX.
 
-    movzbl  -52(%ebp), %ebx # B
-    movzbl  -48(%ebp), %ecx # G
-    movzbl  -44(%ebp), %edx # R
+    movzbl  -36(%ebp), %ebx # B
+    movzbl  -32(%ebp), %ecx # G
+    movzbl  -28(%ebp), %edx # R
 
     movl    24(%ebp), %eax # 24(ebp) = surface, запомним это
     DBGOUT $surface_msg, %eax
@@ -744,17 +746,67 @@ defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
 
     call    SDL_MapRGB
     addl    $16, %esp
-    movl    %eax, -28(%ebp)
+    movl    %eax, -24(%ebp)
     DBGOUT $map_rgb_msg, %eax
 
 .LBB2:
-    # switch ( screen->format->BytesPerPixel )
+    // bpp = screen->format->BytesPerPixel
     # выясняем, сколько бит приходится на пиксель. В зависимости от этого будем записывать цвет особым образом.
     movl    24(%ebp), %eax # surface
     movl    4(%eax), %eax  # surface->format
     movzbl  9(%eax), %eax  # surface->format->BytesPerPixel
     movzbl  %al, %eax      # BytesPerPixel (кажется эта строчка лишняя, ведь у нас уже был movzbl)
-//cases
+    movl	%eax, -20(%ebp)
+
+    DBGOUT $bpp, %eax
+
+    //Surface->pitch/bpp
+    movl	24(%ebp), %eax
+	movl	16(%eax), %eax
+	cltd
+	idivl	-20(%ebp)
+	movl	%eax, -16(%ebp)
+
+    DBGOUT $ppr, %eax
+
+    //Uint8 *bufp  = (Uint8 *)Surface->pixels + (y*ppr + x) * bpp;
+
+    movl	16(%ebp), %eax  # y
+
+    DBGOUT  $y_msg, %eax
+
+	imull	-16(%ebp), %eax # y*ppr
+	movl	%eax, %ecx      # save
+
+    DBGOUT  $y_mul_pitch_msg, %ecx
+
+	movl	20(%ebp), %eax  # x
+
+    DBGOUT  $x_msg, %eax
+
+    addl	%eax, %ecx      # y*ppr + x
+
+    DBGOUT  $braces, %ecx
+
+	movl	-20(%ebp), %eax # bpp
+	imull	%ecx, %eax      # (y*ppr + x) * bpp
+
+    DBGOUT $subresult_draw_msg, %eax
+    #Surface->pixels
+    movl	24(%ebp), %edx
+	movl	20(%edx), %edx
+
+   // DGBOUT $pixels_msg, %edx
+
+    addl	%edx, %eax      # Surface->pixels + (y*ppr + x) * bpp
+	movl	%eax, -12(%ebp) # bufp
+
+    DBGOUT  $result_msg, %eax
+
+    # switch (bpp)
+
+    movl	-20(%ebp), %eax # bpp
+
     cmpl    $2, %eax
     je  case_2
     jg  third_or_fotrh
@@ -773,131 +825,57 @@ third_or_fotrh:
     jmp ret_fr_cases
 case_1:
 
-    movl    24(%ebp), %eax  # surface
-    movl    20(%eax), %ebx # EBX := surface->pixels
+    # *(Uint8 *)bufp = color
 
-    movl    16(%eax), %eax # EAX := surface->pitch
-
-    DBGOUT  $pitch_msg, %eax
-    mull    16(%ebp)       # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
-    movl    %eax, %ecx     # ECX := y * surface->pitch
-
-    DBGOUT $y_mul_pitch_msg, %ecx
-
-    movl    20(%ebp), %eax # x
-    addl    %ecx, %eax     # (y*surface->pitch) + x
-    addl    %ebx, %eax     # surface->pixels + ((y*surface->pitch) + x)
-                           # Возможно проще было бы сначала сложить (surface->pixels + x), а
-                           # потом прибавить к результу (y*surface->pitch) но это надо проверить
-
-    movl    %eax, -24(%ebp) # *bufp = result (1)
-    movl    -28(%ebp), %edx # color
-    movl    -24(%ebp), %eax # *bufp (2)
-                            # (1) и (2) образуют тавтологию
+    movl	-24(%ebp), %eax # color
+	movl	%eax, %edx
+    movl    -12(%ebp), %eax # *bufp
     movb    %dl, (%eax)     # *bufp = color
 .LBE4:
     jmp ret_fr_cases
+
 case_2:
-    movl    24(%ebp), %eax   # surface
-    movl    20(%eax), %edx  # surface->pixels
-    movl    16(%eax), %eax  # surface->pitch
+   # *(Uint16 *)bufp = color
 
-    DBGOUT  $pitch_msg, %eax
+    movl	-24(%ebp), %eax # color
+	movl	%eax, %edx
+	movl	-12(%ebp), %eax  # *bufp
+	movw	%dx, (%eax)      # *bufp = color
 
-    mull    16(%ebp)        # y * surface->pitch # проверить, что 16(ebp) - это именно [y]
-
-    movl    %eax, %ecx      # ECX := y * surface->pitch
-    DBGOUT $y_mul_pitch_msg, %ecx
-
-    shrl    $31, %ecx       # двигаем байт, чтоб сохранить знак
-    addl    %ecx, %eax      # знак  + (y*surface->pitch)
-    sarl    %eax            # (y*surface->pitch) / 2
-    movl    %eax, %ecx      # save result
-
-    movl    20(%ebp), %eax  # x
-    addl    %ecx, %eax      # (y*surface->pitch/2) + x
-    addl    %eax, %eax      # ?
-    movl    %eax, -20(%ebp) # *bufp = save result
-
-    movl    -28(%ebp), %eax # color
-    movl    %eax, %edx      #
-    movl    -20(%ebp), %eax # *bufp
-    movw    %dx, (%eax)     # *bufp = color
 .LBE5:
     jmp ret_fr_cases
 
 case_3:
-    movl    24(%ebp), %eax  #  surface
-    movl    20(%eax), %ecx # surface->pixels
-    movl    16(%eax), %eax # surface->pitch
-    DBGOUT  $pitch_msg, %eax
+    # if(SDL_BYTEORDER == SDL_LIL_ENDIAN)
 
-    mull    16(%ebp)       # y * surface->pitch
-    movl    %eax, %ebx     # EBX := y * surface->pitch
-    DBGOUT $y_mul_pitch_msg, %ebx
+    movl	-24(%ebp), %eax
+	movl	%eax, %edx
+	movl	-12(%ebp), %eax
+	movb	%dl, (%eax)
 
-    movl    20(%ebp), %edx # х
-    movl    %edx, %eax     # x
-    addl    %eax, %eax     # x + x
-    addl    %edx, %eax     # 2x + x
-    addl    %ebx, %eax     # saved result + 3x
-    addl    %ecx, %eax     # surface->pixels + new result
-    movl    %eax, -16(%ebp) # save
+	movl	-12(%ebp), %eax
+	addl	$1, %eax
+	movl	-24(%ebp), %edx
+	shrl	$8, %edx
+	movb	%dl, (%eax)
 
-   //  if(SDL_BYTEORDER == SDL_LIL_ENDIAN)
+	movl	-12(%ebp), %eax
+	addl	$2, %eax
+	movl	-24(%ebp), %edx
+	shrl	$16, %edx
+	movb	%dl, (%eax)
 
-    movl    -28(%ebp), %eax # color
-    movl    %eax, %edx
-    movl    -16(%ebp), %eax # *bufp
-    movb    %dl, (%eax)     # bufp[0] = color
-
-    movl    -16(%ebp), %eax # *bufp
-    addl    $1, %eax        #  bufp[1]
-    movl    -28(%ebp), %edx #  color
-    shrl    $8, %edx        # color >> 8
-    movb    %dl, (%eax)     # bufp[1] = color >> 8
-
-    movl    -16(%ebp), %eax # bufp
-    addl    $2, %eax        # bufp[2]
-    movl    -28(%ebp), %edx # color
-    shrl    $16, %edx       # color >> 16
-    movb    %dl, (%eax)     #  bufp[2] = color >> 16
 .LBE6:
     jmp ret_fr_cases
-case_4:   # Uint32 *bufp = (Uint32 *)(Surface->pixels) +
-          #                    (y*Surface->pitch)/4 + x
+case_4:
 
-    movl    24(%ebp), %eax  # surface
-    movl    20(%eax), %edx  # surface->pixels
-    DBGOUT $pixels_msg, %edx
-
-    movl    16(%eax), %eax  # surface->pitch
-    DBGOUT  $pitch_msg, %eax
-
-    mull    16(%ebp)        # y*surface->pitch
-    DBGOUT $y_mul_pitch_msg, %eax
-
-    shrl     $2, %eax        # (y*surface->pitch)/4
-    DBGOUT $y_mul_pitch_div_4_msg, %eax
-
-    add     20(%ebp), %eax  # (y*surface->pitch)/4 + x
-    DBGOUT $y_mul_pitch_div_4_plus_x_msg, %eax
-
-    #;; Вычисляем Surface->pixels
-    movl    24(%ebp), %edx # EВX := Surface
-    movl    20(%edx), %edx # EDX := Surface->pixels
-    #;; Прибавляем  Surface->pixels к EAX
-    add     %edx, %eax     # EAX := Surface->pixels
-                           #          + (y*surface->pitch)/4 + x
-    #;; Выводим
-    DBGOUT $result_draw_msg, %eax
+    # *(Uint32 *)bufp = color
+    movl	-12(%ebp), %eax # bufp
+	movl	-24(%ebp), %edx # color
+	movl	%edx, (%eax)    # bufp = color
 
 #=======
-   # ;;  Извлекаем значение цвета в EDX
-
-    mov      -28(%ebp), %edx
-    DBGOUT    $color,   %edx
-    movl    %edx, (%eax)    # *bufp = color
+   # ;;  Извлекаем (проверяем) значение цвета в EDX
 
     movl    (%eax), %eax
     DBGOUT  $color, %eax
