@@ -1,3 +1,9 @@
+/*
+
+SDLINIT SDLWND DUP SURFACE 20 40 FF 00 00 DRAWPIX SWAP UPDATESUR SWAP 20 40 GETPIX 5000 DELAY SDLQUIT
+
+*/
+
 .set F_IMMED,0x80
 .set F_HIDDEN,0x20
 .set F_LENMASK,0x1f  # length mask
@@ -406,7 +412,7 @@ result_msg:
     .string ":: 0x%X = Surface->pixels + (y * Surface->pitch) + (x * bpp) \n"
 
 color:
-    .string ":: %d = color \n"
+    .string ":: 0x%X = color \n"
 
     # text section for word "getpix"
     .text
