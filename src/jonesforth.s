@@ -695,7 +695,7 @@ result_draw_msg:
 
     # Я отлаживал так: SDLINIT SDLWND SURFACE 7 5 FF 00 00 DRAWPIX
 
-defcode "DRAWPIX",7,, DRAWPIX   # (surface x y r g b -- )
+defcode "SETPIX",7,, DRAWPIX   # (surface x y r g b -- )
 
 
     # Принимает на входе 6 параметров
