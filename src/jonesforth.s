@@ -1,6 +1,6 @@
 /*
 
-SDLINIT SDLWND DUP SURFACE 20 40 FF 00 00 DRAWPIX SWAP UPDATESUR SWAP 20 40 GETPIX 5000 DELAY SDLQUIT
+SDLINIT SDLWND DUP SURFACE 20 40 FF 00 00 SETPIX SWAP UPDATESUR SWAP 20 40 GETPIX 5000 DELAY SDLQUIT
 
 */
 
@@ -651,7 +651,7 @@ _endswitch:                     #<--------------------+
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~
-    # forth primitive: DRAWPIX
+    # forth primitive: SETPIX
     # ~~~~~~~~~~~~~~~~~~~~~~~~
 
     .section .rodata # Read-Only data section for word "drawpix"
@@ -690,12 +690,12 @@ result_draw_msg:
     # Еще было бы логичнее, если бы surface шел первым параметром.
     # Тогда бы мы могли получить его как возвращаемое значение
     # слова SURFACE и сдублировать словом DUP необходимое количество
-    # раз для вызова таких слов как GETPIX и DRAWPIX. Иначе придется
+    # раз для вызова таких слов как GETPIX и SETPIX. Иначе придется
     # выполнять более сложные перестановки в стеке.
 
-    # Я отлаживал так: SDLINIT SDLWND SURFACE 7 5 FF 00 00 DRAWPIX
+    # Я отлаживал так: SDLINIT SDLWND SURFACE 7 5 FF 00 00 SETPIX
 
-defcode "SETPIX",7,, DRAWPIX   # (surface x y r g b -- )
+defcode "SETPIX",6,, SETPIX   # (surface x y r g b -- )
 
 
     # Принимает на входе 6 параметров
@@ -733,7 +733,7 @@ defcode "SETPIX",7,, DRAWPIX   # (surface x y r g b -- )
     #   Поскольку параметры никуда не денутся, то мы можем просто забрать их в регистры и пушнуть
     movb    %cl, -28(%ebp) #   перед вызовом SDL_MapRGB, или, еще лучше сделать так, чтобы можно было сразу вызвать
     movb    %dl, -32(%ebp) #   SDL_MapRGB, не делая никаких подготовительных операций, для этого эти параметры должны просто
-    movb    %al, -36(%ebp) #   идти в правильном порядке при вызове слова DRAWPIX.
+    movb    %al, -36(%ebp) #   идти в правильном порядке при вызове слова SETPIX.
 
     movzbl  -36(%ebp), %ebx # B
     movzbl  -32(%ebp), %ecx # G
