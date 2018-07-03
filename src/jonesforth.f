@@ -1,4 +1,4 @@
-/ /MOD SWAP DROP ;
+: / /MOD SWAP DROP ;
 : MOD /MOD DROP ;
 
 : '\n' 10 ;       \ Возврат каретки
@@ -1132,3 +1132,20 @@ STRUCT rect    \ -- a-addr 0 ; -- length-of-rect
 END-STRUCT
 
 LATEST @ @ @ 200 DUMP
+
+: MOVEPIX
+      BEGIN
+      >R DUP >R
+      U/MOD SWAP
+      IF >R 2DUP >R >R ROT DUP >R 2SWAP SWAP DUP >R >R >R >R >R
+      2DUP R> -ROT R> -ROT R> -ROT R> -ROT R> DROP -ROT >R >R SWAP R> SWAP R> SWAP 
+      SETPIX
+      R> 1+ R> 1+ R> R> R> R>
+      ELSE
+      THEN
+      >R >R >R >R >R 1+ R> 1+
+      R> R> R> R> R> R>
+      1- DUP 0=
+      UNTIL
+      2DROP 2DROP 2DROP 2DROP
+      ;
