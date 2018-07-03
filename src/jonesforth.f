@@ -1,4 +1,4 @@
-: / /MOD SWAP DROP ;
+/ /MOD SWAP DROP ;
 : MOD /MOD DROP ;
 
 : '\n' 10 ;       \ Возврат каретки
@@ -1051,14 +1051,14 @@ HEX
 \     CREATE  \ создадим заголовок слова
 \     0 ,     \ вместо codeword вкомпилим заглушку-ноль
 \     ,       \ скомпилируем param-field взяв его со стека (в нашем примере - 1337)
-\ 
+\
 \     ;CODE   \ завершить высокоуровневый код и начать низкоуровневый
-\ 
+\
 \     04 MOD-DISP-SHORT EAX EAX LEA        \   LEA   4(%EAX), %EAX
 \     MOD-DISP-NONE EAX EAX MOV-R32,R/M32  \   MOV   (%EAX), %EAX
 \     EAX PUSH                             \   PUSH  %EAX
 \     NEXT                                 \   NEXT
-\ 
+\
 \ END-CODE   \ завершить ассемблерное определение
 
 \ 1337 DEFCONST PUSH1337
