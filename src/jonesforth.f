@@ -1137,6 +1137,7 @@ LATEST @ @ @ 200 DUMP
       BEGIN
       >R DUP >R
       U/MOD SWAP
+      .S
       IF >R 2DUP >R >R ROT DUP >R 2SWAP SWAP DUP >R >R >R >R >R
       2DUP R> -ROT R> -ROT R> -ROT R> -ROT R> DROP -ROT >R >R SWAP R> SWAP R> SWAP 
       SETPIX
