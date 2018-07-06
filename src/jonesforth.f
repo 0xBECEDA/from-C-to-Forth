@@ -6,7 +6,6 @@
 
 : CR     '\n' EMIT ;  \ CR печатает возврат каретки
 : SPACE  BL   EMIT ;  \ SPACE печатает пробел
-
 : NEGATE 0 SWAP - ;
 
 : TRUE  1 ;
@@ -1137,15 +1136,16 @@ LATEST @ @ @ 200 DUMP
       BEGIN
       >R DUP >R
       U/MOD SWAP
-      .S
       IF >R 2DUP >R >R ROT DUP >R 2SWAP SWAP DUP >R >R >R >R >R
       2DUP R> -ROT R> -ROT R> -ROT R> -ROT R> DROP -ROT >R >R SWAP R> SWAP R> SWAP 
+      .S
       SETPIX
       R> 1+ R> 1+ R> R> R> R>
       ELSE
-      THEN
       >R >R >R >R >R 1+ R> 1+
-      R> R> R> R> R> R>
+      R> R> R> R>
+      THEN
+      R> R>
       1- DUP 0=
       UNTIL
       2DROP 2DROP 2DROP 2DROP
