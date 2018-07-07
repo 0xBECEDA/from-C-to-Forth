@@ -1137,12 +1137,12 @@ LATEST @ @ @ 200 DUMP
       >R DUP >R
       U/MOD SWAP
       IF >R 2DUP >R >R ROT DUP >R 2SWAP SWAP DUP >R >R >R >R >R
-      2DUP R> -ROT R> -ROT R> -ROT R> -ROT R> DROP -ROT >R >R SWAP R> SWAP R> SWAP 
+      2DUP R> -ROT R> -ROT R> -ROT R> -ROT >R DROP -ROT >R >R SWAP R> SWAP R> SWAP
       .S
       SETPIX
-      R> 1+ R> 1+ R> R> R> R>
+      R> 1+ R> R> R> R> R>
       ELSE
-      >R >R >R >R >R 1+ R> 1+
+      >R >R >R >R >R 1+ R>
       R> R> R> R>
       THEN
       R> R>
