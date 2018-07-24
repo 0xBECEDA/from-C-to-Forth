@@ -1,6 +1,7 @@
 : / /MOD SWAP DROP ;
 : MOD /MOD DROP ;
 
+
 : '\n' 10 ;       \ Возврат каретки
 : BL   32 ;       \ BL (BLank) стандартное слово для пробела
 
@@ -1182,3 +1183,16 @@ LATEST @ @ @ 200 DUMP
    UNTIL
    2DROP 2DROP 2DROP 2DROP DROP
    ;
+
+: BUBBLE
+  DUP
+  BEGIN
+  ROT >R
+  1- DUP 0=
+  UNTIL
+  BEGIN
+  SWAP R> SWAP >R -ROT R> SWAP 1+
+  2DUP =
+  UNTIL
+  2DROP
+;
