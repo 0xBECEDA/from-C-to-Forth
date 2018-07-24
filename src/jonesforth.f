@@ -1138,7 +1138,6 @@ LATEST @ @ @ 200 DUMP
       U/MOD SWAP
       IF >R 2DUP >R >R ROT DUP >R 2SWAP SWAP DUP >R >R >R >R >R
       2DUP R> -ROT R> -ROT R> -ROT R> -ROT >R DROP -ROT >R >R SWAP R> SWAP R> SWAP
-      .S
       SETPIX
       R> 1+ R> R> R> R> R>
       ELSE
@@ -1148,5 +1147,38 @@ LATEST @ @ @ 200 DUMP
       R> R>
       1- DUP 0=
       UNTIL
+      .S
       2DROP 2DROP 2DROP 2DROP
       ;
+
+: DRAWPICTURE
+   BEGIN
+   SWAP >R 1- DUP 0=
+   .S
+   UNTIL
+   BEGIN
+   R> SWAP >R SWAP >R
+   SWAP DUP >R 2SWAP DUP >R SWAP DUP
+   >R >R 2SWAP SWAP DUP R> SWAP >R
+   >R >R 2SWAP SWAP DUP R>
+   SWAP R> SWAP >R
+   >R >R >R 2SWAP SWAP DUP
+   R> SWAP R> SWAP R> SWAP >R
+   >R >R >R >R 2SWAP SWAP DUP
+   R> SWAP R> SWAP R> SWAP R>
+   SWAP >R
+   >R >R >R >R 2SWAP >R ROT
+   R> R> 2SWAP >R ROT
+   R> R> 2SWAP >R ROT
+   R> R> 2SWAP >R ROT
+   R> R> 2SWAP >R ROT
+   SWAP R> SWAP
+   .S
+   MOVEPIX
+   R> R> 1+ R> R>
+   R> R> R> R> R>
+   1+
+   2DUP =
+   UNTIL
+   2DROP 2DROP 2DROP 2DROP DROP
+   ;
