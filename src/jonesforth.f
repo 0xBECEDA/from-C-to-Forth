@@ -1184,15 +1184,68 @@ LATEST @ @ @ 200 DUMP
    2DROP 2DROP 2DROP 2DROP DROP
    ;
 
-: BUBBLE
-  DUP
-  BEGIN
+: BUBBLE    \ поднимает необходимый элемент стека наверх,
+            \ порядок остальных сохраняется. Параметр=счетчик,
+            \на 1 меньше, чем порядковый номер искомого элемента
+            \в стеке
+
+  DUP       \дублировать счетчик
+  BEGIN     \ снять все элементы до искомого в стек возвратов
   ROT >R
   1- DUP 0=
   UNTIL
-  BEGIN
+  BEGIN      \ вернуть все элементы по одному, поднимая искомый наверх
   SWAP R> SWAP >R -ROT R> SWAP 1+
   2DUP =
   UNTIL
   2DROP
+;
+ : MULTIBUBBLE  \ поднимает несколько элементов в стеке наверх
+                \ параметры = счетчики для каждой итерации цикла
+                \ BUBBLE + счетчик кол-ва итераций
+
+   DUP
+   BEGIN
+   ROT >R 1-
+   DUP 0=
+   UNTIL
+   BEGIN
+   R>
+   -ROT >R >R
+   BUBBLE
+   R> R>
+   1+ 2DUP =
+   UNTIL
+   2DROP
+;
+ : COPYBUBBLE   \ копирует искомый элемент и поднимает копию наверх
+                \ параметр = счетчик
+  DUP       \дублировать счетчик
+  BEGIN     \ снять все элементы до искомого в стек возвратов
+  ROT >R
+  1- DUP 0=
+  UNTIL
+  ROT DUP 2SWAP   \ копируем
+  BEGIN     \ вернуть все элементы по одному, скопировав искомый
+            \и подняв его наверх
+  SWAP R> SWAP >R -ROT R> SWAP 1+    \ поднимаем
+  2DUP =
+  UNTIL
+  2DROP
+;
+ : COPYMULTIBUBBLE
+
+  DUP
+   BEGIN
+   ROT >R 1-
+   DUP 0=
+   UNTIL
+   BEGIN
+   R>
+   -ROT >R >R
+   COPYBUBBLE
+   R> R>
+   1+ 2DUP =
+   UNTIL
+   2DROP
 ;
