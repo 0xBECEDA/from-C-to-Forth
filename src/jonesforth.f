@@ -1196,14 +1196,18 @@ LATEST @ @ @ 200 DUMP
         1-       \ a b c d 3 2/cnt        |R: e
         DUP      \ a b c d 3 2/cnt 2/cnt  |R: e
         0=       \ a b c d 3 2/cnt        |R: e
-    UNTIL   \ a b 3  |R: e d c
+    UNTIL   \ a b 3 0 |R: e d c
     BEGIN   \ вернуть все элементы по одному, поднимая искомый наверх
-        SWAP    \ a 3 b      |R: e d c
-        R>      \ a 3 b c    |R: e d
-        SWAP    \ a 3 c b    |R: e d
-        >R      \ a 3 c b d  |R: e
-        -ROT R> SWAP 1+
-        2DUP =
+        SWAP    \ a b 0 3        |R: e d c
+        R>      \ a b 0 3 c      |R: e d
+        SWAP    \ a b 0 c 3      |R: e d
+        >R      \ a b 0 c 3 d    |R: e
+        -ROT    \ a b 0 d c 3    |R: e
+        R>      \ a b 0 d c 3 e
+        SWAP    \ a b 0 d c e 3
+        1+      \ a b 0 d c e 4
+        2DUP    \ a b 0 d c e 4 e 4
+        =
     UNTIL
     2DROP
 ;
