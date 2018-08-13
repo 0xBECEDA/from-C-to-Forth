@@ -1202,8 +1202,12 @@ LATEST @ @ @ 200 DUMP
         R>      \ a b 0 3 c    |R: e d
         SWAP    \ a b 0 c 3     |R: e d
         >R      \ a b 0 c    |R: e d 3
-        -ROT R> SWAP 1+
-        2DUP =
+        -ROT    \ a c b 0    |R: e d 3
+        R>      \ a c b 0 3 |R: e d
+        SWAP    \ a c b 3 0 |R: e d
+        1+      \ a c b 3 1 |R: e d
+        2DUP    \ a c b 3 1 3 1 |R: e d
+        =
     UNTIL
     2DROP
 ;
