@@ -1134,141 +1134,151 @@ END-STRUCT
 LATEST @ @ @ 200 DUMP
 
 : MOVEPIX
-      BEGIN
-      >R DUP >R
-      U/MOD SWAP
-      IF >R 2DUP >R >R ROT DUP >R 2SWAP SWAP DUP >R >R >R >R >R
-      2DUP R> -ROT R> -ROT R> -ROT R> -ROT >R DROP -ROT >R >R SWAP R> SWAP R> SWAP
-      SETPIX
-      R> 1+ R> R> R> R> R>
-      ELSE
-      >R >R >R >R >R 1+ R>
-      R> R> R> R>
-      THEN
-      R> R>
-      1- DUP 0=
-      UNTIL
-      .S
-      2DROP 2DROP 2DROP 2DROP
-      ;
+    BEGIN
+        >R DUP >R
+        U/MOD SWAP
+        IF >R 2DUP >R >R ROT DUP >R 2SWAP SWAP DUP >R >R >R >R >R
+            2DUP R> -ROT R> -ROT R> -ROT R> -ROT >R DROP -ROT >R >R SWAP R> SWAP R> SWAP
+            SETPIX
+            R> 1+ R> R> R> R> R>
+        ELSE
+            >R >R >R >R >R 1+ R>
+            R> R> R> R>
+        THEN
+        R> R>
+        1- DUP 0=
+    UNTIL
+    .S
+    2DROP 2DROP 2DROP 2DROP
+;
 
 : DRAWPICTURE
-   BEGIN
-   SWAP >R 1- DUP 0=
-   .S
-   UNTIL
-   BEGIN
-   R> SWAP >R SWAP >R
-   SWAP DUP >R 2SWAP DUP >R SWAP DUP
-   >R >R 2SWAP SWAP DUP R> SWAP >R
-   >R >R 2SWAP SWAP DUP R>
-   SWAP R> SWAP >R
-   >R >R >R 2SWAP SWAP DUP
-   R> SWAP R> SWAP R> SWAP >R
-   >R >R >R >R 2SWAP SWAP DUP
-   R> SWAP R> SWAP R> SWAP R>
-   SWAP >R
-   >R >R >R >R 2SWAP >R ROT
-   R> R> 2SWAP >R ROT
-   R> R> 2SWAP >R ROT
-   R> R> 2SWAP >R ROT
-   R> R> 2SWAP >R ROT
-   SWAP R> SWAP
-   .S
-   MOVEPIX
-   R> R> 1+ R> R>
-   R> R> R> R> R>
-   1+
-   2DUP =
-   UNTIL
-   2DROP 2DROP 2DROP 2DROP DROP
-   ;
+    BEGIN
+        SWAP >R 1- DUP 0=
+        .S
+    UNTIL
+    BEGIN
+        R> SWAP >R SWAP >R
+        SWAP DUP >R 2SWAP DUP >R SWAP DUP
+        >R >R 2SWAP SWAP DUP R> SWAP >R
+        >R >R 2SWAP SWAP DUP R>
+        SWAP R> SWAP >R
+        >R >R >R 2SWAP SWAP DUP
+        R> SWAP R> SWAP R> SWAP >R
+        >R >R >R >R 2SWAP SWAP DUP
+        R> SWAP R> SWAP R> SWAP R>
+        SWAP >R
+        >R >R >R >R 2SWAP >R ROT
+        R> R> 2SWAP >R ROT
+        R> R> 2SWAP >R ROT
+        R> R> 2SWAP >R ROT
+        R> R> 2SWAP >R ROT
+        SWAP R> SWAP
+        .S
+        MOVEPIX
+        R> R> 1+ R> R>
+        R> R> R> R> R>
+        1+
+        2DUP =
+    UNTIL
+    2DROP 2DROP 2DROP 2DROP DROP
+;
 
 : BUBBLE    \ поднимает необходимый элемент стека наверх,
             \ порядок остальных сохраняется. Параметр=счетчик,
-            \на 1 меньше, чем порядковый номер искомого элемента
-            \в стеке
+            \ на 1 меньше, чем порядковый номер искомого элемента
+            \ в стеке, к примеру: a b c d e 3 --
 
-  DUP       \дублировать счетчик
-  BEGIN     \ снять все элементы до искомого в стек возвратов
-  ROT >R
-  1- DUP 0=
-  UNTIL
-  BEGIN      \ вернуть все элементы по одному, поднимая искомый наверх
-  SWAP R> SWAP >R -ROT R> SWAP 1+
-  2DUP =
-  UNTIL
-  2DROP
+    DUP     \ дублировать счетчик a b c d e 3 3/cnt
+    BEGIN   \ снять все элементы до искомого в стек возвратов
+        ROT      \ a b c d 3 3/cnt e
+        >R       \ a b c d 3 3/cnt        |R: e
+        1-       \ a b c d 3 2/cnt        |R: e
+        DUP      \ a b c d 3 2/cnt 2/cnt  |R: e
+        0=       \ a b c d 3 2/cnt        |R: e
+    UNTIL   \ a b 3  |R: e d c
+    BEGIN   \ вернуть все элементы по одному, поднимая искомый наверх
+        SWAP    \ a 3 b      |R: e d c
+        R>      \ a 3 b c    |R: e d
+        SWAP    \ a 3 c b    |R: e d
+        >R      \ a 3 c b d  |R: e
+        -ROT R> SWAP 1+
+        2DUP =
+    UNTIL
+    2DROP
 ;
- : MULTIBUBBLE  \ поднимает несколько элементов в стеке наверх
+
+: MULTIBUBBLE   \ поднимает несколько элементов в стеке наверх
                 \ параметры = счетчики для каждой итерации цикла
                 \ BUBBLE + счетчик кол-ва итераций
-
-   DUP
-   BEGIN
-   ROT >R 1-
-   DUP 0=
-   UNTIL
-   BEGIN
-   R>
-   -ROT >R >R
-   BUBBLE
-   R> R>
-   1+ 2DUP =
-   UNTIL
-   2DROP
-;
- : COPYBUBBLE   \ копирует искомый элемент и поднимает копию наверх
-                \ параметр = счетчик
-  DUP       \дублировать счетчик
-  BEGIN     \ снять все элементы до искомого в стек возвратов
-  ROT >R
-  1- DUP 0=
-  UNTIL
-  ROT DUP 2SWAP   \ копируем
-  BEGIN     \ вернуть все элементы по одному, скопировав искомый
-            \и подняв его наверх
-  SWAP R> SWAP >R -ROT R> SWAP 1+    \ поднимаем
-  2DUP =
-  UNTIL
-  2DROP
-;
-
-  : COUNTER
-
-  BEGIN      \ этот цикл должен проверить, сколько было итераций
-   DUP 0=
-   IF         \ если итераций было 0, значит, копий элементов тоже 0
-              \ значит, счетчики увеличивать не надо
-
-   DROP EXIT  \ здесь должен был быть выход из цикла begin-again
-   THEN
-   DUP ROT   \ если итерация не нулевая, мы считаем, сколько
-             \ их было и пропорционально увеличиваем текущий счетчик
-   1+
-   SWAP 1-
-   DUP
-   AGAIN     \ повторять до тех пор, пока счетчик итераций !=0
-;
-
-
- : COPYMULTIBUBBLE
-
-  DUP
-    BEGIN
-   ROT >R 1-   \ отправить все счетчики в стек
-   DUP 0=
+     DUP
+     BEGIN
+         ROT >R 1-
+         DUP 0=
      UNTIL
-   BEGIN
-   R> SWAP DUP
-   COUNTER
-    ROT >R >R \ подготовка стека для вызова COPYBUBBLE,
-              \ который принимает в качетве параметра
-             \ счетчик элементов, которые надо снять до искомого
-             \ элемента
-   COPYBUBBLE
-    R> R>
-   SWAP 1+ 2DUP =  \ проверяем, все ли итерации пройдены
-     UNTIL         \ повторить, если нет
+     BEGIN
+         R>
+         -ROT >R >R
+         BUBBLE
+         R> R>
+         1+ 2DUP =
+     UNTIL
+     2DROP
+;
+
+: COPYBUBBLE  \ копирует искомый элемент и поднимает копию наверх
+              \ параметр = счетчик
+    DUP       \дублировать счетчик
+    BEGIN     \ снять все элементы до искомого в стек возвратов
+        ROT >R
+        1- DUP 0=
+    UNTIL
+    ROT DUP 2SWAP   \ копируем
+    BEGIN     \ вернуть все элементы по одному, скопировав искомый
+              \и подняв его наверх
+        SWAP R> SWAP >R -ROT R> SWAP 1+    \ поднимаем
+        2DUP =
+    UNTIL
+    2DROP
+;
+
+: COUNTER
+    BEGIN      \ этот цикл должен проверить, сколько было итераций
+        DUP 0=
+        IF        \ если итераций было 0, значит, копий элементов тоже 0
+                  \ значит, счетчики увеличивать не надо
+            DROP EXIT  \ здесь должен был быть выход из цикла begin-again
+        THEN
+        DUP ROT   \ если итерация не нулевая, мы считаем, сколько
+                  \ их было и пропорционально увеличиваем текущий счетчик
+        1+
+        SWAP 1-
+        DUP
+    AGAIN     \ повторять до тех пор, пока счетчик итераций !=0
+    \ Possible Error: BEGIN-AGAIN do not have exit condition
+;
+
+
+: COPYMULTIBUBBLE \ A B C D E F 1 2 3 3(счетчик номеров)
+    DUP           \ A B C D E F 1 2 3c 3b 3a
+    BEGIN             \ отправить все счетчики в стек
+        ROT           \ A B C D E F 1 2 3b 3a 3c
+        >R 1-         \ A B C D E F 1 2 3b 3a  R: 3c
+        1-            \ A B C D E F 1 2 3b 2a  R: 3c
+        DUP 0=        \ ?: 2a == 0 | Possible Error: 3с stay on retstack
+    UNTIL
+    \ Какое ожидаемое состояние стека тут?
+    BEGIN
+        R> SWAP DUP
+        COUNTER
+        ROT >R >R \ подготовка стека для вызова COPYBUBBLE,
+                  \ который принимает в качетве параметра
+                  \ счетчик элементов, которые надо снять до искомого
+                  \ элемента
+        COPYBUBBLE
+        R> R>
+        SWAP 1+
+        2DUP =  \ проверяем, все ли итерации пройдены
+    UNTIL       \ повторить, если нет
    2DROP
 ;
