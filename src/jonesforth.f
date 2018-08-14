@@ -1212,15 +1212,17 @@ LATEST @ @ @ 200 DUMP
     2DROP   \ a c d e b
 ;
 
-: MULTIBUBBLE   \ поднимает несколько элементов в стеке наверх
-                \ параметры = счетчики для каждой итерации цикла
-                \ BUBBLE + счетчик кол-ва итераций
-     DUP
+: MULTIBUBBLE         \ поднимает несколько элементов в стеке наверх
+                      \ параметры = счетчики для каждой итерации цикла
+                      \ BUBBLE + счетчик кол-ва итераций:
+                      \ a b c d e f 1 2 3 3
+     DUP              \ a b c d e f 1 2 3 3 3
      BEGIN
-         ROT >R 1-
-         DUP 0=
+         ROT >R 1-    \  a b c d e f 1 3 2 |R: 3
+         DUP          \  a b c d e f 1 3 2 2 |R: 3
+         0=
      UNTIL
-     BEGIN
+     BEGIN            \ a b c d e f 3
          R>
          -ROT >R >R
          BUBBLE
