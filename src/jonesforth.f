@@ -1152,13 +1152,15 @@ LATEST @ @ @ 200 DUMP
     2DROP 2DROP 2DROP 2DROP
 ;
 
-: DRAWPICTURE
+: DRAWPICTURE    \ рисует какую угодно большую картинку
+                 \ параметры: sur x y r g b 2 8 счетчик_пикселей
+                 \ любое_кол-во_пикселей счетчик_пикселей_повторно
+                 \ ВНИМАНИЕ!!! Все в 16-ричной системе
     BEGIN
-        SWAP >R 1- DUP 0=
-        .S
+        SWAP >R 1- DUP 0=   \переместить все пиксели в стек
     UNTIL
     BEGIN
-        R> SWAP >R SWAP >R
+        R> SWAP >R SWAP >R   \дублируем все параметры в стек возвратов
         SWAP DUP >R 2SWAP DUP >R SWAP DUP
         >R >R 2SWAP SWAP DUP R> SWAP >R
         >R >R 2SWAP SWAP DUP R>
@@ -1174,14 +1176,13 @@ LATEST @ @ @ 200 DUMP
         R> R> 2SWAP >R ROT
         R> R> 2SWAP >R ROT
         SWAP R> SWAP
-        .S
-        MOVEPIX
-        R> R> 1+ R> R>
+        MOVEPIX             \рисуем пиксели
+        R> R> 1+ R> R>      \увеличиваем координаты
         R> R> R> R> R>
         1+
         2DUP =
     UNTIL
-    2DROP 2DROP 2DROP 2DROP DROP
+    2DROP 2DROP 2DROP 2DROP DROP  \сбрасываем параметры со стека
 ;
 
 : BUBBLE
@@ -1264,18 +1265,46 @@ LATEST @ @ @ 200 DUMP
         >R            \ A B C D E F 1 3 3b 3a  R: 5
         1-            \ A B C D E F 1 3 3b 2a  R: 5
         DUP 0=
-   .S
  UNTIL
     \ A B C D E F 3b 0 | R: 5 3 1
-    .S
      BEGIN
       R> -ROT
       >R >R            \ A B C D E F 1 |R: 5 3 0 3b
-       .S
+
        COPYBUBBLE
         R> R>          \ A B C D E F E 3b 0 | R: 5 3
         1+             \ A B C D E F E 3b 1 | R: 5 3
        2DUP =          \ проверяем, все ли итерации пройдены
     UNTIL              \ повторить, если нет
    2DROP               \ A B C D E F E D C
+;
+
+: COPYMULTIBUBBLE2     \ по одному копирует несколько элементов
+                       \ и поднимает копию наверх,
+                       \ ВКЛЮЧАЯ ВЕРХНИЙ ЭЛЕМЕНТ ПО УМОЛЧАНИЮ
+                       \ !!! ВНИМАНИЕ
+                       \ порядковые номера элементов
+                       \меняются и-за копий
+                       \ ПЕРЕСЧИТАТЬ ПОРЯДКОВЫЕ НОМЕРА ПЕРЕД ВЫЗОВОМ
+
+                  \ A B C D E F 2 4 6 3(счетчик номеров)
+    DUP           \ A B C D E F 2 4 6 3b 3a
+    BEGIN             \ отправить все счетчики в стек
+        ROT
+        >R
+        1-
+        DUP 0=
+ UNTIL
+     .S                  \ A B C D E F 3b 0 | R: 6 4 2
+     >R >R             \ A B C D E F 3b 0 | R: 6 4 2 0 3b
+     DUP R> R>         \ A B C D E F F 3b 0 | R: 6 4 2
+     BEGIN
+      R> -ROT
+      >R >R            \ A B C D E F F 2 |R: 6 4 0 3b
+       COPYBUBBLE
+        R> R>          \ A B C D E F E 3b 0 | R: 6 4
+        1+             \ A B C D E F E 3b 1 | R: 6 4
+       2DUP =          \ проверяем, все ли итерации пройдены
+    UNTIL              \ повторить, если нет
+   2DROP               \ A B C D E F F E D C
 ;
