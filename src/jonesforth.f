@@ -1148,7 +1148,7 @@ LATEST @ @ @ 200 DUMP
         R> R>
         1- DUP 0=
     UNTIL
-    .S
+
     2DROP 2DROP 2DROP 2DROP
 ;
 
@@ -1295,7 +1295,7 @@ LATEST @ @ @ 200 DUMP
         1-
         DUP 0=
  UNTIL
-     .S                  \ A B C D E F 3b 0 | R: 6 4 2
+                      \ A B C D E F 3b 0 | R: 6 4 2
      >R >R             \ A B C D E F 3b 0 | R: 6 4 2 0 3b
      DUP R> R>         \ A B C D E F F 3b 0 | R: 6 4 2
      BEGIN
@@ -1307,4 +1307,89 @@ LATEST @ @ @ 200 DUMP
        2DUP =          \ проверяем, все ли итерации пройдены
     UNTIL              \ повторить, если нет
    2DROP               \ A B C D E F F E D C
+;
+: MOVEPICTURE
+
+BEGIN
+   >R >R >R >R >R DUP R> DUP >R SWAP >R
+   COPYMULTIBUBBLE
+
+   R> R> DUP >R SWAP >R DUP
+
+BEGIN
+   ROT >R 1- DUP 0=
+UNTIL
+   DROP >R
+   DRAWPICTURE
+   R>
+BEGIN
+   R> SWAP 1- DUP 0=
+UNTIL
+   DROP      \ sur x y R G B 2 8 3 AA BB CC 3 R: 16 b g r
+
+   R>  R> R> -ROT R> -ROT R> -ROT
+   2DUP >R >R
+   1+ 1+ 1+ SWAP 1+ 1+ 1+ SWAP DUP >R
+
+BEGIN
+   SWAP DUP ROT 1- DUP 0=
+UNTIL
+   2DROP R>
+   COPYMULTIBUBBLE
+   R> R> ROT >R ROT >R
+   ROT >R 2DUP >R >R DUP
+BEGIN
+   2SWAP SWAP >R -ROT 1- DUP 0=
+UNTIL
+   DROP
+
+   1- 1- SWAP
+   1+ SWAP DUP >R
+
+BEGIN
+   SWAP DUP ROT 1- DUP 0=
+UNTIL
+   DROP R> SWAP >R DUP >R
+   DUP >R                   \sur x y R G B 2 8 3 AA BB CC 3 0 0 0
+                            \ 12 12 12 12 12 12 12 12 12 12 10
+                            \ R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R
+                            \ y x 10
+
+   COPYMULTIBUBBLE
+   R> DUP
+BEGIN
+   ROT >R 1- DUP 0=
+UNTIL
+   DROP 2SWAP >R >R SWAP R> R> >R >R >R
+   DUP >R
+
+BEGIN
+   SWAP DROP 1- DUP 0=
+UNTIL
+   DROP
+   R> 1- 1- 1-
+   R> R> R>
+   2SWAP SWAP
+   R> R> R>
+   2DROP DROP
+
+BEGIN
+   R> SWAP 1- DUP 0=
+UNTIL
+   DROP
+   DRAWPICTURE
+   R> DROP R> 1+ R> 1+ SWAP .S
+BEGIN
+   R> SWAP 1- DUP 0=
+UNTIL
+   DROP
+   DUP >R
+BEGIN
+   SWAP DUP ROT 1- DUP 0=
+UNTIL
+   2DROP R>
+   R> R> R> R> 1- DUP 0=
+UNTIL
+ 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP
+ 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP DROP
 ;
