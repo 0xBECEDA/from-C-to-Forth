@@ -1308,6 +1308,14 @@ LATEST @ @ @ 200 DUMP
     UNTIL              \ повторить, если нет
    2DROP               \ A B C D E F F E D C
 ;
+
+
+\ Запускать так:
+\ SDLINIT SDLWND DUP VARWND ! 40 VARDELAY ! SURFACE 100 150 200 255 230 2 8 3 30 31 32 3 B B B B \B B B B B B B B C 0 0 0 16 MOVEPICTURE
+
+VARIABLE VARWND     \объявление переменной для movepicture
+VARIABLE VARDELAY
+
 : MOVEPICTURE
 
 BEGIN
@@ -1321,6 +1329,13 @@ BEGIN
 UNTIL
    DROP >R
    DRAWPICTURE
+   VARWND @
+   UPDATESUR
+   VARWND !
+   VARDELAY @
+   DUP
+   DELAY
+   VARDELAY !
    R>
 BEGIN
    R> SWAP 1- DUP 0=
@@ -1378,6 +1393,13 @@ BEGIN
 UNTIL
    DROP
    DRAWPICTURE
+   VARWND @
+   UPDATESUR
+   VARWND !
+   VARDELAY @
+   DUP
+   DELAY
+   VARDELAY !
    R> DROP R> 1+ R> 1+ SWAP .S
 BEGIN
    R> SWAP 1- DUP 0=
