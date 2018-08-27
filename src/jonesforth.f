@@ -1316,102 +1316,122 @@ LATEST @ @ @ 200 DUMP
 VARIABLE VARWND     \объявление переменной для movepicture
 VARIABLE VARDELAY
 
+
+\слово выводит двигающуюся картинку на экран
+\ Например: sur x y R G B 2 8 3 AA BB CC 3 11 11 11 11 11 11 11 11 11 11 11 11 12 r g b 16
+
 : MOVEPICTURE
 
 BEGIN
-   >R >R >R >R >R DUP R> DUP >R SWAP >R
-   COPYMULTIBUBBLE
+   >R >R >R >R >R DUP R> DUP >R SWAP >R  \отправляем в стек возвратов фоновые r g b и счетчик итераций всего слова, копируем счетчик элементов                                         \и порядковый номер, отправляем их в стек возвратов 
+   COPYMULTIBUBBLE                       \ копируем все параметры до sur 
+                                         \ sur x y R G B 2 8 3 AA BB CC 3 x y R G B 2 8 3 AA BB CC 3 | R: 16  b g r 12 11
 
-   R> R> DUP >R SWAP >R DUP
+   R> R> DUP >R SWAP >R DUP              \ вытаскиваем счетчик элементов и дублируем, чтоб переместить копии элементов в стек возвратов
+                                         \ sur x y R G B 2 8 3 AA BB CC 3 x y R G B 2 8 3 AA BB CC 3 12 12  | R: b g r 12 11 
 
-BEGIN
+BEGIN                                    \ снимаем копии элементов в стек возвратов
    ROT >R 1- DUP 0=
 UNTIL
-   DROP >R
-   DRAWPICTURE
-   VARWND @
-   UPDATESUR
-   VARWND !
-   VARDELAY @
-   DUP
-   DELAY
-   VARDELAY !
-   R>
+   DROP >R                               \ sur x y R G B 2 8 3 AA BB CC 3 |R: 16 b g r 12 11 3 CC BB AA 3 8 2 B G R y x 12
+   DRAWPICTURE                           \ отрисовываем картинку
+                                         \ sur  | R: 16 b g r 12 11 3 CC BB AA 3 8 2 B G R y x 12
+   VARWND @                              \ пушим указатель на окно
+   UPDATESUR                             \ обновляем поверхность
+   VARWND !                              \ заносим новый указатель на окно в переменную
+\  VARDELAY @                            \ пушим кол-во милисекнд для задержки
+\  DUP
+ \ DELAY                                 \ задерживаем картинку
+  \VARDELAY !                            \ заносим кол-во милисекунд обратно
+   R>                                    \ sur 12  | R: 16 12 11 b g r 3 CC BB AA 3 8 2 B G R y x
 BEGIN
-   R> SWAP 1- DUP 0=
+   R> SWAP 1- DUP 0=                     \ перемещаем элементы из стека возвратов в стек данных, пока счетчик не станет 0
 UNTIL
-   DROP      \ sur x y R G B 2 8 3 AA BB CC 3 R: 16 b g r
+   DROP                                  \ sur x y R G B 2 8 3 AA BB CC 3 | R: 16 b g r 12 11
 
-   R>  R> R> -ROT R> -ROT R> -ROT
+   R>  R> R> -ROT R> -ROT R> -ROT        \ Начинаем готовить стек для второго вызова drawpicture. Вытаскиваем по очереди фоновые r g b 
    2DUP >R >R
-   1+ 1+ 1+ SWAP 1+ 1+ 1+ SWAP DUP >R
+   1+ 1+ 1+ SWAP 1+ 1+ 1+ SWAP DUP >R    \ и увеличиваем счетчик элементов и их порядковые номера
+                                         \ sur x y R G B 2 8 3 AA BB CC 3 r g b 14 15 | R: 16 12 11 15
 
 BEGIN
-   SWAP DUP ROT 1- DUP 0=
+   SWAP DUP ROT 1- DUP 0=                \ увеличиваем кол-во порядковых номеров пропорционально кол-ву элементов до sur
 UNTIL
-   2DROP R>
-   COPYMULTIBUBBLE
+   2DROP R>                              \ sur x y R G B 2 8 3 AA BB CC 3 r g b 14 14 14 14 14 14 14 14 14 14 14 14 14 14 14 15 
+                                         \ | R: 16 12 11
+   COPYMULTIBUBBLE                       \ копируем все элементы до sur   
+                                         \ sur x y R G B 2 8 3 AA BB CC 3 r g b x y R G B 2 8 3 AA BB CC 3 r g b  
+
    R> R> ROT >R ROT >R
-   ROT >R 2DUP >R >R DUP
+   ROT >R 2DUP >R >R DUP                 \ sur x y R G B 2 8 3 AA BB CC 3 r g b x y R G B 2 8 3 AA BB CC 3 11 12 12                 
+                                         \ R: 16 b g r 12 11
 BEGIN
-   2SWAP SWAP >R -ROT 1- DUP 0=
+   2SWAP SWAP >R -ROT 1- DUP 0=          \ отправляем элементы в стек возвратов до тех пор, пока счетчик не станет 0 
 UNTIL
-   DROP
+   DROP                                  \ sur x y R G B 2 8 3 AA BB CC 3 r g b 11 12 | R: 16 b g r 12 11 3 CC BB AA 3 8 2 B G R y x 
 
-   1- 1- SWAP
-   1+ SWAP DUP >R
+   1- 1- SWAP                            \ Меняем порядковые номера элементов и счетчик их количества 
+   1+ SWAP DUP >R                        \ sur x y R G B 2 8 3 AA BB CC 3 r g b 12 10 | R: 16 b g r 12 11 3 CC BB AA 3 8 2 B G R y x 10
 
 BEGIN
-   SWAP DUP ROT 1- DUP 0=
+   SWAP DUP ROT 1- DUP 0=                \ Дублируем порядковый номер пропорционально количеству элементов
 UNTIL
    DROP R> SWAP >R DUP >R
-   DUP >R                   \sur x y R G B 2 8 3 AA BB CC 3 0 0 0
-                            \ 12 12 12 12 12 12 12 12 12 12 10
-                            \ R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R
-                            \ y x 10
+   DUP >R                                \ sur x y R G B 2 8 3 AA BB CC 3 r g b 12 12 12 12 12 12 12 12 12 12 10
+                                         \ R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x 10
 
-   COPYMULTIBUBBLE
-   R> DUP
+   COPYMULTIBUBBLE                       \ копируем элементы
+   R> DUP                                \ sur x y R G B 2 8 3 AA BB CC 3 r g b R G B 2 8 3 AA BB CC 3 10 10                
+                                         \ R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x
 BEGIN
-   ROT >R 1- DUP 0=
-UNTIL
+   ROT >R 1- DUP 0=                      \ отправляем копии в стек возвратов
+UNTIL                                                                           
    DROP 2SWAP >R >R SWAP R> R> >R >R >R
-   DUP >R
-
+   DUP >R                                \ sur x y R G B 2 8 3 AA BB CC 3 10    
+                                         \ R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x 3 CC BB AA 3 8 2 B G R r g b 10      
 BEGIN
-   SWAP DROP 1- DUP 0=
+   SWAP DROP 1- DUP 0=                   \ скидываем ненужные элементы
 UNTIL
-   DROP
+   DROP                                  \ sur x y | R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x 3 CC BB AA 3 8 2 B G R r g b 10
    R> 1- 1- 1-
-   R> R> R>
+   R> R> R>                              \ sur x y 7 r g b  | R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x 3 CC BB AA 3 8 2 B G R 
    2SWAP SWAP
    R> R> R>
-   2DROP DROP
+   2DROP DROP                            \ sur x y r g b 7  | R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x 3 CC BB AA 3 8 2 
 
 BEGIN
-   R> SWAP 1- DUP 0=
-UNTIL
-   DROP
-   DRAWPICTURE
+   R> SWAP 1- DUP 0=                     \ перемещаем элементы из стека возвратов в стек данных, чтоб закончить подготовку к вызову
+UNTIL                                    \ drawpicture
+   DROP                                  \ sur x y r g b 2 8 3 AA BB CC 3 | R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x
+
+
+   DRAWPICTURE                           \ отрисовываем картинку фоновыми r g b
+                                         \ sur  | R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x    
    VARWND @
    UPDATESUR
    VARWND !
-   VARDELAY @
-   DUP
-   DELAY
-   VARDELAY !
-   R> DROP R> 1+ R> 1+ SWAP .S
+ \  VARDELAY @
+ \  DUP
+ \  DELAY
+ \  VARDELAY !
+                                         \ готовимся повторить глобальную итерацию
+                                         \ на этом этапе было обнаружено два неучтенных счетчика, которые мне не удалось отследить 
+                                         \ | R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y x (12 11)
+                                         \ один я сбросила, второй приспособила под нужды слова, таким образом получилось следующее:
+  R> DROP R> 1+ R> 1+ SWAP .S            \ sur x+1 13 | R: 16 b r g 12 11 3 CC BB AA 3 8 2 B G R y
 BEGIN
-   R> SWAP 1- DUP 0=
+   R> SWAP 1- DUP 0=                     \ перемещаем элементы из стека возвратов в стек данных
 UNTIL
    DROP
-   DUP >R
+   DUP >R                                \ sur x+1 y R G B 2 8 3 AA BB CC 3 11 12 | R: 16 r g b 12
 BEGIN
-   SWAP DUP ROT 1- DUP 0=
+   SWAP DUP ROT 1- DUP 0=                \ увеличиваем кол-во порядковых номеров пропорционально кол-ву элементов
 UNTIL
-   2DROP R>
-   R> R> R> R> 1- DUP 0=
+   2DROP R>                              \  sur x+1 y R G B 2 8 3 AA BB CC 3 11 11 11 11 11 11 11 11 11 11 11 11 12 | R: 16 r g b
+   R> R> R> R> 1- DUP 0=                 \ Приводим стек в исходное состояние, но уменьшаем счетчик глобальных итераций на единицу, проверяем 
+                                         \ на ноль
+                                         \  sur x+1 y R G B 2 8 3 AA BB CC 3 11 11 11 11 11 11 11 11 11 11 11 11 12 r g b 15 1| R: 
 UNTIL
- 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP
- 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP DROP
+ 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP     \ перед выходом из слова очищаем стек, оставляя sur
+ 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP 2DROP DROP
 ;
