@@ -6,7 +6,6 @@ bool init();
 bool create();
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
-void PrintEvent(event);
 SDL_Event event;
 int SCREEN_WIDTH = 480;
 int SCREEN_HEIGHT = 520;
@@ -53,8 +52,6 @@ int main( int argc, char* args[] )
             printf("Key is pressed.\n");
             break;
        case SDL_WINDOWEVENT:
-            void PrintEvent(event)
-            {
                 if (event->type == SDL_WINDOWEVENT) {
                     switch (event->window.event) {
                     case SDL_WINDOWEVENT_SHOWN:
@@ -122,8 +119,6 @@ int main( int argc, char* args[] )
                         break;
                     }
                 }
-            }
-
             break;
         default:
             printf ("default case!");
