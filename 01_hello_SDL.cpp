@@ -163,17 +163,18 @@ int main( int argc, char* args[] )
 {
     //включаем SDL и создаем окно
     if( !init() ) {
-        // печатаем сообщение об ошибке
+        // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize!\n" );
     }
+    // создаем окно
     create();
 
     /* PrintAllEvents(); */
-
-re:
-    while (SDL_PollEvent(& event)) {
-    // for (i= 0; i<=3; i++) {
-       switch (event.type) {
+    // цикл, обрабатывающий события, пока не встретим событие "выход"
+    while (256 != event.type) {
+        //SDL_WaitEvent меньше нагружает комп
+        SDL_WaitEvent(& event);
+        switch (event.type) {
         case SDL_MOUSEMOTION:
             printf("We got a motion event.\n");
             printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
@@ -185,19 +186,13 @@ re:
             break;
         default:
             /* PrintEvent(&event); */
-            if (256 == event.type) {
-                goto fin;
-            }
             printf("Unhandled Event type is: ( %d) !\n", event.type);
             printf ("default case!");
             break;
         }
     }
-    goto re;
 
     printf("Event queue empty.\n");
-    SDL_Delay(10000);
-fin:
     printf("Exit.\n");
     return 0;
  }
