@@ -281,7 +281,7 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     }
 }
 
-void paint(& event)
+void paint(SDL_Event event)
 {
     int x;
     int y;
