@@ -318,8 +318,9 @@ int main( int argc, char* args[] )
         SDL_WaitEvent(& event);
         switch (event.type) {
         case SDL_MOUSEMOTION:
-            printf("We got a motion event.\n");
+            //printf("We got a motion event.\n");
             printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
+            paint (& event);
             break;
         case SDL_KEYDOWN:
             printf("Key is pressed.\n");
