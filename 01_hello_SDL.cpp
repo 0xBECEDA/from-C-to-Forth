@@ -281,12 +281,12 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     }
 }
 
-void paint(SDL_Event event)
+void paint (SDL_Event* event)
 {
     int x;
     int y;
-    x = event.motion.x;
-    y = event.motion.y;
+    x = event->motion.x;
+    y = event->motion.y;
 
     getpixel (surface, x, y);
     DrawPixel(surface, x, y, 255, 255, 255);
