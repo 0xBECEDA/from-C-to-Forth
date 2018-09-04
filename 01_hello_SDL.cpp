@@ -281,7 +281,7 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     }
 }
 
-void paint (SDL_Event* event)
+void paint(SDL_Event* event)
 {
     int x;
     int y;
@@ -290,6 +290,7 @@ void paint (SDL_Event* event)
 
     getpixel (surface, x, y);
     DrawPixel(surface, x, y, 255, 255, 255);
+    SDL_UpdateWindowSurface( gWindow );
 }
 
 int main( int argc, char* args[] )
@@ -316,11 +317,12 @@ int main( int argc, char* args[] )
     while (256 != event.type) {
         //SDL_WaitEvent меньше нагружает комп
         SDL_WaitEvent(& event);
+        // paint (& event);
         switch (event.type) {
         case SDL_MOUSEMOTION:
             //printf("We got a motion event.\n");
             printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
-            paint (& event);
+             paint (& event);
             break;
         case SDL_KEYDOWN:
             printf("Key is pressed.\n");
