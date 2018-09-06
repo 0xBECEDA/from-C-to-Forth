@@ -6,13 +6,16 @@ bool init();
 bool create();
 bool surface_create ();
 void paint (SDL_Event* event);
+void Handle_Keydown(SDL_Keysym* keysym);
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
 SDL_Event event;
+SDL_Keysym keysym;
 int SCREEN_WIDTH = 480;
 int SCREEN_HEIGHT = 520;
-int i;
+//int paint_mode;
+int paint_mode = 0;
 bool init()
 {
 
@@ -293,6 +296,28 @@ void paint(SDL_Event* event)
     SDL_UpdateWindowSurface( gWindow );
 }
 
+void Handle_Keydown(SDL_Keysym* keysym)
+{
+    SDL_Event event;
+    switch(keysym->sym)
+    {
+    case SDLK_1:
+        printf("1 is pressed\n");
+        paint_mode = 1;
+        break;
+    case SDLK_0:
+        printf("0 is pressed\n");
+            paint_mode = 0;
+        break;
+    case SDLK_RIGHT:
+        printf("RIGHT is pressed\n");
+        break;
+
+    default:
+        printf("Can't find this key\n");
+        break;
+    }
+}
 int main( int argc, char* args[] )
 {
     //включаем SDL
@@ -322,10 +347,12 @@ int main( int argc, char* args[] )
         case SDL_MOUSEMOTION:
             //printf("We got a motion event.\n");
             printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
-             paint (& event);
+            if  (paint_mode == 1) {
+            paint (& event);
+            }
             break;
         case SDL_KEYDOWN:
-            printf("Key is pressed.\n");
+            Handle_Keydown(&event.key.keysym);
             break;
        case SDL_WINDOWEVENT:
             break;
