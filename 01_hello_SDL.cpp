@@ -14,8 +14,12 @@ SDL_Event event;
 SDL_Keysym keysym;
 int SCREEN_WIDTH = 480;
 int SCREEN_HEIGHT = 520;
-//int paint_mode;
+//переменная отвечает за режим рисования
 int paint_mode = 0;
+// цвета
+int R = 0;
+int G = 0;
+int B = 0;
 bool init()
 {
 
@@ -292,7 +296,7 @@ void paint(SDL_Event* event)
     y = event->motion.y;
 
     getpixel (surface, x, y);
-    DrawPixel(surface, x, y, 255, 255, 255);
+    DrawPixel(surface, x, y, R, G, B);
     SDL_UpdateWindowSurface( gWindow );
 }
 
@@ -309,9 +313,23 @@ void Handle_Keydown(SDL_Keysym* keysym)
         printf("0 is pressed\n");
             paint_mode = 0;
         break;
-    case SDLK_RIGHT:
-        printf("RIGHT is pressed\n");
+    case SDLK_r:
+        printf("R is pressed\n");
+        R = 255;
+        G = 0;
+        B = 0;
         break;
+    case SDLK_b:
+        printf("B is pressed\n");
+        R = 0;
+        G = 0;
+        B = 255;
+        break;
+    case SDLK_w:
+        printf("W is pressed\n");
+        R = 255;
+        G = 255;
+        B = 255;
 
     default:
         printf("Can't find this key\n");
