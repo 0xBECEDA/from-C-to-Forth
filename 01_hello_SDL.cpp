@@ -7,6 +7,7 @@ bool create();
 bool surface_create ();
 void paint (SDL_Event* event);
 void Handle_Keydown(SDL_Keysym* keysym);
+void box (int x, int y);
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -20,6 +21,9 @@ int paint_mode = 0;
 int R = 0;
 int G = 0;
 int B = 0;
+//координаты
+int y = 0;
+int x = 0;
 bool init()
 {
 
@@ -288,10 +292,28 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     }
 }
 
+void box (int x, int y)
+  {
+      SDL_LockSurface(surface);
+    int j = 0;
+    y = 150;
+    while (j<=10) {
+     int i = 10;
+     x = 100;
+     while (i != 0){
+        x++;
+        DrawPixel(surface, x, y, R, G, B);
+        i--;
+     }
+     y++;
+     j++;
+    }
+    SDL_UnlockSurface(surface);
+    SDL_UpdateWindowSurface( gWindow );
+}
 void paint(SDL_Event* event)
 {
-    int x;
-    int y;
+
     x = event->motion.x;
     y = event->motion.y;
 
@@ -312,6 +334,10 @@ void Handle_Keydown(SDL_Keysym* keysym)
     case SDLK_0:
         printf("0 is pressed\n");
             paint_mode = 0;
+        break;
+    case SDLK_2:
+        printf("2 is pressed\n");
+        box(x,y);
         break;
     case SDLK_r:
         printf("R is pressed\n");
