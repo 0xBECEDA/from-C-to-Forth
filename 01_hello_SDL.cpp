@@ -8,6 +8,7 @@ bool surface_create ();
 void paint (SDL_Event* event);
 void Handle_Keydown(SDL_Keysym* keysym);
 void box (int x, int y);
+void move_box_left (int x, int y);
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -24,6 +25,8 @@ int B = 0;
 //координаты
 int y = 0;
 int x = 0;
+int l = 0;
+int move_mode = 0;
 bool init()
 {
 
@@ -291,21 +294,40 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     break;
     }
 }
+// не вызывается без соответствующей команды с клавы
+void move_box_left (int x, int y) {
+    move_mode = 1;
+    l = x+10;
+   box(x,y);
 
+}
+//рисует квадратик
 void box (int x, int y)
   {
+      printf("x before is %d\n", x);
       SDL_LockSurface(surface);
     int j = 0;
     y = 150;
+// l равно значению из x
+    l = x;
+    printf("l is %d\n", l);
     while (j<=10) {
      int i = 10;
-     x = 100;
+     // if (move_mode = 0){
+     //x = 100;
+     // }
+     // else {
+     //x = значению из l
+        x = l;
+         // }
+         printf("x is %d\n", x);
      while (i != 0){
         x++;
         DrawPixel(surface, x, y, R, G, B);
         i--;
      }
      y++;
+     printf("y is %d\n", y);
      j++;
     }
     SDL_UnlockSurface(surface);
@@ -337,7 +359,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
     case SDLK_2:
         printf("2 is pressed\n");
-        box(x,y);
+        box(100,y);
         break;
     case SDLK_r:
         printf("R is pressed\n");
@@ -356,7 +378,10 @@ void Handle_Keydown(SDL_Keysym* keysym)
         R = 255;
         G = 255;
         B = 255;
-
+        break;
+    case SDLK_3:
+        printf("3 is pressed\n");
+        move_box_left(100,150);
     default:
         printf("Can't find this key\n");
         break;
