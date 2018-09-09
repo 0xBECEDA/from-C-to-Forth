@@ -300,49 +300,57 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     break;
     }
 }
-// не вызывается без соответствующей команды с клавы
+// не вызывается без соответствующей команды с клавы "3"
+
 void move_box_left ( int &X, int &Y) {
-// значение в переменных RGB равно значениям ИЗ doubles
-// копирую цвета для перед delete_box
+
     printf("x = %d and y %d in move_box_left\n", X, Y);
+
+    //кладу исходное значение в Y
+    Y = y;
      delete_box(X, Y);
+    // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
     B = doubleB;
 
-
-    //  printf("RGB in 'move_box_left' are %d, %d, %d\n", R, G, B);
-     // printf("RGB doubles in 'move_box_left' are %d, %d, %d\n",
-     //       doubleR, doubleG, doubleB);
+    // кладу значение X до вызова delete_box
      X = l;
+    //двигаем квадратик влево
      l = X++;
      printf("l in 'move_box_left' is %d\n", l);
+
      Y = y;
+     // отрисовываю с новыми координатами
       box(X,Y);
 
 }
 //рисует квадратик
 void box (int X, int Y)
-  {
+{
       printf("x = %d and y %d in box\n", X, Y);
-      // printf("X before is %d\n", X);
+
       SDL_LockSurface(surface);
     int j = 0;
-// l равно значению из x
+
+     // копируем значение X
      l = X;
-//копируем значение для move_box..
+
+     //копируем значение для move_box..
      y = Y;
      printf("l in 'box' is %d\n", l);
     while (j<=10) {
      int i = 10;
-      //x = значению из l
+
+        //возвращаем исхоное значение X
         X = l;
         printf("X is %d\n", X);
-     while (i != 0){
+
+        while (i != 0){
         X++;
         DrawPixel(surface, X, Y, R, G, B);
         i--;
-     }
+        }
      Y++;
      printf("Y is %d\n", Y);
      j++;
@@ -360,30 +368,24 @@ void delete_box (int &X, int &Y)
     R = 0;
     G = 0;
     B = 0;
-    // printf("RGB doubles in 'delete_box' are %d, %d, %d\n",
-    //     doubleR, doubleG, doubleB);
-    // printf("X before in delete_box is %d\n", X);
+
     SDL_LockSurface(surface);
     int j = 0;
-// копируем значение x в l
+// копируем значение X в l
      l = X;
-     //  printf("l in 'delete_box' is %d\n", l);
-     // printf("Y in BEFORE loop delete_box is %d\n", Y);
+
     while (j<=10) {
         int i = 10;
-        //возвращаем значение из l в x, чтоб рисовать каждую строку
-        // с одинаковой точки
-          X = l;
-          // printf("X in loop  delete_box is %d\n", X);
-          // printf("Y in FIRST loop delete_box is %d\n", Y);
+        //возвращаем исходное значение
+        X = l;
+
         while (i != 0){
             X++;
-            // printf("X in loop after inc delete_box is %d\n", X);
+
             DrawPixel(surface, X, Y, R, G, B);
             i--;
         }
         Y++;
-        // printf("Y in loop delete_box is %d\n", Y);
         j++;
     }
     SDL_UnlockSurface(surface);
