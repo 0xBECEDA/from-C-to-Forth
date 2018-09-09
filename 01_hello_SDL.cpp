@@ -7,8 +7,9 @@ bool create();
 bool surface_create ();
 void paint (SDL_Event* event);
 void Handle_Keydown(SDL_Keysym* keysym);
-void box (int x, int y);
-void move_box_left (int x, int y);
+void box ( int X, int Y);
+void move_box_left ( int &X, int &Y);
+void delete_box ( int &X, int &Y);
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -22,11 +23,16 @@ int paint_mode = 0;
 int R = 0;
 int G = 0;
 int B = 0;
+int doubleR = 0;
+int doubleG = 0;
+int doubleB = 0;
 //координаты
 int y = 0;
 int x = 0;
 int l = 0;
-int move_mode = 0;
+//координаты, для функций с вадратом
+int X = 100;
+int Y = 150;
 bool init()
 {
 
@@ -295,40 +301,90 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     }
 }
 // не вызывается без соответствующей команды с клавы
-void move_box_left (int x, int y) {
-    move_mode = 1;
-    l = x+10;
-   box(x,y);
+void move_box_left ( int &X, int &Y) {
+// значение в переменных RGB равно значениям ИЗ doubles
+// копирую цвета для перед delete_box
+    printf("x = %d and y %d in move_box_left\n", X, Y);
+     delete_box(X, Y);
+    R = doubleR;
+    G = doubleG;
+    B = doubleB;
+
+
+    //  printf("RGB in 'move_box_left' are %d, %d, %d\n", R, G, B);
+     // printf("RGB doubles in 'move_box_left' are %d, %d, %d\n",
+     //       doubleR, doubleG, doubleB);
+     X = l;
+     l = X++;
+     printf("l in 'move_box_left' is %d\n", l);
+     Y = y;
+      box(X,Y);
 
 }
 //рисует квадратик
-void box (int x, int y)
+void box (int X, int Y)
   {
-      printf("x before is %d\n", x);
+      printf("x = %d and y %d in box\n", X, Y);
+      // printf("X before is %d\n", X);
       SDL_LockSurface(surface);
     int j = 0;
-    y = 150;
 // l равно значению из x
-    l = x;
-    printf("l is %d\n", l);
+     l = X;
+//копируем значение для move_box..
+     y = Y;
+     printf("l in 'box' is %d\n", l);
     while (j<=10) {
      int i = 10;
-     // if (move_mode = 0){
-     //x = 100;
-     // }
-     // else {
-     //x = значению из l
-        x = l;
-         // }
-         printf("x is %d\n", x);
+      //x = значению из l
+        X = l;
+        printf("X is %d\n", X);
      while (i != 0){
-        x++;
-        DrawPixel(surface, x, y, R, G, B);
+        X++;
+        DrawPixel(surface, X, Y, R, G, B);
         i--;
      }
-     y++;
-     printf("y is %d\n", y);
+     Y++;
+     printf("Y is %d\n", Y);
      j++;
+    }
+    SDL_UnlockSurface(surface);
+    SDL_UpdateWindowSurface( gWindow );
+}
+
+
+//закрашиваем квадратик черным цветом
+void delete_box (int &X, int &Y)
+{
+    printf("x = %d and y %d in delete_box\n", X, Y);
+//устанавливаем цвета фона
+    R = 0;
+    G = 0;
+    B = 0;
+    // printf("RGB doubles in 'delete_box' are %d, %d, %d\n",
+    //     doubleR, doubleG, doubleB);
+    // printf("X before in delete_box is %d\n", X);
+    SDL_LockSurface(surface);
+    int j = 0;
+// копируем значение x в l
+     l = X;
+     //  printf("l in 'delete_box' is %d\n", l);
+     // printf("Y in BEFORE loop delete_box is %d\n", Y);
+    while (j<=10) {
+        int i = 10;
+        //возвращаем значение из l в x, чтоб рисовать каждую строку
+        // с одинаковой точки
+          X = l;
+          // printf("X in loop  delete_box is %d\n", X);
+          // printf("Y in FIRST loop delete_box is %d\n", Y);
+        while (i != 0){
+            X++;
+            // printf("X in loop after inc delete_box is %d\n", X);
+            DrawPixel(surface, X, Y, R, G, B);
+            i--;
+        }
+        Y++;
+        // printf("Y in loop delete_box is %d\n", Y);
+        j++;
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -359,7 +415,18 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
     case SDLK_2:
         printf("2 is pressed\n");
-        box(100,y);
+        box(X,Y);
+        break;
+    case SDLK_3:
+        printf("3 is pressed\n");
+//значение в doubles равно значению ИЗ GRB
+        doubleR = R;
+        doubleG = G;
+        doubleB = B;
+        //   printf("RGB doubles in 'SDLK_3' are %d, %d, %d\n",
+        //     doubleR, doubleG, doubleB);
+        move_box_left(X,Y);
+        //    delete_box(X, Y);
         break;
     case SDLK_r:
         printf("R is pressed\n");
@@ -378,10 +445,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         R = 255;
         G = 255;
         B = 255;
-        break;
-    case SDLK_3:
-        printf("3 is pressed\n");
-        move_box_left(100,150);
+
     default:
         printf("Can't find this key\n");
         break;
@@ -415,7 +479,7 @@ int main( int argc, char* args[] )
         switch (event.type) {
         case SDL_MOUSEMOTION:
             //printf("We got a motion event.\n");
-            printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
+            //  printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
             if  (paint_mode == 1) {
             paint (& event);
             }
@@ -426,9 +490,8 @@ int main( int argc, char* args[] )
        case SDL_WINDOWEVENT:
             break;
         default:
-            /* PrintEvent(&event); */
-            printf("Unhandled Event type is: ( %d) !\n", event.type);
-            printf ("default case!");
+            // printf("Unhandled Event type is: ( %d) !\n", event.type);
+             //          printf ("default case!");
             break;
         }
     }
