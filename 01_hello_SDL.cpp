@@ -9,7 +9,11 @@ void paint (SDL_Event* event);
 void Handle_Keydown(SDL_Keysym* keysym);
 void box ( int X, int Y);
 void move_box_left ( int &X, int &Y);
+void move_box_right ( int &X, int &Y);
+void move_box_down ( int &X, int &Y);
+void move_box_up ( int &X, int &Y);
 void delete_box ( int &X, int &Y);
+
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -302,7 +306,7 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 }
 // не вызывается без соответствующей команды с клавы "3"
 
-void move_box_left ( int &X, int &Y) {
+void move_box_right ( int &X, int &Y) {
 
     printf("x = %d and y %d in move_box_left\n", X, Y);
 
@@ -325,6 +329,85 @@ void move_box_left ( int &X, int &Y) {
       box(X,Y);
 
 }
+
+void move_box_left ( int &X, int &Y) {
+
+    printf("x = %d and y %d in move_box_left\n", X, Y);
+
+    //кладу исходное значение в Y
+    Y = y;
+    delete_box(X, Y);
+    // возвращаю  цвета для отрисовкис новыми X и Y
+    R = doubleR;
+    G = doubleG;
+    B = doubleB;
+
+    // кладу значение X до вызова delete_box
+    X = l;
+    //двигаем квадратик влево
+    l = X--;
+    printf("l in 'move_box_left' is %d\n", l);
+
+    Y = y;
+    // отрисовываю с новыми координатами
+    box(X,Y);
+
+}
+
+void move_box_down ( int &X, int &Y) {
+
+    printf("x = %d and y %d in move_box_left\n", X, Y);
+
+    //кладу исходное значение в Y
+    Y = y;
+    delete_box(X, Y);
+    printf("doubles R %d G %d B %d in move_box_down\n",
+           doubleR, doubleG, doubleB);
+    // возвращаю  цвета для отрисовкис новыми X и Y
+    R = doubleR;
+    G = doubleG;
+    B = doubleB;
+
+    // кладу значение X до вызова delete_box
+    X = l;
+
+    printf("l in 'move_box_left' is %d\n", l);
+
+    Y = y;
+
+    //двигаем квадратик вниз
+    y = Y++;
+    // отрисовываю с новыми координатами
+    box(X,Y);
+
+}
+
+void move_box_up ( int &X, int &Y) {
+
+    printf("x = %d and y %d in move_box_left\n", X, Y);
+
+    //кладу исходное значение в Y
+    Y = y;
+    delete_box(X, Y);
+       // возвращаю  цвета для отрисовкис новыми X и Y
+    R = doubleR;
+    G = doubleG;
+    B = doubleB;
+
+    // кладу значение X до вызова delete_box
+    X = l;
+
+    printf("l in 'move_box_left' is %d\n", l);
+
+    Y = y;
+
+    //двигаем квадратик вниз
+    y = Y--;
+    // отрисовываю с новыми координатами
+    box(X,Y);
+
+}
+
 //рисует квадратик
 void box (int X, int Y)
 {
@@ -425,10 +508,31 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        //   printf("RGB doubles in 'SDLK_3' are %d, %d, %d\n",
-        //     doubleR, doubleG, doubleB);
+        move_box_right(X,Y);
+        break;
+    case SDLK_4:
+        printf("4 is pressed\n");
+//значение в doubles равно значению ИЗ GRB
+        doubleR = R;
+        doubleG = G;
+        doubleB = B;
         move_box_left(X,Y);
-        //    delete_box(X, Y);
+        break;
+    case SDLK_5:
+        printf("5 is pressed\n");
+//значение в doubles равно значению ИЗ GRB
+        doubleR = R;
+        doubleG = G;
+        doubleB = B;
+        move_box_down(X,Y);
+        break;
+    case SDLK_6:
+        printf("6 is pressed\n");
+//значение в doubles равно значению ИЗ GRB
+        doubleR = R;
+        doubleG = G;
+        doubleB = B;
+        move_box_up(X,Y);
         break;
     case SDLK_r:
         printf("R is pressed\n");
