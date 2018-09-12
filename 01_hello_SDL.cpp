@@ -1,5 +1,7 @@
 #include<SDL2/SDL.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
 // включить SDL и сделать окно
 bool init();
@@ -34,6 +36,9 @@ int doubleB = 0;
 int y = 0;
 int x = 0;
 int l = 0;
+//координаты для random_pixels
+int a = 0;
+int b = 0;
 //координаты, для функций с вадратом
 int X = 100;
 int Y = 150;
@@ -474,6 +479,36 @@ void delete_box (int &X, int &Y)
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
+
+void random_pixels (int a, int b) {
+    int t = 0;
+
+    // time_t T= time(NULL);
+    // double difftime(time_t time2,time_t time1);
+    while (t <= 10)
+    {
+
+        SDL_LockSurface(surface);
+
+        // if (R = 0 && G == 0 && B == 0) {
+        R = 255;
+        G = 255;
+        B = 255;
+
+        DrawPixel(surface, a, b, R, G, B);
+        SDL_UnlockSurface(surface);
+        SDL_UpdateWindowSurface( gWindow );
+        printf("a = %d b = %d\n", a, b);
+        // }
+        srand(time(NULL));
+        a = rand() % 500;
+        srand(time(NULL));
+        b = rand() % 600;
+    t++;
+    // printf("Hi2");
+    }
+
+}
 void paint(SDL_Event* event)
 {
 
@@ -532,7 +567,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        move_box_up(X,Y);
+        // move_box_up(X,Y);
+        random_pixels(x, y);
         break;
     case SDLK_r:
         printf("R is pressed\n");
