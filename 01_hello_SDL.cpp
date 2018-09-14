@@ -6,16 +6,16 @@
 // включить SDL и сделать окно
 bool init();
 bool create();
-bool surface_create ();
-void paint (SDL_Event* event);
+bool surface_create();
+void paint(SDL_Event* event);
 void Handle_Keydown(SDL_Keysym* keysym);
-void box ( int X, int Y);
-void move_box_left ( int &X, int &Y);
-void move_box_right ( int &X, int &Y);
-void move_box_down ( int &X, int &Y);
-void move_box_up ( int &X, int &Y);
-void delete_box ( int &X, int &Y);
-
+void box( int &X, int &Y);
+void move_box_left( int &X, int &Y);
+void move_box_right( int &X, int &Y);
+void move_box_down( int &X, int &Y);
+void move_box_up( int &X, int &Y);
+void delete_box( int &X, int &Y);
+//void time(int &time1, int &time2);
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -39,6 +39,9 @@ int l = 0;
 //координаты для random_pixels
 int a = 0;
 int b = 0;
+//переменные времени
+int time1 = 0;
+int time2 = 0;
 //координаты, для функций с вадратом
 int X = 100;
 int Y = 150;
@@ -313,8 +316,6 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 
 void move_box_right ( int &X, int &Y) {
 
-    printf("x = %d and y %d in move_box_left\n", X, Y);
-
     //кладу исходное значение в Y
     Y = y;
      delete_box(X, Y);
@@ -327,8 +328,6 @@ void move_box_right ( int &X, int &Y) {
      X = l;
     //двигаем квадратик влево
      l = X++;
-     printf("l in 'move_box_left' is %d\n", l);
-
      Y = y;
      // отрисовываю с новыми координатами
       box(X,Y);
@@ -337,7 +336,6 @@ void move_box_right ( int &X, int &Y) {
 
 void move_box_left ( int &X, int &Y) {
 
-    printf("x = %d and y %d in move_box_left\n", X, Y);
 
     //кладу исходное значение в Y
     Y = y;
@@ -351,7 +349,6 @@ void move_box_left ( int &X, int &Y) {
     X = l;
     //двигаем квадратик влево
     l = X--;
-    printf("l in 'move_box_left' is %d\n", l);
 
     Y = y;
     // отрисовываю с новыми координатами
@@ -361,13 +358,9 @@ void move_box_left ( int &X, int &Y) {
 
 void move_box_down ( int &X, int &Y) {
 
-    printf("x = %d and y %d in move_box_left\n", X, Y);
-
     //кладу исходное значение в Y
     Y = y;
     delete_box(X, Y);
-    printf("doubles R %d G %d B %d in move_box_down\n",
-           doubleR, doubleG, doubleB);
     // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
@@ -375,8 +368,6 @@ void move_box_down ( int &X, int &Y) {
 
     // кладу значение X до вызова delete_box
     X = l;
-
-    printf("l in 'move_box_left' is %d\n", l);
 
     Y = y;
 
@@ -389,8 +380,6 @@ void move_box_down ( int &X, int &Y) {
 
 void move_box_up ( int &X, int &Y) {
 
-    printf("x = %d and y %d in move_box_left\n", X, Y);
-
     //кладу исходное значение в Y
     Y = y;
     delete_box(X, Y);
@@ -401,9 +390,6 @@ void move_box_up ( int &X, int &Y) {
 
     // кладу значение X до вызова delete_box
     X = l;
-
-    printf("l in 'move_box_left' is %d\n", l);
-
     Y = y;
 
     //двигаем квадратик вниз
@@ -414,9 +400,8 @@ void move_box_up ( int &X, int &Y) {
 }
 
 //рисует квадратик
-void box (int X, int Y)
+void box (int &X, int &Y)
 {
-      printf("x = %d and y %d in box\n", X, Y);
 
       SDL_LockSurface(surface);
     int j = 0;
@@ -426,13 +411,12 @@ void box (int X, int Y)
 
      //копируем значение для move_box..
      y = Y;
-     printf("l in 'box' is %d\n", l);
-    while (j<=10) {
-     int i = 10;
+
+     while (j<=10) {
+         int i = 10;
 
         //возвращаем исхоное значение X
         X = l;
-        printf("X is %d\n", X);
 
         while (i != 0){
         X++;
@@ -440,8 +424,7 @@ void box (int X, int Y)
         i--;
         }
      Y++;
-     printf("Y is %d\n", Y);
-     j++;
+       j++;
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -451,7 +434,7 @@ void box (int X, int Y)
 //закрашиваем квадратик черным цветом
 void delete_box (int &X, int &Y)
 {
-    printf("x = %d and y %d in delete_box\n", X, Y);
+
 //устанавливаем цвета фона
     R = 0;
     G = 0;
@@ -459,8 +442,6 @@ void delete_box (int &X, int &Y)
 
     SDL_LockSurface(surface);
     int j = 0;
-// копируем значение X в l
-     l = X;
 
     while (j<=10) {
         int i = 10;
@@ -474,15 +455,29 @@ void delete_box (int &X, int &Y)
             i--;
         }
         Y++;
+
         j++;
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
 
-void random_pixels (int a, int b) {
-    int t = 0;
+//void time(int &time1, int &time2)
+void time () {
+    // printf("time1 is %f time2 is %f\n", time1, time2);
+    // int result =  difftime(time2, time1);
+    //  printf(" result is %f\n",  result);
+    time_t T= time(NULL);
+    printf("T is %f", T);
+    struct  tm tm = *localtime(&T);
+    printf("System Time is: %02d:%02d:%02d\n",
+           tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
 
+void random_pixels (int a, int b) {
+
+    int t = 0;
+    int time1 = time (NULL);
     // time_t T= time(NULL);
     // double difftime(time_t time2,time_t time1);
     while (t <= 10)
@@ -536,6 +531,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
     case SDLK_2:
         printf("2 is pressed\n");
         box(X,Y);
+        time2 = time (NULL);
+        printf("time2 is %f", time2);
         break;
     case SDLK_3:
         printf("3 is pressed\n");
@@ -544,6 +541,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_right(X,Y);
+        time1 = time (NULL);
+        printf("time1 is %f", time1);
         break;
     case SDLK_4:
         printf("4 is pressed\n");
@@ -552,6 +551,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_left(X,Y);
+        // time2 = time (NULL);
+        // printf("time2 is %f", time2);
         break;
     case SDLK_5:
         printf("5 is pressed\n");
@@ -560,6 +561,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_down(X,Y);
+        time();
         break;
     case SDLK_6:
         printf("6 is pressed\n");
