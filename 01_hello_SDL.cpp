@@ -15,6 +15,7 @@ void move_box_right( int &X, int &Y);
 void move_box_down( int &X, int &Y);
 void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
+void show_pixels();
 //void time(int &time1, int &time2);
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
@@ -45,12 +46,14 @@ int time2 = 0;
 //координаты, для функций с вадратом
 int X = 100;
 int Y = 150;
+
+
+/* */
 bool init()
 {
-
-    //инициализация флага (?) что это такое?
+    // инициализация флага (?) что это такое?
     bool success = true;
-    //инициализация SDL
+    // инициализация SDL
 
     // если SDL_Init c SDL_INIT VIDEO в качестве параметра меньше нуля,
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
@@ -60,6 +63,8 @@ bool init()
     return success;
 }
 
+
+/* */
 bool create() {
 
     bool success = true;
@@ -67,7 +72,7 @@ bool create() {
   return success;
 }
 
-
+/* */
 bool surface_create ()
 {
     bool  success = true;
@@ -138,6 +143,7 @@ void PrintAllEvents()
 }
 
 
+/* */
 void PrintEvent(SDL_Event * event)
 {
     if (event->type == SDL_WINDOWEVENT) {
@@ -210,7 +216,7 @@ void PrintEvent(SDL_Event * event)
 }
 
 
-// находим пиксель
+/* находим пиксель */
 Uint32 getpixel( SDL_Surface *surface, int x, int y) {
 // заблокируем поверхность
     SDL_LockSurface(surface);
@@ -247,6 +253,8 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
     SDL_UnlockSurface(surface);
 }
 
+
+/* */
 void DrawPixel(SDL_Surface *screen, int x, int y,
                Uint8 R, Uint8 G, Uint8 B)
 {
@@ -312,10 +320,11 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     break;
     }
 }
-// не вызывается без соответствующей команды с клавы "3"
 
-void move_box_right ( int &X, int &Y) {
 
+/* не вызывается без соответствующей команды с клавы "3" */
+void move_box_right ( int &X, int &Y)
+{
     //кладу исходное значение в Y
     Y = y;
      delete_box(X, Y);
@@ -334,9 +343,8 @@ void move_box_right ( int &X, int &Y) {
 
 }
 
-void move_box_left ( int &X, int &Y) {
-
-
+void move_box_left ( int &X, int &Y)
+{
     //кладу исходное значение в Y
     Y = y;
     delete_box(X, Y);
@@ -353,11 +361,10 @@ void move_box_left ( int &X, int &Y) {
     Y = y;
     // отрисовываю с новыми координатами
     box(X,Y);
-
 }
 
-void move_box_down ( int &X, int &Y) {
-
+void move_box_down ( int &X, int &Y)
+{
     //кладу исходное значение в Y
     Y = y;
     delete_box(X, Y);
@@ -375,11 +382,10 @@ void move_box_down ( int &X, int &Y) {
     y = Y++;
     // отрисовываю с новыми координатами
     box(X,Y);
-
 }
 
-void move_box_up ( int &X, int &Y) {
-
+void move_box_up ( int &X, int &Y)
+{
     //кладу исходное значение в Y
     Y = y;
     delete_box(X, Y);
@@ -399,43 +405,41 @@ void move_box_up ( int &X, int &Y) {
 
 }
 
-//рисует квадратик
+/* рисует квадратик */
 void box (int &X, int &Y)
 {
-
-      SDL_LockSurface(surface);
+    SDL_LockSurface(surface);
     int j = 0;
 
-     // копируем значение X
-     l = X;
+    // копируем значение X
+    l = X;
 
-     //копируем значение для move_box..
-     y = Y;
+    //копируем значение для move_box..
+    y = Y;
 
-     while (j<=10) {
-         int i = 10;
+    while (j<=10) {
+        int i = 10;
 
         //возвращаем исхоное значение X
         X = l;
 
         while (i != 0){
-        X++;
-        DrawPixel(surface, X, Y, R, G, B);
-        i--;
+            X++;
+            DrawPixel(surface, X, Y, R, G, B);
+            i--;
         }
-     Y++;
-       j++;
+        Y++;
+        j++;
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
 
 
-//закрашиваем квадратик черным цветом
+/* закрашиваем квадратик черным цветом */
 void delete_box (int &X, int &Y)
 {
-
-//устанавливаем цвета фона
+    /* устанавливаем цвета фона */
     R = 0;
     G = 0;
     B = 0;
@@ -467,46 +471,53 @@ void time () {
     // printf("time1 is %f time2 is %f\n", time1, time2);
     // int result =  difftime(time2, time1);
     //  printf(" result is %f\n",  result);
-    time_t T= time(NULL);
-    printf("T is %f", T);
-    struct  tm tm = *localtime(&T);
-    printf("System Time is: %02d:%02d:%02d\n",
-           tm.tm_hour, tm.tm_min, tm.tm_sec);
+    time_t   start, finish;
+    time(&start);
+    int i = 0;
+    for(i; i<=49; i++){
+    }
+    //printf("T is  %x\n", T);
+    // struct  tm tm = *localtime(&T);
+    // printf("System Time is: %02d:%02d:%02d\n",
+    //     tm.tm_hour, tm.tm_min, tm.tm_sec);
+    time(&finish);
+    int result =  difftime(finish, start);
+    printf(" result is %x\n",  result);
 }
 
-void random_pixels (int a, int b) {
 
+void random_pixels (int a, int b)
+{
     int t = 0;
     int time1 = time (NULL);
     // time_t T= time(NULL);
     // double difftime(time_t time2,time_t time1);
     while (t <= 10)
     {
-
         SDL_LockSurface(surface);
 
         // if (R = 0 && G == 0 && B == 0) {
         R = 255;
         G = 255;
         B = 255;
-
         DrawPixel(surface, a, b, R, G, B);
-        SDL_UnlockSurface(surface);
-        SDL_UpdateWindowSurface( gWindow );
         printf("a = %d b = %d\n", a, b);
         // }
+
+        SDL_UnlockSurface(surface);
+        SDL_UpdateWindowSurface( gWindow );
+
         srand(time(NULL));
         a = rand() % 500;
         srand(time(NULL));
         b = rand() % 600;
-    t++;
+        t++;
     // printf("Hi2");
     }
 
 }
 void paint(SDL_Event* event)
 {
-
     x = event->motion.x;
     y = event->motion.y;
 
@@ -526,7 +537,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
     case SDLK_0:
         printf("0 is pressed\n");
-            paint_mode = 0;
+        paint_mode = 0;
         break;
     case SDLK_2:
         printf("2 is pressed\n");
@@ -569,8 +580,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        // move_box_up(X,Y);
-        random_pixels(x, y);
+        move_box_up(X,Y);
+        // random_pixels(x, y);
         break;
     case SDLK_r:
         printf("R is pressed\n");
@@ -595,9 +606,19 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
     }
 }
+
+
+void show_pixels()
+{
+    srand(time(NULL));
+    DrawPixel(surface, rand() % 500, rand() % 500, R, G, B);
+    SDL_UpdateWindowSurface( gWindow );
+}
+
+/* main */
 int main( int argc, char* args[] )
 {
-    //включаем SDL
+    // включаем SDL
     if( !init() ) {
         // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize SDL!\n" );
@@ -612,13 +633,18 @@ int main( int argc, char* args[] )
         // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize surface!\n" );
     }
+    SDL_UpdateWindowSurface( gWindow );
     /* PrintAllEvents(); */
     // цикл, обрабатывающий события, пока не встретим событие "выход"
     PrintAllEvents();
 
     while (256 != event.type) {
         //SDL_WaitEvent меньше нагружает комп
-        SDL_WaitEvent(& event);
+        // SDL_WaitEvent(& event);
+        SDL_WaitEventTimeout(& event, 100);
+        printf("%d\n", event.type);
+        fflush(stdout);
+
         // paint (& event);
         switch (event.type) {
         case SDL_MOUSEMOTION:
@@ -631,13 +657,14 @@ int main( int argc, char* args[] )
         case SDL_KEYDOWN:
             Handle_Keydown(&event.key.keysym);
             break;
-       case SDL_WINDOWEVENT:
+        case SDL_WINDOWEVENT:
             break;
         default:
             // printf("Unhandled Event type is: ( %d) !\n", event.type);
              //          printf ("default case!");
             break;
         }
+        show_pixels();
     }
 
     printf("Event queue empty.\n");

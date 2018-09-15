@@ -122,6 +122,17 @@ defconst "O_NONBLOCK",10,,__O_NONBLOCK,04000
 
 defconst "SUR_POINTER",11,,SUR_POINTER,0
 defvar "WND_POINTER",11,,WND_POINTER,0
+
+defcode "Hello!",6,, HELLO
+    push $param
+    call puts
+    pop %eax
+    NEXT
+
+.section .rodata
+    param:
+    .string "Hello Misha!"
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: sdlinit
     # ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -284,8 +295,8 @@ _surface_ret:  # <-----------------+
     # ~~~~~~~~~~~~~~~~~~~~~~~~
     # forth primitive: DELAY
     # ~~~~~~~~~~~~~~~~~~~~~~~~
+
 defcode "DELAY",5,, DELAY       # ( delay -- )
-    .text
 
     call    SDL_Delay
     add     $4, %esp
@@ -924,15 +935,6 @@ DOCOL:
     NEXT                    # Делаем NEXT
 
 
-defcode "Hello!",6,, HELLO
-    push $param
-    call puts
-    pop %eax
-    NEXT
-
-.section .rodata
-    param:
-    .string "Hello Misha!"
 
 defcode ">R",2,,TOR
     popl    %eax            # pop со стека данных в %eax
