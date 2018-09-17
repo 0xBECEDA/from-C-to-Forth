@@ -16,7 +16,8 @@ void move_box_down( int &X, int &Y);
 void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
 void show_pixels();
-//void time(int &time1, int &time2);
+void check_pixels (int &X, int &Y);
+
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -24,8 +25,10 @@ SDL_Event event;
 SDL_Keysym keysym;
 int SCREEN_WIDTH = 480;
 int SCREEN_HEIGHT = 520;
+
 //переменная отвечает за режим рисования
 int paint_mode = 0;
+
 // цвета
 int R = 0;
 int G = 0;
@@ -33,21 +36,18 @@ int B = 0;
 int doubleR = 0;
 int doubleG = 0;
 int doubleB = 0;
+
 //координаты
 int y = 0;
 int x = 0;
 int l = 0;
-//координаты для random_pixels
-int a = 0;
-int b = 0;
-//переменные времени
-int time1 = 0;
-int time2 = 0;
+
 //координаты, для функций с вадратом
 int X = 100;
 int Y = 150;
 
-
+//отражает кол-во найденных рандомно закрашенных пикселей
+int ColorPixel = 0;
 /* */
 bool init()
 {
@@ -465,57 +465,97 @@ void delete_box (int &X, int &Y)
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
-
-//void time(int &time1, int &time2)
-void time () {
-    // printf("time1 is %f time2 is %f\n", time1, time2);
-    // int result =  difftime(time2, time1);
-    //  printf(" result is %f\n",  result);
-    time_t   start, finish;
-    time(&start);
-    int i = 0;
-    for(i; i<=49; i++){
-    }
-    //printf("T is  %x\n", T);
-    // struct  tm tm = *localtime(&T);
-    // printf("System Time is: %02d:%02d:%02d\n",
-    //     tm.tm_hour, tm.tm_min, tm.tm_sec);
-    time(&finish);
-    int result =  difftime(finish, start);
-    printf(" result is %x\n",  result);
-}
-
-
-void random_pixels (int a, int b)
+//проверяет пиксели, перед тем, как квадрат сдвинется вправо
+void check_pixels (int &X, int &Y)
 {
-    int t = 0;
-    int time1 = time (NULL);
-    // time_t T= time(NULL);
-    // double difftime(time_t time2,time_t time1);
-    while (t <= 10)
+    printf( "X is %d, Y is %d\n", X, Y );
+    printf( "l is %d, y is %d\n", l, y );
+
+    // счетчик
+    int j = 0;
+
+    //сюда будем дублировать значения X и Y
+    int doubleX = 0;
+    int doubleY = 0;
+    int doubleXX = 0;
+    SDL_LockSurface(surface);
+    //выясняем формат пикселя
+    int bpp =  surface->format->BytesPerPixel;
+
+    //дублируем значения
+    doubleX = X;
+    doubleY = Y;
+    // printf( "doubleX before loop is %d, doubleY is %d\n",
+    //          doubleX, doubleY );
+    /* получаем адрес пикселя */
+    Uint32 ppr = surface->pitch/bpp;
+    while (j<=10)
     {
-        SDL_LockSurface(surface);
+        int i = 10;
 
-        // if (R = 0 && G == 0 && B == 0) {
-        R = 255;
-        G = 255;
-        B = 255;
-        DrawPixel(surface, a, b, R, G, B);
-        printf("a = %d b = %d\n", a, b);
-        // }
+        //дублируем значение X, чтоб каждый раз проверять от одной
+        // точки X
+        doubleXX = X;
+        while (i != 0)
+        {
 
-        SDL_UnlockSurface(surface);
-        SDL_UpdateWindowSurface( gWindow );
+        Uint8 *p = (Uint8 *)surface->pixels + (Y * ppr + X )* bpp;
+        /*
+          SDL_GetRGB; (?)
+          if (если RGB != 0)
+          {
+          ColorPixel++;
+          }
+        */
+        X++;
+        //  printf( "X during inc is %d\n", X);
+        i--;
+        }
+        //возвращаем значение, чтоб в след. итерации начать
+        // с той же X-координаты, но в другом ряду
+        X = doubleXX;
+        // printf( "X after inc is %d\n", X);
+        Y++;
+        //printf( "Y during inc is %d\n", Y);
 
-        srand(time(NULL));
-        a = rand() % 500;
-        srand(time(NULL));
-        b = rand() % 600;
-        t++;
-    // printf("Hi2");
+        j++;
     }
+    // возвращаем переменные в состояние "до проверки"
+    X = doubleX;
+    Y =  doubleY;
+// printf( "X after loop is %d, Y is %d\n",
+//          X, Y );
+    SDL_UnlockSurface(surface);
 
 }
+//рисует рандомно пиксели
+void show_pixels()
+{
+    srand(time(NULL));
+    DrawPixel(surface, rand() % 500, rand() % 500, R, G, B);
+    SDL_UpdateWindowSurface( gWindow );
+}
+
+//void time () {
+
+    /*
+    time_t T = 0; // unixtime in 32-bits
+    time(&T); // T != 0
+
+    struct tm TM;
+    struct tm *TM_pnt;
+
+    TM_pnt = localtime(&T); // return pounter
+    TM = *TM_pnt;
+
+    или эквивалентно
+
+    TM = *localtime(&T);
+    */
+
+//}
+
+
 void paint(SDL_Event* event)
 {
     x = event->motion.x;
@@ -542,8 +582,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
     case SDLK_2:
         printf("2 is pressed\n");
         box(X,Y);
-        time2 = time (NULL);
-        printf("time2 is %f", time2);
         break;
     case SDLK_3:
         printf("3 is pressed\n");
@@ -552,8 +590,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_right(X,Y);
-        time1 = time (NULL);
-        printf("time1 is %f", time1);
+        check_pixels(X, Y);
         break;
     case SDLK_4:
         printf("4 is pressed\n");
@@ -562,8 +599,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_left(X,Y);
-        // time2 = time (NULL);
-        // printf("time2 is %f", time2);
         break;
     case SDLK_5:
         printf("5 is pressed\n");
@@ -572,7 +607,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_down(X,Y);
-        time();
         break;
     case SDLK_6:
         printf("6 is pressed\n");
@@ -581,7 +615,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_up(X,Y);
-        // random_pixels(x, y);
+
         break;
     case SDLK_r:
         printf("R is pressed\n");
@@ -607,13 +641,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
     }
 }
 
-
-void show_pixels()
-{
-    srand(time(NULL));
-    DrawPixel(surface, rand() % 500, rand() % 500, R, G, B);
-    SDL_UpdateWindowSurface( gWindow );
-}
 
 /* main */
 int main( int argc, char* args[] )
@@ -642,8 +669,8 @@ int main( int argc, char* args[] )
         //SDL_WaitEvent меньше нагружает комп
         // SDL_WaitEvent(& event);
         SDL_WaitEventTimeout(& event, 100);
-        printf("%d\n", event.type);
-        fflush(stdout);
+        // printf("%d\n", event.type);
+        //fflush(stdout);
 
         // paint (& event);
         switch (event.type) {
