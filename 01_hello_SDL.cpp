@@ -248,8 +248,8 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
 
     case 4:
         RGBcolor =  *(Uint32 *)p;
-        return  RGBcolor;
         printf ("RGBcolor in case 4 is %d\n", RGBcolor);
+        return  RGBcolor;
         break;
 
     default:
@@ -544,7 +544,7 @@ void show_pixels()
 
     getpixel(surface, a, b);
     // printf ("RGBcolor is %d\n", RGBcolor);
-    if (RGBcolor = 0)
+    if (RGBcolor == 0)
     {
         DrawPixel(surface, a, b, R, G, B);
     }
