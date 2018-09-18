@@ -36,7 +36,7 @@ int B = 0;
 int doubleR = 0;
 int doubleG = 0;
 int doubleB = 0;
-
+int RGBcolor = 0;
 //координаты
 int y = 0;
 int x = 0;
@@ -228,11 +228,15 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
 
     switch(bpp) {
     case 1:
-        return *p;
+        RGBcolor = *p;
+        printf ("RGBcolor in case 1 is %d\n", RGBcolor);
+        return RGBcolor;
         break;
 
     case 2:
-        return *(Uint16 *)p;
+        RGBcolor = *(Uint16 *)p;
+        printf ("RGBcolor in case 2 is %d\n", RGBcolor);
+        return RGBcolor;
         break;
 
     case 3:
@@ -243,7 +247,9 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
         break;
 
     case 4:
-        return *(Uint32 *)p;
+        RGBcolor =  *(Uint32 *)p;
+        return  RGBcolor;
+        printf ("RGBcolor in case 4 is %d\n", RGBcolor);
         break;
 
     default:
@@ -251,6 +257,7 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
     }
     // разблокируем поверхность
     SDL_UnlockSurface(surface);
+    printf( "getpixel!");
 }
 
 
@@ -532,7 +539,15 @@ void check_pixels (int &X, int &Y)
 void show_pixels()
 {
     srand(time(NULL));
-    DrawPixel(surface, rand() % 500, rand() % 500, R, G, B);
+    int a = rand() % 500;
+    int b = rand() % 500;
+
+    getpixel(surface, a, b);
+    // printf ("RGBcolor is %d\n", RGBcolor);
+    if (RGBcolor = 0)
+    {
+        DrawPixel(surface, a, b, R, G, B);
+    }
     SDL_UpdateWindowSurface( gWindow );
 }
 
@@ -582,6 +597,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
     case SDLK_2:
         printf("2 is pressed\n");
         box(X,Y);
+        getpixel(surface, X, Y);
         break;
     case SDLK_3:
         printf("3 is pressed\n");
