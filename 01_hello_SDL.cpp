@@ -501,10 +501,10 @@ void check_pixels (int &X, int &Y)
 
         Uint8 *p = (Uint8 *)surface->pixels + (Y * ppr + X )* bpp;
         /*
-          SDL_GetRGB; (?)
-          if (если RGB != 0)
+          Uint32 pixel = getpixel (surface, X, Y); // SDL_GetRGB; (?)
+          if (pixel != 0) // if (если RGB != 0)
           {
-          ColorPixel++;
+             ColorPixel++;
           }
         */
         X++;
