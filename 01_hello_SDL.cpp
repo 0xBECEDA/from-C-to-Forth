@@ -41,10 +41,23 @@ int RGBcolor = 0;
 int y = 0;
 int x = 0;
 int l = 0;
-
+//координаты для show_pixels и структур пикселей
+int a = 0;
+int b = 0;
 //координаты, для функций с вадратом
 int X = 100;
 int Y = 150;
+//отображает кол-во структур
+int num = 255;
+//объявление структуры и массива структуры для пикселей
+
+struct pixel
+{
+    bool alive;
+    int c;
+    int d;
+} pixels[255];
+
 
 //отражает кол-во найденных рандомно закрашенных пикселей
 int ColorPixel = 0;
@@ -229,13 +242,11 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
     switch(bpp) {
     case 1:
         RGBcolor = *p;
-        printf ("RGBcolor in case 1 is %d\n", RGBcolor);
         return RGBcolor;
         break;
 
     case 2:
         RGBcolor = *(Uint16 *)p;
-        printf ("RGBcolor in case 2 is %d\n", RGBcolor);
         return RGBcolor;
         break;
 
@@ -248,7 +259,6 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
 
     case 4:
         RGBcolor =  *(Uint32 *)p;
-        printf ("RGBcolor in case 4 is %d\n", RGBcolor);
         return  RGBcolor;
         break;
 
@@ -257,7 +267,6 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
     }
     // разблокируем поверхность
     SDL_UnlockSurface(surface);
-    printf( "getpixel!");
 }
 
 
@@ -473,7 +482,7 @@ void delete_box (int &X, int &Y)
     SDL_UpdateWindowSurface( gWindow );
 }
 //проверяет пиксели, перед тем, как квадрат сдвинется вправо
-void check_pixels (int &X, int &Y)
+/*void check_pixels (int &X, int &Y)
 {
     printf( "X is %d, Y is %d\n", X, Y );
     printf( "l is %d, y is %d\n", l, y );
@@ -486,16 +495,11 @@ void check_pixels (int &X, int &Y)
     int doubleY = 0;
     int doubleXX = 0;
     SDL_LockSurface(surface);
-    //выясняем формат пикселя
-    int bpp =  surface->format->BytesPerPixel;
 
     //дублируем значения
     doubleX = X;
     doubleY = Y;
-    // printf( "doubleX before loop is %d, doubleY is %d\n",
-    //          doubleX, doubleY );
-    /* получаем адрес пикселя */
-    Uint32 ppr = surface->pitch/bpp;
+
     while (j<=10)
     {
         int i = 10;
@@ -505,15 +509,13 @@ void check_pixels (int &X, int &Y)
         doubleXX = X;
         while (i != 0)
         {
-
-        Uint8 *p = (Uint8 *)surface->pixels + (Y * ppr + X )* bpp;
-        /*
-          Uint32 pixel = getpixel (surface, X, Y); // SDL_GetRGB; (?)
-          if (pixel != 0) // if (если RGB != 0)
+          //получаем цвет пикселя
+          getpixel (surface, X, Y);
+          if (RGBcolor != 0)
           {
              ColorPixel++;
           }
-        */
+
         X++;
         //  printf( "X during inc is %d\n", X);
         i--;
@@ -533,21 +535,44 @@ void check_pixels (int &X, int &Y)
 // printf( "X after loop is %d, Y is %d\n",
 //          X, Y );
     SDL_UnlockSurface(surface);
+*/
 
+void PixelArray () {
+    int i = 0;
+    struct pixel concrete_pixel;
+    srand(time(NULL));
+    a = rand() % 500;
+    b = rand() % 500;
+    printf("a is %d, b is %d\n", a, b);
+    for (i; i<=255; i++){
+        //   printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
+               if(concrete_pixel.alive == false)
+        {
+            concrete_pixel.c = a;
+            concrete_pixel.d = b;
+            // printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",                       concrete_pixel.c, concrete_pixel.d);
+            concrete_pixel.alive == true;
+            printf("concrete_pixel.alive is %d\n",concrete_pixel.alive);
+            pixels[i] = concrete_pixel;
+            show_pixels();
+        }
+        else
+        {
+            pixels[i++];
+        }
+    }
 }
+
+
 //рисует рандомно пиксели
 void show_pixels()
 {
-    srand(time(NULL));
-    int a = rand() % 500;
-    int b = rand() % 500;
 
-    getpixel(surface, a, b);
+    // getpixel(surface, a, b);
     // printf ("RGBcolor is %d\n", RGBcolor);
-    if (RGBcolor == 0)
-    {
-        DrawPixel(surface, a, b, R, G, B);
-    }
+
+    DrawPixel(surface, a, b, R, G, B);
+
     SDL_UpdateWindowSurface( gWindow );
 }
 
@@ -606,7 +631,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         move_box_right(X,Y);
-        check_pixels(X, Y);
+        // check_pixels(X, Y);
         break;
     case SDLK_4:
         printf("4 is pressed\n");
@@ -707,7 +732,7 @@ int main( int argc, char* args[] )
              //          printf ("default case!");
             break;
         }
-        show_pixels();
+        PixelArray();
     }
 
     printf("Event queue empty.\n");
