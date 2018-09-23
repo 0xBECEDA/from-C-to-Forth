@@ -538,26 +538,41 @@ void delete_box (int &X, int &Y)
 */
 
 void PixelArray () {
+//счетчик цикла
     int i = 0;
+//создаем структуру concrete_pixel каждый раз при заходе в функцию
     struct pixel concrete_pixel;
+    //получаем координаты
     srand(time(NULL));
     a = rand() % 500;
     b = rand() % 500;
     printf("a is %d, b is %d\n", a, b);
-    for (i; i<=255; i++){
+//цикл, который перебирает массив. Если находит пустое место,
+//записывает структуру
+    for (i; i<=10; i++){
         //   printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
+        //вытаскиваем структуру из массива
+        concrete_pixel = pixels[i];
+        //если alive = 0;
                if(concrete_pixel.alive == false)
         {
+//заполняем структуру
             concrete_pixel.c = a;
             concrete_pixel.d = b;
-            // printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",                       concrete_pixel.c, concrete_pixel.d);
-            concrete_pixel.alive == true;
+             printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",                       concrete_pixel.c, concrete_pixel.d);
+              concrete_pixel.alive = true;
             printf("concrete_pixel.alive is %d\n",concrete_pixel.alive);
+            //возвращаем структуру в массив
             pixels[i] = concrete_pixel;
+            //вызываем отрисовку
             show_pixels();
+            // выход
+            break;
         }
+               //если alive = 1, то структура полная
         else
         {
+            //увеличиваем индекс массива
             pixels[i++];
         }
     }
