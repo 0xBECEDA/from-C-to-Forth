@@ -511,7 +511,6 @@ void PixelArray () {
     printf("a is %d, b is %d\n", a, b);
     //цикл, который перебирает массив. Если находит пустое место,
     //записывает структуру
-    srand(time(NULL));
     a = rand() % 500;
     b = rand() % 500;
     for (i; i<=255; i++){
@@ -548,9 +547,7 @@ void PixelArray () {
 //отображает писели, которые "еда"
 void show_pixels()
 {
-
     DrawPixel(surface, a, b, R, G, B);
-
     SDL_UpdateWindowSurface( gWindow );
 }
 
@@ -672,6 +669,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
 /* main */
 int main( int argc, char* args[] )
 {
+    srand(time(NULL));
     // включаем SDL
     if( !init() ) {
         // печатаем сообщение об ошибке, если инициализация не удалась
@@ -715,7 +713,7 @@ int main( int argc, char* args[] )
             break;
         default:
             // printf("Unhandled Event type is: ( %d) !\n", event.type);
-             //          printf ("default case!");
+            //          printf ("default case!");
             break;
         }
         PixelArray();
@@ -724,4 +722,4 @@ int main( int argc, char* args[] )
     printf("Event queue empty.\n");
     printf("Exit.\n");
     return 0;
- }
+}
