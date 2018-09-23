@@ -3,6 +3,9 @@
 #include <time.h>
 #include <unistd.h>
 
+//#define size_x 10
+//#define sizy_y 10
+
 // включить SDL и сделать окно
 bool init();
 bool create();
@@ -505,12 +508,12 @@ void PixelArray () {
     //создаем структуру concrete_pixel каждый раз при заходе в функцию
     struct pixel concrete_pixel;
     //получаем координаты
-    srand(time(NULL));
-    a = rand() % 500;
-    b = rand() % 500;
     printf("a is %d, b is %d\n", a, b);
     //цикл, который перебирает массив. Если находит пустое место,
     //записывает структуру
+    srand(time(NULL));
+    a = rand() % 500;
+    b = rand() % 500;
     for (i; i<=255; i++){
         //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
         //вытаскиваем структуру из массива
@@ -521,8 +524,10 @@ void PixelArray () {
             // заполняем структуру
             concrete_pixel.c = a;
             concrete_pixel.d = b;
-             printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n"                   , concrete_pixel.c, concrete_pixel.d);
-              concrete_pixel.alive = true;
+            printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",
+                   concrete_pixel.c,
+                   concrete_pixel.d);
+            concrete_pixel.alive = true;
             printf("concrete_pixel.alive is %d\n",
                    concrete_pixel.alive);
             //возвращаем структуру в массив
@@ -604,8 +609,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         printf("X in 3 is %d\n", X);
-        if (X!=476) {
-        move_box_right(X,Y);
+        if (X < 476) {
+            move_box_right(X,Y);
         }
         // check_pixels(X, Y);
         break;
@@ -615,8 +620,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        if (X!=9) {
-        move_box_left(X,Y);
+        if (X > 9) {
+            move_box_left(X,Y);
         }
         break;
     case SDLK_5:
@@ -625,8 +630,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        if (Y!=520) {
-        move_box_down(X,Y);
+        if (Y < 520) {
+            move_box_down(X,Y);
         }
         break;
     case SDLK_6:
@@ -636,8 +641,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         printf("Y in 6 is %d\n", Y);
-        if (Y!=11) {
-        move_box_up(X,Y);
+        if (Y > 11) {
+            move_box_up(X,Y);
          }
         break;
     case SDLK_r:
@@ -713,7 +718,7 @@ int main( int argc, char* args[] )
              //          printf ("default case!");
             break;
         }
-        //  PixelArray();
+        PixelArray();
     }
 
     printf("Event queue empty.\n");
