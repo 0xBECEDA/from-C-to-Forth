@@ -58,6 +58,12 @@ struct pixel
     int d;
 } pixels[255];
 
+struct box
+{
+    int box;
+    int c;
+    int d;
+} pixels_box[99];
 
 //отражает кол-во найденных рандомно закрашенных пикселей
 int ColorPixel = 0;
@@ -413,10 +419,11 @@ void move_box_up ( int &X, int &Y)
     // кладу значение X до вызова delete_box
     X = l;
     Y = y;
-
-    //двигаем квадратик вниз
+    //двигаем квадратик вверх
     y = Y--;
     // отрисовываю с новыми координатами
+    printf("X in move_box_up is %d\n", X);
+
     box(X,Y);
 
 }
@@ -424,9 +431,12 @@ void move_box_up ( int &X, int &Y)
 /* рисует квадратик */
 void box (int &X, int &Y)
 {
+    //структура для квадратика
+    struct box main_character;
+
     SDL_LockSurface(surface);
     int j = 0;
-
+    int p = 0;
     // копируем значение X
     l = X;
 
@@ -440,9 +450,14 @@ void box (int &X, int &Y)
         X = l;
 
         while (i != 0){
+            main_character.box = 3;
             X++;
+             main_character.c = X;
+             main_character.d = Y;
+             pixels_box[p] = main_character;
             DrawPixel(surface, X, Y, R, G, B);
             i--;
+            pixels_box[p++];
         }
         Y++;
         j++;
@@ -481,87 +496,35 @@ void delete_box (int &X, int &Y)
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
-//проверяет пиксели, перед тем, как квадрат сдвинется вправо
-/*void check_pixels (int &X, int &Y)
-{
-    printf( "X is %d, Y is %d\n", X, Y );
-    printf( "l is %d, y is %d\n", l, y );
 
-    // счетчик
-    int j = 0;
-
-    //сюда будем дублировать значения X и Y
-    int doubleX = 0;
-    int doubleY = 0;
-    int doubleXX = 0;
-    SDL_LockSurface(surface);
-
-    //дублируем значения
-    doubleX = X;
-    doubleY = Y;
-
-    while (j<=10)
-    {
-        int i = 10;
-
-        //дублируем значение X, чтоб каждый раз проверять от одной
-        // точки X
-        doubleXX = X;
-        while (i != 0)
-        {
-          //получаем цвет пикселя
-          getpixel (surface, X, Y);
-          if (RGBcolor != 0)
-          {
-             ColorPixel++;
-          }
-
-        X++;
-        //  printf( "X during inc is %d\n", X);
-        i--;
-        }
-        //возвращаем значение, чтоб в след. итерации начать
-        // с той же X-координаты, но в другом ряду
-        X = doubleXX;
-        // printf( "X after inc is %d\n", X);
-        Y++;
-        //printf( "Y during inc is %d\n", Y);
-
-        j++;
-    }
-    // возвращаем переменные в состояние "до проверки"
-    X = doubleX;
-    Y =  doubleY;
-// printf( "X after loop is %d, Y is %d\n",
-//          X, Y );
-    SDL_UnlockSurface(surface);
-*/
+//заполняет массив пикселей
 
 void PixelArray () {
-//счетчик цикла
+    //счетчик цикла
     int i = 0;
-//создаем структуру concrete_pixel каждый раз при заходе в функцию
+    //создаем структуру concrete_pixel каждый раз при заходе в функцию
     struct pixel concrete_pixel;
     //получаем координаты
     srand(time(NULL));
     a = rand() % 500;
     b = rand() % 500;
     printf("a is %d, b is %d\n", a, b);
-//цикл, который перебирает массив. Если находит пустое место,
-//записывает структуру
-    for (i; i<=10; i++){
-        //   printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
+    //цикл, который перебирает массив. Если находит пустое место,
+    //записывает структуру
+    for (i; i<=255; i++){
+        //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
         //вытаскиваем структуру из массива
         concrete_pixel = pixels[i];
         //если alive = 0;
-               if(concrete_pixel.alive == false)
+        if(concrete_pixel.alive == false)
         {
-//заполняем структуру
+            // заполняем структуру
             concrete_pixel.c = a;
             concrete_pixel.d = b;
-             printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",                       concrete_pixel.c, concrete_pixel.d);
+             printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n"                   , concrete_pixel.c, concrete_pixel.d);
               concrete_pixel.alive = true;
-            printf("concrete_pixel.alive is %d\n",concrete_pixel.alive);
+            printf("concrete_pixel.alive is %d\n",
+                   concrete_pixel.alive);
             //возвращаем структуру в массив
             pixels[i] = concrete_pixel;
             //вызываем отрисовку
@@ -569,22 +532,17 @@ void PixelArray () {
             // выход
             break;
         }
-               //если alive = 1, то структура полная
-        else
+        else if (i == 255)
         {
-            //увеличиваем индекс массива
-            pixels[i++];
+            printf("No space found\n");
         }
     }
 }
 
 
-//рисует рандомно пиксели
+//отображает писели, которые "еда"
 void show_pixels()
 {
-
-    // getpixel(surface, a, b);
-    // printf ("RGBcolor is %d\n", RGBcolor);
 
     DrawPixel(surface, a, b, R, G, B);
 
@@ -636,42 +594,51 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
     case SDLK_2:
         printf("2 is pressed\n");
-        box(X,Y);
-        getpixel(surface, X, Y);
+        // box(X,Y);
+        // getpixel(surface, X, Y);
         break;
     case SDLK_3:
         printf("3 is pressed\n");
-//значение в doubles равно значению ИЗ GRB
+        //значение в doubles равно значению ИЗ GRB
         doubleR = R;
         doubleG = G;
         doubleB = B;
+        printf("X in 3 is %d\n", X);
+        if (X!=476) {
         move_box_right(X,Y);
+        }
         // check_pixels(X, Y);
         break;
     case SDLK_4:
         printf("4 is pressed\n");
-//значение в doubles равно значению ИЗ GRB
+        //значение в doubles равно значению ИЗ GRB
         doubleR = R;
         doubleG = G;
         doubleB = B;
+        if (X!=9) {
         move_box_left(X,Y);
+        }
         break;
     case SDLK_5:
         printf("5 is pressed\n");
-//значение в doubles равно значению ИЗ GRB
+        //значение в doubles равно значению ИЗ GRB
         doubleR = R;
         doubleG = G;
         doubleB = B;
+        if (Y!=520) {
         move_box_down(X,Y);
+        }
         break;
     case SDLK_6:
         printf("6 is pressed\n");
-//значение в doubles равно значению ИЗ GRB
+        //значение в doubles равно значению ИЗ GRB
         doubleR = R;
         doubleG = G;
         doubleB = B;
+        printf("Y in 6 is %d\n", Y);
+        if (Y!=11) {
         move_box_up(X,Y);
-
+         }
         break;
     case SDLK_r:
         printf("R is pressed\n");
@@ -690,7 +657,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
         R = 255;
         G = 255;
         B = 255;
-
     default:
         printf("Can't find this key\n");
         break;
@@ -724,7 +690,7 @@ int main( int argc, char* args[] )
     while (256 != event.type) {
         //SDL_WaitEvent меньше нагружает комп
         // SDL_WaitEvent(& event);
-        SDL_WaitEventTimeout(& event, 100);
+        SDL_WaitEventTimeout(& event, 1000);
         // printf("%d\n", event.type);
         //fflush(stdout);
 
@@ -732,7 +698,7 @@ int main( int argc, char* args[] )
         switch (event.type) {
         case SDL_MOUSEMOTION:
             //printf("We got a motion event.\n");
-            //  printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
+            //   printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
             if  (paint_mode == 1) {
             paint (& event);
             }
@@ -747,7 +713,7 @@ int main( int argc, char* args[] )
              //          printf ("default case!");
             break;
         }
-        PixelArray();
+        //  PixelArray();
     }
 
     printf("Event queue empty.\n");
