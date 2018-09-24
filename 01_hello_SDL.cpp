@@ -60,13 +60,15 @@ struct pixel
     int c;
     int d;
 } pixels[255];
-
+struct pixel concrete_pixel;
 struct box
 {
     int box;
     int c;
     int d;
-} pixels_box[99];
+} pixels_box[100];
+//структура для квадратика
+struct box main_character;
 
 //отражает кол-во найденных рандомно закрашенных пикселей
 int ColorPixel = 0;
@@ -434,10 +436,8 @@ void move_box_up ( int &X, int &Y)
 /* рисует квадратик */
 void box (int &X, int &Y)
 {
-    //структура для квадратика
-    struct box main_character;
 
-    SDL_LockSurface(surface);
+    //DL_LockSurface(surface);
     int j = 0;
     int p = 0;
     // копируем значение X
@@ -458,15 +458,18 @@ void box (int &X, int &Y)
              main_character.c = X;
              main_character.d = Y;
              pixels_box[p] = main_character;
-            DrawPixel(surface, X, Y, R, G, B);
+             printf("main_character.c is %d main_character.d is %d\n",
+                    main_character.c, main_character.d);
+            //DrawPixel(surface, X, Y, R, G, B);
             i--;
             pixels_box[p++];
         }
         Y++;
+       printf("main_character.d after inc is %d\n", main_character.d);
         j++;
     }
-    SDL_UnlockSurface(surface);
-    SDL_UpdateWindowSurface( gWindow );
+    //DL_UnlockSurface(surface);
+    //L_UpdateWindowSurface( gWindow );
 }
 
 
@@ -505,8 +508,7 @@ void delete_box (int &X, int &Y)
 void PixelArray () {
     //счетчик цикла
     int i = 0;
-    //создаем структуру concrete_pixel каждый раз при заходе в функцию
-    struct pixel concrete_pixel;
+
     //получаем координаты
     printf("a is %d, b is %d\n", a, b);
     //цикл, который перебирает массив. Если находит пустое место,
@@ -532,7 +534,7 @@ void PixelArray () {
             //возвращаем структуру в массив
             pixels[i] = concrete_pixel;
             //вызываем отрисовку
-            show_pixels();
+            //  show_pixels();
             // выход
             break;
         }
@@ -547,8 +549,26 @@ void PixelArray () {
 //отображает писели, которые "еда"
 void show_pixels()
 {
-    DrawPixel(surface, a, b, R, G, B);
-    SDL_UpdateWindowSurface( gWindow );
+    int p = 0;
+    int i = 0;
+
+    for (i; i <= 255; i++) {
+        concrete_pixel = pixels[i];
+        if (concrete_pixel.alive == true) {
+            DrawPixel(surface, concrete_pixel.c,
+                      concrete_pixel.d, R, G, B);
+            SDL_UpdateWindowSurface( gWindow );
+        }
+    }
+
+    for (p; p <= 100; p++) {
+        main_character = pixels_box[p];
+        if ( main_character.box == 3) {
+            DrawPixel(surface, main_character.c,
+                      main_character.d, R, G, B);
+            SDL_UpdateWindowSurface( gWindow );
+        }
+    }
 }
 
 //void time () {
@@ -693,7 +713,7 @@ int main( int argc, char* args[] )
     while (256 != event.type) {
         //SDL_WaitEvent меньше нагружает комп
         // SDL_WaitEvent(& event);
-        SDL_WaitEventTimeout(& event, 1000);
+        SDL_WaitEventTimeout(& event, 100);
         // printf("%d\n", event.type);
         //fflush(stdout);
 
@@ -716,7 +736,8 @@ int main( int argc, char* args[] )
             //          printf ("default case!");
             break;
         }
-        PixelArray();
+         PixelArray();
+         show_pixels();
     }
 
     printf("Event queue empty.\n");
