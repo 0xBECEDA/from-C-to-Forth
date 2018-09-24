@@ -557,7 +557,6 @@ void show_pixels()
         if (concrete_pixel.alive == true) {
             DrawPixel(surface, concrete_pixel.c,
                       concrete_pixel.d, R, G, B);
-            SDL_UpdateWindowSurface( gWindow );
         }
     }
 
@@ -566,9 +565,10 @@ void show_pixels()
         if ( main_character.box == 3) {
             DrawPixel(surface, main_character.c,
                       main_character.d, R, G, B);
-            SDL_UpdateWindowSurface( gWindow );
-        }
+         }
     }
+    SDL_UpdateWindowSurface( gWindow );
+
 }
 
 //void time () {
