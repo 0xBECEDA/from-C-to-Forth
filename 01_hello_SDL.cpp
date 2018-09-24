@@ -92,8 +92,8 @@ bool init()
 bool create() {
 
     bool success = true;
-  gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
-  return success;
+    gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+    return success;
 }
 
 /* */
@@ -183,18 +183,18 @@ void PrintEvent(SDL_Event * event)
             break;
         case SDL_WINDOWEVENT_MOVED:
             printf("Window %d moved to %d,%d",
-                    event->window.windowID, event->window.data1,
-                    event->window.data2);
+                   event->window.windowID, event->window.data1,
+                   event->window.data2);
             break;
         case SDL_WINDOWEVENT_RESIZED:
             printf("Window %d resized to %dx%d",
-                    event->window.windowID, event->window.data1,
-                    event->window.data2);
+                   event->window.windowID, event->window.data1,
+                   event->window.data2);
             break;
         case SDL_WINDOWEVENT_SIZE_CHANGED:
             printf("Window %d size changed to %dx%d",
-                    event->window.windowID, event->window.data1,
-                    event->window.data2);
+                   event->window.windowID, event->window.data1,
+                   event->window.data2);
             break;
         case SDL_WINDOWEVENT_MINIMIZED:
             printf("Window %d minimized", event->window.windowID);
@@ -207,18 +207,18 @@ void PrintEvent(SDL_Event * event)
             break;
         case SDL_WINDOWEVENT_ENTER:
             printf("Mouse entered window %d",
-                    event->window.windowID);
+                   event->window.windowID);
             break;
         case SDL_WINDOWEVENT_LEAVE:
             printf("Mouse left window %d", event->window.windowID);
             break;
         case SDL_WINDOWEVENT_FOCUS_GAINED:
             printf("Window %d gained keyboard focus",
-                    event->window.windowID);
+                   event->window.windowID);
             break;
         case SDL_WINDOWEVENT_FOCUS_LOST:
             printf("Window %d lost keyboard focus",
-                    event->window.windowID);
+                   event->window.windowID);
             break;
         case SDL_WINDOWEVENT_CLOSE:
             printf("Window %d closed", event->window.windowID);
@@ -230,10 +230,10 @@ void PrintEvent(SDL_Event * event)
         case SDL_WINDOWEVENT_HIT_TEST:
             printf("Window %d has a special hit test", event->window.windowID);
             break;
-            #endif
+#endif
         default:
             printf("Window %d got unknown event %d",
-                    event->window.windowID, event->window.event);
+                   event->window.windowID, event->window.event);
             break;
         }
     }
@@ -354,19 +354,19 @@ void move_box_right ( int &X, int &Y)
 {
     //кладу исходное значение в Y
     Y = y;
-     delete_box(X, Y);
+    delete_box(X, Y);
     // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
     B = doubleB;
 
     // кладу значение X до вызова delete_box
-     X = l;
+    X = l;
     //двигаем квадратик влево
-     l = X++;
-     Y = y;
-     // отрисовываю с новыми координатами
-      box(X,Y);
+    l = X++;
+    Y = y;
+    // отрисовываю с новыми координатами
+    box(X,Y);
 
 }
 
@@ -416,7 +416,7 @@ void move_box_up ( int &X, int &Y)
     //кладу исходное значение в Y
     Y = y;
     delete_box(X, Y);
-       // возвращаю  цвета для отрисовкис новыми X и Y
+    // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
     B = doubleB;
@@ -455,17 +455,17 @@ void box (int &X, int &Y)
         while (i != 0){
             main_character.box = 3;
             X++;
-             main_character.c = X;
-             main_character.d = Y;
-             pixels_box[p] = main_character;
-             printf("main_character.c is %d main_character.d is %d\n",
-                    main_character.c, main_character.d);
+            main_character.c = X;
+            main_character.d = Y;
+            pixels_box[p] = main_character;
+            printf("main_character.c is %d main_character.d is %d\n",
+                   main_character.c, main_character.d);
             //DrawPixel(surface, X, Y, R, G, B);
             i--;
             pixels_box[p++];
         }
         Y++;
-       printf("main_character.d after inc is %d\n", main_character.d);
+        printf("main_character.d after inc is %d\n", main_character.d);
         j++;
     }
     //DL_UnlockSurface(surface);
@@ -573,20 +573,20 @@ void show_pixels()
 
 //void time () {
 
-    /*
-    time_t T = 0; // unixtime in 32-bits
-    time(&T); // T != 0
+/*
+  time_t T = 0; // unixtime in 32-bits
+  time(&T); // T != 0
 
-    struct tm TM;
-    struct tm *TM_pnt;
+  struct tm TM;
+  struct tm *TM_pnt;
 
-    TM_pnt = localtime(&T); // return pounter
-    TM = *TM_pnt;
+  TM_pnt = localtime(&T); // return pounter
+  TM = *TM_pnt;
 
-    или эквивалентно
+  или эквивалентно
 
-    TM = *localtime(&T);
-    */
+  TM = *localtime(&T);
+*/
 
 //}
 
@@ -660,7 +660,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         printf("Y in 6 is %d\n", Y);
         if (Y > 11) {
             move_box_up(X,Y);
-         }
+        }
         break;
     case SDLK_r:
         printf("R is pressed\n");
@@ -723,7 +723,7 @@ int main( int argc, char* args[] )
             //printf("We got a motion event.\n");
             //   printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
             if  (paint_mode == 1) {
-            paint (& event);
+                paint (& event);
             }
             break;
         case SDL_KEYDOWN:
@@ -736,8 +736,8 @@ int main( int argc, char* args[] )
             //          printf ("default case!");
             break;
         }
-         PixelArray();
-         show_pixels();
+        PixelArray();
+        show_pixels();
     }
 
     printf("Event queue empty.\n");
