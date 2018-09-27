@@ -10,7 +10,7 @@ COMPILER_FLAGS = -w
 
 #LINKER_FLAGS specifies the libraries we're linking against
 LINKER_FLAGS = -lSDL2 -lm
-
+LIB = -lpthread
 #OBJ_NAME specifies the name of our exectuable
 OBJ_NAME = 01_hello_SDL
 #This is the target that compiles our executable
@@ -22,11 +22,11 @@ VPATH = make:sdl
 CFLAGS  += -m32 -g
 LDFLAGS += -m32 -g
 
-CFLAGS  += $(shell pkg-config --cflags  sdl2)
-LDFLAGS += $(shell pkg-config --libs    sdl2)
+CFLAGS  += $(shell pkg-config --cflags  sdl2  -lpthread)
+LDFLAGS += $(shell pkg-config --libs    sdl2	lpthread)
 
 all : $(OBJS)
-	$(CC) $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(OBJ_NAME)
+	$(CC) $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS) $(LIB) -o $(OBJ_NAME)
 asm : $(OBJS)
 	$(CC) $(OBJS) $(COMPILER_FLAGS) -S $(LINKER_FLAGS) $(CFLAGS) `pkg-config --cflags --libs sdl2` -o $(OBJ_NAME).S
 sdlwrap.o: sdlwrap.c

@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
-
+#include <sys/types.h>
+#include <linux/unistd.h>
+#include <pthread.h>
 //#define size_x 10
 //#define sizy_y 10
 
@@ -63,7 +65,6 @@ struct pixel
 struct pixel concrete_pixel;
 struct box
 {
-    int box;
     int c;
     int d;
 } pixels_box[100];
@@ -72,6 +73,7 @@ struct box main_character;
 
 //отражает кол-во найденных рандомно закрашенных пикселей
 int ColorPixel = 0;
+
 /* */
 bool init()
 {
@@ -368,6 +370,7 @@ void move_box_right ( int &X, int &Y)
     // отрисовываю с новыми координатами
     box(X,Y);
 
+
 }
 
 void move_box_left ( int &X, int &Y)
@@ -388,6 +391,7 @@ void move_box_left ( int &X, int &Y)
     Y = y;
     // отрисовываю с новыми координатами
     box(X,Y);
+
 }
 
 void move_box_down ( int &X, int &Y)
@@ -409,6 +413,7 @@ void move_box_down ( int &X, int &Y)
     y = Y++;
     // отрисовываю с новыми координатами
     box(X,Y);
+
 }
 
 void move_box_up ( int &X, int &Y)
@@ -430,7 +435,6 @@ void move_box_up ( int &X, int &Y)
     printf("X in move_box_up is %d\n", X);
 
     box(X,Y);
-
 }
 
 /* рисует квадратик */
@@ -453,23 +457,19 @@ void box (int &X, int &Y)
         X = l;
 
         while (i != 0){
-            main_character.box = 3;
             X++;
             main_character.c = X;
             main_character.d = Y;
             pixels_box[p] = main_character;
-            printf("main_character.c is %d main_character.d is %d\n",
-                   main_character.c, main_character.d);
-            //DrawPixel(surface, X, Y, R, G, B);
+            //  printf("main_character.c is %d main_character.d is %d\n",
+            //     main_character.c, main_character.d);
             i--;
             pixels_box[p++];
         }
         Y++;
-        printf("main_character.d after inc is %d\n", main_character.d);
+        //   printf("main_character.d after inc is %d\n", main_character.d);
         j++;
     }
-    //DL_UnlockSurface(surface);
-    //L_UpdateWindowSurface( gWindow );
 }
 
 
@@ -510,7 +510,7 @@ void PixelArray () {
     int i = 0;
 
     //получаем координаты
-    printf("a is %d, b is %d\n", a, b);
+    // printf("a is %d, b is %d\n", a, b);
     //цикл, который перебирает массив. Если находит пустое место,
     //записывает структуру
     a = rand() % 500;
@@ -525,16 +525,14 @@ void PixelArray () {
             // заполняем структуру
             concrete_pixel.c = a;
             concrete_pixel.d = b;
-            printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",
-                   concrete_pixel.c,
-                   concrete_pixel.d);
+          //printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",
+                    //concrete_pixel.c,
+                    // concrete_pixel.d);
             concrete_pixel.alive = true;
-            printf("concrete_pixel.alive is %d\n",
-                   concrete_pixel.alive);
+            //printf("concrete_pixel.alive is %d\n",
+            //       concrete_pixel.alive);
             //возвращаем структуру в массив
             pixels[i] = concrete_pixel;
-            //вызываем отрисовку
-            //  show_pixels();
             // выход
             break;
         }
@@ -551,7 +549,7 @@ void show_pixels()
 {
     int p = 0;
     int i = 0;
-
+    SDL_LockSurface(surface);
     for (i; i <= 255; i++) {
         concrete_pixel = pixels[i];
         if (concrete_pixel.alive == true) {
@@ -562,13 +560,11 @@ void show_pixels()
 
     for (p; p <= 100; p++) {
         main_character = pixels_box[p];
-        if ( main_character.box == 3) {
             DrawPixel(surface, main_character.c,
                       main_character.d, R, G, B);
-         }
     }
+    SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
-
 }
 
 //void time () {
@@ -625,7 +621,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        printf("X in 3 is %d\n", X);
         if (X < 476) {
             move_box_right(X,Y);
         }
@@ -657,7 +652,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        printf("Y in 6 is %d\n", Y);
         if (Y > 11) {
             move_box_up(X,Y);
         }
@@ -685,10 +679,21 @@ void Handle_Keydown(SDL_Keysym* keysym)
     }
 }
 
+// функция потока, в качестве параметра - нетипизированный указатель
+void* threadFunc(void* thread_data)
+{
+    // while (256 != event.type) {
+    printf("Second!");
+    show_pixels();
+    // }
+
+}
 
 /* main */
 int main( int argc, char* args[] )
 {
+
+
     srand(time(NULL));
     // включаем SDL
     if( !init() ) {
@@ -705,7 +710,22 @@ int main( int argc, char* args[] )
         // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize surface!\n" );
     }
-    SDL_UpdateWindowSurface( gWindow );
+
+    // нетипизированный указатель = NULL
+    void* thread_data = NULL;
+
+    //создаем идентификатор потока
+    pthread_t thread;
+
+    // создаем поток с помощью pthread_create
+    // в качестве параметров: ссыка на идентификатор, значение
+    // нетипизированного указателя, название создаваемого потока и
+    // данные
+      pthread_create(&thread, NULL, threadFunc, thread_data);
+   //перевод потока в отсоединенное состояние (?)
+    //pthread_detach(thread);
+
+    // pthread_join(thread, NULL);
     /* PrintAllEvents(); */
     // цикл, обрабатывающий события, пока не встретим событие "выход"
     PrintAllEvents();
@@ -737,7 +757,7 @@ int main( int argc, char* args[] )
             break;
         }
         PixelArray();
-        show_pixels();
+        // threadFunc(thread_data);
     }
 
     printf("Event queue empty.\n");
