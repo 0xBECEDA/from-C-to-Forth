@@ -5,6 +5,9 @@
 #include <sys/types.h>
 #include <linux/unistd.h>
 #include <pthread.h>
+#include <signal.h>
+#include <errno.h>
+
 //#define size_x 10
 //#define sizy_y 10
 
@@ -505,17 +508,20 @@ void delete_box (int &X, int &Y)
 
 //заполняет массив пикселей
 
-void PixelArray () {
-    //счетчик цикла
-    int i = 0;
+// флаг сообщающий об исчерпании структур в массиве
+// чтобы не выводить "No more space" раз за разом
+bool no_more_space = false;
 
+void PixelArray () {
     //получаем координаты
     // printf("a is %d, b is %d\n", a, b);
-    //цикл, который перебирает массив. Если находит пустое место,
-    //записывает структуру
     a = rand() % 500;
     b = rand() % 500;
-    for (i; i<=255; i++){
+
+    // Цикл, который перебирает массив. Если находит пустое место,
+    // записывает структуру
+    int i; // счетчик цикла
+    for (i=0; i<=255; i++) {
         //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
         //вытаскиваем структуру из массива
         concrete_pixel = pixels[i];
@@ -525,9 +531,9 @@ void PixelArray () {
             // заполняем структуру
             concrete_pixel.c = a;
             concrete_pixel.d = b;
-          //printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",
-                    //concrete_pixel.c,
-                    // concrete_pixel.d);
+            //printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",
+            //concrete_pixel.c,
+            // concrete_pixel.d);
             concrete_pixel.alive = true;
             //printf("concrete_pixel.alive is %d\n",
             //       concrete_pixel.alive);
@@ -536,9 +542,14 @@ void PixelArray () {
             // выход
             break;
         }
-        else if (i == 255)
-        {
-            printf("No space found\n");
+    }
+    // Если после окончания цикла i равен максимальному значению
+    // переменной цикла - значит весь массив перебрали, но не нашли
+    // свободной структуры
+    if (i == 255) {
+        if (!no_more_space) {
+            printf("::::::::::::::: No space found! \n");
+            no_more_space = true;
         }
     }
 }
@@ -679,22 +690,28 @@ void Handle_Keydown(SDL_Keysym* keysym)
     }
 }
 
+
 // функция потока, в качестве параметра - нетипизированный указатель
 void* threadFunc(void* thread_data)
 {
-     while (256 != event.type) {
-    printf("Second!");
-    show_pixels();
-    sleep(1);
-     }
-
+    while (true) {
+        printf(".");
+        fflush(stdout);
+        show_pixels();
+        usleep(10000); // sleep for 0.01 sec
+    }
 }
 
-/* main */
+
+// void sigHandler( int signum )
+// {
+//     printf(":: caught signal %d\n", signum );
+//     fflush(stdout);
+//     show_pixels();
+// }
+
 int main( int argc, char* args[] )
 {
-
-
     srand(time(NULL));
     // включаем SDL
     if( !init() ) {
@@ -722,15 +739,18 @@ int main( int argc, char* args[] )
     // в качестве параметров: ссыка на идентификатор, значение
     // нетипизированного указателя, название создаваемого потока и
     // данные
-      pthread_create(&thread, NULL, threadFunc, thread_data);
-   //перевод потока в отсоединенное состояние (?)
+
+    pthread_create(&thread, NULL, threadFunc, thread_data);
+
+    //перевод потока в отсоединенное состояние (?)
     //pthread_detach(thread);
 
     // pthread_join(thread, NULL);
-    /* PrintAllEvents(); */
-    // цикл, обрабатывающий события, пока не встретим событие "выход"
-    PrintAllEvents();
+    // PrintAllEvents();
 
+    // signal( SIGUSR2, sigHandler );
+
+    // цикл, обрабатывающий события, пока не встретим событие "выход"
     while (256 != event.type) {
         //SDL_WaitEvent меньше нагружает комп
         // SDL_WaitEvent(& event);
@@ -758,7 +778,8 @@ int main( int argc, char* args[] )
             break;
         }
         PixelArray();
-        // threadFunc(thread_data);
+
+        // raise(12);
     }
 
     printf("Event queue empty.\n");
