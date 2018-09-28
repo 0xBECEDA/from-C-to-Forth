@@ -682,10 +682,10 @@ void Handle_Keydown(SDL_Keysym* keysym)
 // функция потока, в качестве параметра - нетипизированный указатель
 void* threadFunc(void* thread_data)
 {
-     while (256 != event.type) {
+     while (true) {
     printf("Second!");
     show_pixels();
-    sleep(1);
+    SDL_Delay(5);
      }
 
 }
