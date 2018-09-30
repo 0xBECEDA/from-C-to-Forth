@@ -24,7 +24,6 @@ void move_box_down( int &X, int &Y);
 void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
 void show_pixels();
-void check_pixels (int &X, int &Y);
 
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
@@ -53,8 +52,8 @@ int l = 0;
 int a = 0;
 int b = 0;
 //координаты, для функций с вадратом
-int X = 100;
-int Y = 150;
+int X = 0;
+int Y = 0;
 //отображает кол-во структур
 int num = 255;
 //объявление структуры и массива структуры для пикселей
@@ -64,13 +63,18 @@ struct pixel
     bool alive;
     int c;
     int d;
-} pixels[255];
+} pixels[255], rem_pixels[255];
 struct pixel concrete_pixel;
+
+// струкутра для запоминания съеденных в будущем пикселей
+struct pixel rem_pixel;
+
 struct box
 {
     int c;
     int d;
 } pixels_box[100];
+
 //структура для квадратика
 struct box main_character;
 
@@ -464,15 +468,16 @@ void box (int &X, int &Y)
             main_character.c = X;
             main_character.d = Y;
             pixels_box[p] = main_character;
-            //  printf("main_character.c is %d main_character.d is %d\n",
-            //     main_character.c, main_character.d);
             i--;
             pixels_box[p++];
         }
         Y++;
-        //   printf("main_character.d after inc is %d\n", main_character.d);
         j++;
     }
+    //ВАЖНО! После выхода из цикла координата X опережает
+    //main_character.c с индексом 0 на 9 пикселей.
+    //Т.е. main_character.c = 3; X i= 12,
+    //т.е. X отражает ПРАВУЮ ВЕРХНЮЮ границу.
 }
 
 
@@ -596,6 +601,50 @@ void show_pixels()
 */
 
 //}
+void check_pixels_right()
+{
+    //дублирую исходное значение X и Y
+
+    int i = 0;
+    int num = 0;
+    main_character = pixels_box[i];
+    for (i; i <= 255; i++) {
+        concrete_pixel = pixels[i];
+        //если пиксель-еда не съеден,
+        //его X в пределах 10 пикселей от координаты X правой границы
+        // и не меньше координаты X левой границы
+        // и его координаты Y не меньше координаты Y квадрата
+        // тогда мы считаем, что встретим его на своем пути
+        if ( concrete_pixel.alive == true &&
+             concrete_pixel.c <= X + 10 &&
+             concrete_pixel.c > main_character.c &&
+             concrete_pixel.d <= Y) {
+            // printf("concrete_pixel.c is %d, X + 10 is %d,
+            // concrete_pixel.d is %d, Y is %d,
+            //concrete_pixel.alive is %d \n",
+            //concrete_pixel.c, X + 10, concrete_pixel.d, Y,
+            //concrete_pixel.alive);
+
+            //увеличиваю счетчик пикселей
+            RGBcolor++;
+            // в дальнейшем false будет присвено пикселю,
+            // когда он будет непосредственно съеден
+            concrete_pixel.alive = false;
+            pixels[i] =  concrete_pixel;
+            //printf("concrete_pixel.alive is %d\n",
+            //       concrete_pixel.alive);
+
+            //запоминаю найденный пиксель
+            rem_pixel = pixels[i];
+            rem_pixels[num] =  rem_pixel;
+            rem_pixels[num++];
+            printf(" RGBcolor++ is %d\n", RGBcolor);
+
+        }
+
+    }
+}
+
 
 
 void paint(SDL_Event* event)
@@ -633,6 +682,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleG = G;
         doubleB = B;
         if (X < 476) {
+            check_pixels_right();
             move_box_right(X,Y);
         }
         // check_pixels(X, Y);
