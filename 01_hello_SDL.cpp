@@ -647,8 +647,8 @@ void check_pixels_right()
         // тогда мы считаем, что встретим его на своем пути
         if ( concrete_pixel.alive == true &&
              concrete_pixel.c <= X + 20 &&
-             concrete_pixel.c > X)
-            // concrete_pixel.d <= Y + 10)
+             concrete_pixel.c > X &&
+             concrete_pixel.d <= Y + 10)
             {
  printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.alive is %d \n",
             concrete_pixel.c, X, concrete_pixel.d, Y,
