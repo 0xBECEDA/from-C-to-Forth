@@ -23,6 +23,7 @@ void move_box_right( int &X, int &Y);
 void move_box_down( int &X, int &Y);
 void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
+void show_box(int box_x, int box_y, int red, int green, int blue);
 void show_pixels();
 
 //окно, которое мы показываем
@@ -51,7 +52,7 @@ int l = 0;
 //координаты для show_pixels и структур пикселей
 int a = 0;
 int b = 0;
-//координаты, для функций с вадратом
+//координаты, для функций с квадратом
 int X = 0;
 int Y = 0;
 //отображает кол-во структур
@@ -363,7 +364,10 @@ void move_box_right ( int &X, int &Y)
 {
     //кладу исходное значение в Y
     Y = y;
-    delete_box(X, Y);
+
+    // delete_box(X, Y);
+    show_box(X, Y, 0, 0, 0);
+
     // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
@@ -375,8 +379,8 @@ void move_box_right ( int &X, int &Y)
     l = X++;
     Y = y;
     // отрисовываю с новыми координатами
-    box(X,Y);
-
+    // box(X,Y);
+    show_box(X, Y, 255, 255, 255);
 
 }
 
@@ -384,7 +388,8 @@ void move_box_left ( int &X, int &Y)
 {
     //кладу исходное значение в Y
     Y = y;
-    delete_box(X, Y);
+    // delete_box(X, Y);
+    show_box(X, Y, 0, 0, 0);
     // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
@@ -397,7 +402,8 @@ void move_box_left ( int &X, int &Y)
 
     Y = y;
     // отрисовываю с новыми координатами
-    box(X,Y);
+    // box(X,Y);
+    show_box(X, Y, 255, 255, 255);
 
 }
 
@@ -405,7 +411,8 @@ void move_box_down ( int &X, int &Y)
 {
     //кладу исходное значение в Y
     Y = y;
-    delete_box(X, Y);
+    // delete_box(X, Y);
+    show_box(X, Y, 0, 0, 0);
     // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
@@ -419,15 +426,16 @@ void move_box_down ( int &X, int &Y)
     //двигаем квадратик вниз
     y = Y++;
     // отрисовываю с новыми координатами
-    box(X,Y);
-
+    // box(X,Y);
+    show_box(X, Y, 255, 255, 255);
 }
 
 void move_box_up ( int &X, int &Y)
 {
     //кладу исходное значение в Y
     Y = y;
-    delete_box(X, Y);
+    // delete_box(X, Y);
+    show_box(X, Y, 0, 0, 0);
     // возвращаю  цвета для отрисовкис новыми X и Y
     R = doubleR;
     G = doubleG;
@@ -441,10 +449,12 @@ void move_box_up ( int &X, int &Y)
     // отрисовываю с новыми координатами
     printf("X in move_box_up is %d\n", X);
 
-    box(X,Y);
+    // box(X,Y);
+    show_box(X, Y, 255, 255, 255);
+
 }
 
-/* рисует квадратик */
+/* заносит квадратик в массив */
 void box (int &X, int &Y)
 {
 
@@ -560,12 +570,26 @@ void PixelArray () {
 }
 
 
-//отображает писели, которые "еда"
+void show_box(int box_x, int box_y, int red, int green, int blue)
+{
+    printf ("-------------------------begin\n");
+    for (int i=box_x; i<(10+box_x); i++) {
+        for (int j=box_y; j<(10+box_y); j++) {
+            DrawPixel(surface, i, j, red, green, blue);
+            printf("i=%d; j=%d; box_x=%d; box_y=%d\n", i, j, box_x, box_y);
+        }
+    }
+    printf ("-------------------------end\n");
+
+}
+
+
 void show_pixels()
 {
     int p = 0;
     int i = 0;
     SDL_LockSurface(surface);
+    // отображает писели, которые "еда"
     for (i; i <= 255; i++) {
         concrete_pixel = pixels[i];
         if (concrete_pixel.alive == true) {
@@ -573,12 +597,12 @@ void show_pixels()
                       concrete_pixel.d, R, G, B);
         }
     }
-
-    for (p; p <= 100; p++) {
-        main_character = pixels_box[p];
-            DrawPixel(surface, main_character.c,
-                      main_character.d, R, G, B);
-    }
+    // отображение квадратика
+    show_box(X, Y, 255, 255, 255);
+    // for (p; p <= 100; p++) {
+    //     main_character = pixels_box[p];
+    //     DrawPixel(surface, main_character.c, main_character.d, R, G, B);
+    // }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
