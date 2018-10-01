@@ -23,6 +23,7 @@ void move_box_right( int &X, int &Y);
 void move_box_down( int &X, int &Y);
 void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
+void show_box (int box_x, int box_y, int red, int green, int blue);
 void show_pixels();
 
 //окно, которое мы показываем
@@ -362,20 +363,28 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 void move_box_right ( int &X, int &Y)
 {
     //кладу исходное значение в Y
-    Y = y;
-    delete_box(X, Y);
+    // Y = y;
+    // l = X;
+    //  delete_box(X, Y);
+    //printf("In  move_box_right X is %d; Y is %d\n", X, Y);
+    show_box(X, Y, 0, 0, 0);
+
     // возвращаю  цвета для отрисовкис новыми X и Y
-    R = doubleR;
-    G = doubleG;
-    B = doubleB;
+    //R = doubleR;
+    //G = doubleG;
+    //B = doubleB;
 
     // кладу значение X до вызова delete_box
-    X = l;
+    // X = l;
     //двигаем квадратик влево
-    l = X++;
-    Y = y;
+    // l =
+    X++;
+    // printf("In  move_box_right after inc X is %d\n", X);
+
+    // Y = y;
     // отрисовываю с новыми координатами
-    box(X,Y);
+    // box(X,Y);
+    show_box(X, Y, 255, 255, 255);
 
 
 }
@@ -383,68 +392,76 @@ void move_box_right ( int &X, int &Y)
 void move_box_left ( int &X, int &Y)
 {
     //кладу исходное значение в Y
-    Y = y;
-    delete_box(X, Y);
+    // Y = y;
+    // delete_box(X, Y);
+    show_box(X, Y, 0, 0, 0);
     // возвращаю  цвета для отрисовкис новыми X и Y
-    R = doubleR;
-    G = doubleG;
-    B = doubleB;
+    // R = doubleR;
+    //G = doubleG;
+    //B = doubleB;
 
     // кладу значение X до вызова delete_box
-    X = l;
+    // X = l;
     //двигаем квадратик влево
-    l = X--;
+    //l =
+        X--;
 
-    Y = y;
+        // Y = y;
     // отрисовываю с новыми координатами
-    box(X,Y);
+    //  box(X,Y);
+    show_box(X, Y, 255, 255, 255);
 
 }
 
 void move_box_down ( int &X, int &Y)
 {
     //кладу исходное значение в Y
-    Y = y;
-    delete_box(X, Y);
+    //Y = y;
+    // delete_box(X, Y);
+    show_box(X, Y, 0, 0, 0);
     // возвращаю  цвета для отрисовкис новыми X и Y
-    R = doubleR;
-    G = doubleG;
-    B = doubleB;
+    //R = doubleR;
+    //G = doubleG;
+    //B = doubleB;
 
     // кладу значение X до вызова delete_box
-    X = l;
+    // X = l;
 
-    Y = y;
+    // Y = y;
 
     //двигаем квадратик вниз
-    y = Y++;
+     Y++;
     // отрисовываю с новыми координатами
-    box(X,Y);
+    // box(X,Y);
+    show_box(X, Y, 255, 255, 255);
 
 }
 
 void move_box_up ( int &X, int &Y)
 {
     //кладу исходное значение в Y
-    Y = y;
-    delete_box(X, Y);
+    // Y = y;
+    // delete_box(X, Y);
+    show_box(X, Y, 0, 0, 0);
     // возвращаю  цвета для отрисовкис новыми X и Y
-    R = doubleR;
-    G = doubleG;
-    B = doubleB;
+    //R = doubleR;
+    //G = doubleG;
+    //B = doubleB;
 
     // кладу значение X до вызова delete_box
-    X = l;
-    Y = y;
+    // X = l;
+    //Y = y;
     //двигаем квадратик вверх
-    y = Y--;
+    //y =
+    Y--;
     // отрисовываю с новыми координатами
-    printf("X in move_box_up is %d\n", X);
+    //printf("X in move_box_up is %d\n", X);
 
-    box(X,Y);
+    // box(X,Y);
+    show_box(X, Y, 255, 255, 255);
 }
 
-/* рисует квадратик */
+/* рисует квадратик
 void box (int &X, int &Y)
 {
 
@@ -474,6 +491,7 @@ void box (int &X, int &Y)
         Y++;
         j++;
     }
+
     //ВАЖНО! После выхода из цикла координата X опережает
     //main_character.c с индексом 0 на 9 пикселей.
     //Т.е. main_character.c = 3; X i= 12,
@@ -481,10 +499,10 @@ void box (int &X, int &Y)
 }
 
 
-/* закрашиваем квадратик черным цветом */
+/* закрашиваем квадратик черным цветом
 void delete_box (int &X, int &Y)
 {
-    /* устанавливаем цвета фона */
+    // устанавливаем цвета фона //
     R = 0;
     G = 0;
     B = 0;
@@ -510,7 +528,7 @@ void delete_box (int &X, int &Y)
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
-
+*/
 //заполняет массив пикселей
 
 // флаг сообщающий об исчерпании структур в массиве
@@ -560,7 +578,18 @@ void PixelArray () {
 }
 
 
-//отображает писели, которые "еда"
+void show_box(int box_x, int box_y, int red, int green, int blue)
+{
+    printf ("-------------------------begin\n");
+    printf("In show_box  X is %d; Y is %d\n", X, Y);
+    for (int j = box_y; j<(10+Y); j++) {
+        for (int i = box_x; i<(10+X); i++) {
+            DrawPixel(surface, i, j, red, green, blue);
+        }
+    }
+    printf ("-------------------------end\n");
+}
+
 void show_pixels()
 {
     int p = 0;
@@ -573,12 +602,14 @@ void show_pixels()
                       concrete_pixel.d, R, G, B);
         }
     }
-
+//     show_box(X, Y, 255, 255, 255);
+    /*
     for (p; p <= 100; p++) {
         main_character = pixels_box[p];
             DrawPixel(surface, main_character.c,
                       main_character.d, R, G, B);
     }
+    */
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
@@ -603,27 +634,25 @@ void show_pixels()
 //}
 void check_pixels_right()
 {
-    //дублирую исходное значение X и Y
-
     int i = 0;
     int num = 0;
-    main_character = pixels_box[i];
+    // main_character = pixels_box[i];
     for (i; i <= 255; i++) {
         concrete_pixel = pixels[i];
+
         //если пиксель-еда не съеден,
         //его X в пределах 10 пикселей от координаты X правой границы
         // и не меньше координаты X левой границы
         // и его координаты Y не меньше координаты Y квадрата
         // тогда мы считаем, что встретим его на своем пути
         if ( concrete_pixel.alive == true &&
-             concrete_pixel.c <= X + 10 &&
-             concrete_pixel.c > main_character.c &&
-             concrete_pixel.d <= Y) {
-            // printf("concrete_pixel.c is %d, X + 10 is %d,
-            // concrete_pixel.d is %d, Y is %d,
-            //concrete_pixel.alive is %d \n",
-            //concrete_pixel.c, X + 10, concrete_pixel.d, Y,
-            //concrete_pixel.alive);
+             concrete_pixel.c <= X + 20 &&
+             concrete_pixel.c > X)
+            // concrete_pixel.d <= Y + 10)
+            {
+ printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.alive is %d \n",
+            concrete_pixel.c, X, concrete_pixel.d, Y,
+            concrete_pixel.alive);
 
             //увеличиваю счетчик пикселей
             RGBcolor++;
@@ -672,7 +701,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
     case SDLK_2:
         printf("2 is pressed\n");
-        // box(X,Y);
+        show_box( X,Y, 255, 255, 255);
         // getpixel(surface, X, Y);
         break;
     case SDLK_3:
