@@ -46,8 +46,8 @@ int doubleG = 0;
 int doubleB = 0;
 int RGBcolor = 0;
 //координаты
-int y = 0;
-int x = 0;
+int pix_y = 10;
+int pix_x = 10;
 int l = 0;
 //координаты для show_pixels и структур пикселей
 int a = 0;
@@ -55,16 +55,16 @@ int b = 0;
 //координаты, для функций с вадратом
 int X = 0;
 int Y = 0;
-//отображает кол-во структур
-int num = 255;
+
 //объявление структуры и массива структуры для пикселей
 
 struct pixel
 {
-    bool alive;
+    bool found = false;
+    bool alive = false;
     int c;
     int d;
-} pixels[255], rem_pixels[255];
+} pixels[100];
 struct pixel concrete_pixel;
 
 // струкутра для запоминания съеденных в будущем пикселей
@@ -362,28 +362,12 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 /* не вызывается без соответствующей команды с клавы "3" */
 void move_box_right ( int &X, int &Y)
 {
-    //кладу исходное значение в Y
-    // Y = y;
-    // l = X;
-    //  delete_box(X, Y);
-    //printf("In  move_box_right X is %d; Y is %d\n", X, Y);
+
     show_box(X, Y, 0, 0, 0);
 
-    // возвращаю  цвета для отрисовкис новыми X и Y
-    //R = doubleR;
-    //G = doubleG;
-    //B = doubleB;
-
-    // кладу значение X до вызова delete_box
-    // X = l;
-    //двигаем квадратик влево
-    // l =
     X++;
-    // printf("In  move_box_right after inc X is %d\n", X);
 
-    // Y = y;
     // отрисовываю с новыми координатами
-    // box(X,Y);
     show_box(X, Y, 255, 255, 255);
 
 
@@ -391,144 +375,41 @@ void move_box_right ( int &X, int &Y)
 
 void move_box_left ( int &X, int &Y)
 {
-    //кладу исходное значение в Y
-    // Y = y;
-    // delete_box(X, Y);
+
     show_box(X, Y, 0, 0, 0);
-    // возвращаю  цвета для отрисовкис новыми X и Y
-    // R = doubleR;
-    //G = doubleG;
-    //B = doubleB;
 
-    // кладу значение X до вызова delete_box
-    // X = l;
-    //двигаем квадратик влево
-    //l =
-        X--;
+    X--;
 
-        // Y = y;
     // отрисовываю с новыми координатами
-    //  box(X,Y);
     show_box(X, Y, 255, 255, 255);
 
 }
 
 void move_box_down ( int &X, int &Y)
 {
-    //кладу исходное значение в Y
-    //Y = y;
-    // delete_box(X, Y);
+
     show_box(X, Y, 0, 0, 0);
-    // возвращаю  цвета для отрисовкис новыми X и Y
-    //R = doubleR;
-    //G = doubleG;
-    //B = doubleB;
-
-    // кладу значение X до вызова delete_box
-    // X = l;
-
-    // Y = y;
 
     //двигаем квадратик вниз
      Y++;
-    // отрисовываю с новыми координатами
-    // box(X,Y);
+
     show_box(X, Y, 255, 255, 255);
 
 }
 
 void move_box_up ( int &X, int &Y)
 {
-    //кладу исходное значение в Y
-    // Y = y;
-    // delete_box(X, Y);
-    show_box(X, Y, 0, 0, 0);
-    // возвращаю  цвета для отрисовкис новыми X и Y
-    //R = doubleR;
-    //G = doubleG;
-    //B = doubleB;
 
-    // кладу значение X до вызова delete_box
-    // X = l;
-    //Y = y;
+    show_box(X, Y, 0, 0, 0);
     //двигаем квадратик вверх
-    //y =
+
     Y--;
     // отрисовываю с новыми координатами
-    //printf("X in move_box_up is %d\n", X);
 
-    // box(X,Y);
     show_box(X, Y, 255, 255, 255);
 }
 
-/* рисует квадратик
-void box (int &X, int &Y)
-{
 
-    //DL_LockSurface(surface);
-    int j = 0;
-    int p = 0;
-    // копируем значение X
-    l = X;
-
-    //копируем значение для move_box..
-    y = Y;
-
-    while (j<=10) {
-        int i = 10;
-
-        //возвращаем исхоное значение X
-        X = l;
-
-        while (i != 0){
-            X++;
-            main_character.c = X;
-            main_character.d = Y;
-            pixels_box[p] = main_character;
-            i--;
-            pixels_box[p++];
-        }
-        Y++;
-        j++;
-    }
-
-    //ВАЖНО! После выхода из цикла координата X опережает
-    //main_character.c с индексом 0 на 9 пикселей.
-    //Т.е. main_character.c = 3; X i= 12,
-    //т.е. X отражает ПРАВУЮ ВЕРХНЮЮ границу.
-}
-
-
-/* закрашиваем квадратик черным цветом
-void delete_box (int &X, int &Y)
-{
-    // устанавливаем цвета фона //
-    R = 0;
-    G = 0;
-    B = 0;
-
-    SDL_LockSurface(surface);
-    int j = 0;
-
-    while (j<=10) {
-        int i = 10;
-        //возвращаем исходное значение
-        X = l;
-
-        while (i != 0){
-            X++;
-
-            DrawPixel(surface, X, Y, R, G, B);
-            i--;
-        }
-        Y++;
-
-        j++;
-    }
-    SDL_UnlockSurface(surface);
-    SDL_UpdateWindowSurface( gWindow );
-}
-*/
 //заполняет массив пикселей
 
 // флаг сообщающий об исчерпании структур в массиве
@@ -544,7 +425,7 @@ void PixelArray () {
     // Цикл, который перебирает массив. Если находит пустое место,
     // записывает структуру
     int i; // счетчик цикла
-    for (i=0; i<=255; i++) {
+    for (i=0; i<=100; i++) {
         //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
         //вытаскиваем структуру из массива
         concrete_pixel = pixels[i];
@@ -569,7 +450,7 @@ void PixelArray () {
     // Если после окончания цикла i равен максимальному значению
     // переменной цикла - значит весь массив перебрали, но не нашли
     // свободной структуры
-    if (i == 255) {
+    if (i == 100) {
         if (!no_more_space) {
             printf("::::::::::::::: No space found! \n");
             no_more_space = true;
@@ -582,8 +463,8 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
 {
     printf ("-------------------------begin\n");
     printf("In show_box  X is %d; Y is %d\n", X, Y);
-    for (int j = box_y; j<(10+Y); j++) {
-        for (int i = box_x; i<(10+X); i++) {
+    for (int j = box_y; j<(Y + pix_y); j++) {
+        for (int i = box_x; i<(X + pix_x); i++) {
             DrawPixel(surface, i, j, red, green, blue);
         }
     }
@@ -595,21 +476,13 @@ void show_pixels()
     int p = 0;
     int i = 0;
     SDL_LockSurface(surface);
-    for (i; i <= 255; i++) {
+    for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
         if (concrete_pixel.alive == true) {
             DrawPixel(surface, concrete_pixel.c,
                       concrete_pixel.d, R, G, B);
         }
     }
-//     show_box(X, Y, 255, 255, 255);
-    /*
-    for (p; p <= 100; p++) {
-        main_character = pixels_box[p];
-            DrawPixel(surface, main_character.c,
-                      main_character.d, R, G, B);
-    }
-    */
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
@@ -635,57 +508,257 @@ void show_pixels()
 void check_pixels_right()
 {
     int i = 0;
-    int num = 0;
-    // main_character = pixels_box[i];
-    for (i; i <= 255; i++) {
+
+    for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
 
         //если пиксель-еда не съеден,
-        //его X в пределах 10 пикселей от координаты X правой границы
+        //его X в пределах 10 пикселей от координаты X
+        //правой границы
         // и не меньше координаты X левой границы
-        // и его координаты Y не меньше координаты Y квадрата
+        // и его координата Y не меньше координаты Y квадратика +
+        // высота в писклях,
         // тогда мы считаем, что встретим его на своем пути
-        if ( concrete_pixel.alive == true &&
-             concrete_pixel.c <= X + 20 &&
+        if ( concrete_pixel.found == false &&
+             concrete_pixel.c <= X + (pix_x*2) &&
              concrete_pixel.c > X &&
-             concrete_pixel.d <= Y + 10)
+             concrete_pixel.d <= Y + pix_y)
             {
- printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.alive is %d \n",
+                printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d,  concrete_pixel.found %d \n",
             concrete_pixel.c, X, concrete_pixel.d, Y,
-            concrete_pixel.alive);
+            concrete_pixel.found);
 
             //увеличиваю счетчик пикселей
             RGBcolor++;
-            // в дальнейшем false будет присвено пикселю,
-            // когда он будет непосредственно съеден
-            concrete_pixel.alive = false;
-            pixels[i] =  concrete_pixel;
-            //printf("concrete_pixel.alive is %d\n",
-            //       concrete_pixel.alive);
 
-            //запоминаю найденный пиксель
-            rem_pixel = pixels[i];
-            rem_pixels[num] =  rem_pixel;
-            rem_pixels[num++];
+            //запомнили, что нашли этот пиксель
+            concrete_pixel.found = true;
+            printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found is %d \n",
+                   concrete_pixel.c, X, concrete_pixel.d, Y,
+                   concrete_pixel.found);
+
+            pixels[i] =  concrete_pixel;
+
             printf(" RGBcolor++ is %d\n", RGBcolor);
 
         }
 
+        //если пиксель уже найден и его координаты находятся
+        // "внутри" координат квадратика, то мы считаем, что он
+        //  "съеден"
+        if ( concrete_pixel.found == true &&
+             concrete_pixel.c <= X + pix_x &&
+              concrete_pixel.c > X &&
+             concrete_pixel.d <= Y + pix_y)
+            {
+
+                //горизонталь и вертикаль квадратика становится
+                // больше на 1
+                pix_y++;
+                pix_x++;
+                // уменьшаем счетчик найденных пикселей
+                RGBcolor--;
+                // помечаем структуру съеденного пикселя как пустую
+                concrete_pixel.alive = false;
+                //загружаем структуру в массив
+                pixels[i] =  concrete_pixel;
+
+            }
     }
 }
 
-
-
-void paint(SDL_Event* event)
+void check_pixels_left()
 {
-    x = event->motion.x;
-    y = event->motion.y;
+    int i = 0;
 
-    getpixel (surface, x, y);
-    DrawPixel(surface, x, y, R, G, B);
-    SDL_UpdateWindowSurface( gWindow );
+    for (i; i <= 100; i++) {
+        concrete_pixel = pixels[i];
+
+        //если пиксель-еда не съеден,
+        //его X в пределах 10 pix от координаты X левой границы
+        // и не больше X квадратика
+        // и его координата Y не меньше координаты Y квадратика +
+        // высота в писклях,
+        // тогда мы считаем, что встретим его на своем пути
+        if ( concrete_pixel.found == false &&
+             concrete_pixel.c <= X - pix_x &&
+             concrete_pixel.d <= Y + pix_y)
+        {
+            printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d,  concrete_pixel.found %d \n",
+                   concrete_pixel.c, X, concrete_pixel.d, Y,
+                   concrete_pixel.found);
+
+            //увеличиваю счетчик пикселей
+            RGBcolor++;
+
+            //запомнили, что нашли этот пиксель
+            concrete_pixel.found = true;
+            printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found is %d \n",
+                   concrete_pixel.c, X, concrete_pixel.d, Y,
+                   concrete_pixel.found);
+
+            pixels[i] =  concrete_pixel;
+
+            printf(" RGBcolor++ is %d\n", RGBcolor);
+
+        }
+
+        //если пиксель уже найден и его координаты находятся
+        // "внутри" координат квадратика, то мы считаем, что он
+        //  "съеден"
+        if ( concrete_pixel.found == true &&
+             concrete_pixel.c > X &&
+             concrete_pixel.d <= Y + pix_y)
+        {
+
+            //горизонталь и вертикаль квадратика становится
+            // больше на 1
+            pix_y++;
+            pix_x++;
+            // уменьшаем счетчик найденных пикселей
+            RGBcolor--;
+            // помечаем структуру съеденного пикселя как пустую
+            concrete_pixel.alive = false;
+            //загружаем структуру в массив
+            pixels[i] =  concrete_pixel;
+
+        }
+    }
 }
 
+void check_pixels_down()
+{
+    int i = 0;
+
+    for (i; i <= 100; i++) {
+        concrete_pixel = pixels[i];
+
+        //если пиксель-еда не съеден,
+        //его X в пределах 10 pix от координаты X левой границы
+        // и не больше X квадратика
+        // и его координата Y не меньше координаты Y квадратика +
+        // высота в писеклях * 2,
+        // тогда мы считаем, что встретим его на своем пути
+        if ( concrete_pixel.found == false &&
+             concrete_pixel.c <= X + pix_x &&
+             concrete_pixel.c > X &&
+             concrete_pixel.d <= Y + (pix_y*2))
+        {
+            printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d,  concrete_pixel.found %d \n",
+                   concrete_pixel.c, X, concrete_pixel.d, Y,
+                   concrete_pixel.found);
+
+            //увеличиваю счетчик пикселей
+            RGBcolor++;
+
+            //запомнили, что нашли этот пиксель
+            concrete_pixel.found = true;
+            printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found is %d \n",
+                   concrete_pixel.c, X, concrete_pixel.d, Y,
+                   concrete_pixel.found);
+
+            pixels[i] =  concrete_pixel;
+
+            printf(" RGBcolor++ is %d\n", RGBcolor);
+
+        }
+
+        //если пиксель уже найден и его координаты находятся
+        // "внутри" координат квадратика, то мы считаем, что он
+        //  "съеден"
+        if ( concrete_pixel.found == true &&
+             concrete_pixel.c <= X + pix_x &&
+             concrete_pixel.d <= Y + pix_y)
+        {
+
+            //горизонталь и вертикаль квадратика становится
+            // больше на 1
+            pix_y++;
+            pix_x++;
+            // уменьшаем счетчик найденных пикселей
+            RGBcolor--;
+            // помечаем структуру съеденного пикселя как пустую
+            concrete_pixel.alive = false;
+            //загружаем структуру в массив
+            pixels[i] =  concrete_pixel;
+
+        }
+    }
+}
+
+void check_pixels_up()
+{
+    int i = 0;
+
+    for (i; i <= 100; i++) {
+        concrete_pixel = pixels[i];
+
+        //если пиксель-еда не съеден,
+        //его X в пределах 10 пикселей от координаты X
+        //правой границы
+        // и не меньше координаты X левой границы
+        // и его координата Y больше  координаты Y квадратика +
+        // высота в писеклях,
+        // тогда мы считаем, что встретим его на своем пути
+        if ( concrete_pixel.found == false &&
+             concrete_pixel.c <= X + pix_x &&
+             concrete_pixel.c > X &&
+             concrete_pixel.d >= Y - pix_y)
+        {
+            printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d,  concrete_pixel.found %d \n",
+                   concrete_pixel.c, X, concrete_pixel.d, Y,
+                   concrete_pixel.found);
+
+            //увеличиваю счетчик пикселей
+            RGBcolor++;
+
+            //запомнили, что нашли этот пиксель
+            concrete_pixel.found = true;
+            printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found is %d \n",
+                   concrete_pixel.c, X, concrete_pixel.d, Y,
+                   concrete_pixel.found);
+
+            pixels[i] =  concrete_pixel;
+
+            printf(" RGBcolor++ is %d\n", RGBcolor);
+
+        }
+
+        //если пиксель уже найден и его координаты находятся
+        // "внутри" координат квадратика, то мы считаем, что он
+        //  "съеден"
+        if ( concrete_pixel.found == true &&
+             concrete_pixel.c <= X + pix_x &&
+             concrete_pixel.c > X &&
+             concrete_pixel.d <= Y - pix_y)
+        {
+
+            //горизонталь и вертикаль квадратика становится
+            // больше на 1
+            pix_y++;
+            pix_x++;
+            // уменьшаем счетчик найденных пикселей
+            RGBcolor--;
+            // помечаем структуру съеденного пикселя как пустую
+            concrete_pixel.alive = false;
+            //загружаем структуру в массив
+            pixels[i] =  concrete_pixel;
+
+        }
+    }
+}
+
+/*
+void paint(SDL_Event* event)
+{
+    X = event->motion.x;
+    Y = event->motion.y;
+
+    getpixel (surface, X, Y);
+    DrawPixel(surface, X, Y, R, G, B);
+    SDL_UpdateWindowSurface( gWindow );
+}
+*/
 void Handle_Keydown(SDL_Keysym* keysym)
 {
     SDL_Event event;
@@ -710,7 +783,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        if (X < 476) {
+        if (X != SCREEN_WIDTH - pix_x) {
             check_pixels_right();
             move_box_right(X,Y);
         }
@@ -722,7 +795,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        if (X > 9) {
+        if (X != 0) {
+            check_pixels_left();
             move_box_left(X,Y);
         }
         break;
@@ -732,7 +806,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        if (Y < 520) {
+        if (Y != SCREEN_HEIGHT - pix_y) {
+            check_pixels_down();
             move_box_down(X,Y);
         }
         break;
@@ -742,7 +817,8 @@ void Handle_Keydown(SDL_Keysym* keysym)
         doubleR = R;
         doubleG = G;
         doubleB = B;
-        if (Y > 11) {
+        if (Y != 0) {
+            check_pixels_up();
             move_box_up(X,Y);
         }
         break;
@@ -831,8 +907,6 @@ int main( int argc, char* args[] )
 
     // цикл, обрабатывающий события, пока не встретим событие "выход"
     while (256 != event.type) {
-        //SDL_WaitEvent меньше нагружает комп
-        // SDL_WaitEvent(& event);
         SDL_WaitEventTimeout(& event, 100);
         // printf("%d\n", event.type);
         //fflush(stdout);
@@ -840,11 +914,11 @@ int main( int argc, char* args[] )
         // paint (& event);
         switch (event.type) {
         case SDL_MOUSEMOTION:
-            //printf("We got a motion event.\n");
-            //   printf("Current mouse position is: (%d, %d)\n", event.motion.x, event.motion.y);
-            if  (paint_mode == 1) {
-                paint (& event);
-            }
+            // printf("We got a motion event.\n");
+
+            // if  (paint_mode == 1) {
+                // paint (& event);
+            // }
             break;
         case SDL_KEYDOWN:
             Handle_Keydown(&event.key.keysym);
@@ -852,8 +926,7 @@ int main( int argc, char* args[] )
         case SDL_WINDOWEVENT:
             break;
         default:
-            // printf("Unhandled Event type is: ( %d) !\n", event.type);
-            //          printf ("default case!");
+
             break;
         }
         PixelArray();
