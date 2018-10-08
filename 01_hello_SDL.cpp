@@ -46,7 +46,7 @@ int RGBcolor = 0;
 //координаты
 int pix_y = 10;
 int pix_x = 10;
-int l = 0;
+//int l = 0;
 //координаты для show_pixels и структур пикселей
 int a = 0;
 int b = 0;
@@ -58,7 +58,7 @@ int Y = 0;
 
 struct pixel
 {
-    bool found = false;
+    //  bool found = false;
     bool alive = false;
     int c;
     int d;
@@ -510,63 +510,35 @@ void check_pixels_right()
     for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
 
-            /*
-            если пиксель-еда не съеден,
-            его X в пределах 10 пикселей от координаты X
-            правой границы
-            и не меньше координаты X левой границы
-            и его координата Y не меньше координаты Y квадратика +
-            высота в писклях,
-            тогда мы считаем, что встретим его на своем пути
-            */
-        if ( concrete_pixel.found == false &&
-             concrete_pixel.c <= X + (pix_x*2) &&
-             concrete_pixel.c > X &&
-             concrete_pixel.d <= Y + pix_y)
-            {
-
-                printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found %d \n",
-                concrete_pixel.c, X, concrete_pixel.d, Y,
-                concrete_pixel.found);
-
-                //запомнили, что нашли этот пиксель
-            concrete_pixel.found = true;
-                /*
-                printf("concrete_pixel.c is %d,
-                X is %d, concrete_pixel.d is %d, Y is %d,
-                concrete_pixel.found is %d \n",
-                concrete_pixel.c, X, concrete_pixel.d, Y,
-                concrete_pixel.found);
-                */
-            pixels[i] =  concrete_pixel;
-
-        }
-
         //если пиксель уже найден и его координаты находятся
         // "внутри" координат квадратика, то мы считаем, что он
         //  "съеден"
-        if ( concrete_pixel.found == true &&
-             concrete_pixel.c <= X + pix_x &&
+
+        if(   concrete_pixel.c <= X + (pix_x - 1) &&
               concrete_pixel.c > X &&
-             concrete_pixel.d <= Y + pix_y)
-            {
-                //увеличиваем счетчик съеденных пикселей
-                numpix++;
-                int result =  numpix % 3;
-                if (result == 0) {
+              concrete_pixel.d <= Y + (pix_y - 1) &&
+              concrete_pixel.d >= Y)
+        {
+            //увеличиваем счетчик съеденных пикселей
+            numpix++;
+            int result =  numpix % 3;
+            if (result == 0) {
                 //горизонталь и вертикаль квадратика становится
                 // больше на 1
 
                 pix_y++;
                 pix_x++;
-                printf(" numpix IS %d",  numpix);
-                }
-                // помечаем структуру съеденного пикселя как пустую
-                concrete_pixel.alive = false;
-                //загружаем структуру в массив
-                pixels[i] =  concrete_pixel;
 
+                //printf("in right pix_y is %d, pix_x is %d\n",
+                //pix_y, pix_x);
             }
+
+            // помечаем структуру съеденного пикселя как пустую
+            concrete_pixel.alive = false;
+            //загружаем структуру в массив
+            pixels[i] =  concrete_pixel;
+
+        }
     }
 }
 
@@ -577,54 +549,36 @@ void check_pixels_left()
     for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
 
-        //если пиксель-еда не съеден,
-        //его X в пределах 10 pix от координаты X левой границы
-        // и не больше X квадратика
-        // и его координата Y не меньше координаты Y квадратика +
-        // высота в писклях,
-        // тогда мы считаем, что встретим его на своем пути
-        if ( concrete_pixel.found == false &&
-             concrete_pixel.c >= X - pix_x &&
-             concrete_pixel.c <= X + pix_x &&
-             concrete_pixel.d <= Y + pix_y)
-        {
 
-              printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found %d \n",
-              concrete_pixel.c, X, concrete_pixel.d, Y,
-              concrete_pixel.found);
-
-            //запомнили, что нашли этот пиксель
-            concrete_pixel.found = true;
-            /*
-              printf("concrete_pixel.c is %d,
-              X is %d, concrete_pixel.d is %d, Y is %d,
-              concrete_pixel.found is %d \n",
-              concrete_pixel.c, X, concrete_pixel.d, Y,
-              concrete_pixel.found);
-            */
-            pixels[i] =  concrete_pixel;
-
-
-        }
-
-        //если пиксель уже найден и его координаты находятся
+        //если координаты находятся
         // "внутри" координат квадратика, то мы считаем, что он
         //  "съеден"
-        if ( concrete_pixel.found == true &&
-             concrete_pixel.c > X &&
-             concrete_pixel.d <= Y + pix_y)
+
+        if (    concrete_pixel.c > X &&
+                concrete_pixel.c <= X + (pix_x - 1) &&
+                concrete_pixel.d <= Y + (pix_y - 1) &&
+                concrete_pixel.d >= Y)
         {
+            /*
+              printf("concrete_pixel.c is %d, X is %d,
+              concrete_pixel.d is %d, Y is %d, \n",
+              concrete_pixel.c, X, concrete_pixel.d, Y);
+
+            */
 
             //увеличиваем счетчик съеденных пикселей
             numpix++;
             int result =  numpix % 3;
             if (result == 0) {
+
                 //горизонталь и вертикаль квадратика становится
                 // больше на 1
 
                 pix_y++;
                 pix_x++;
-                printf(" numpix IS  %d",  numpix);
+
+                //printf("in left pix_y is %d, pix_x is %d\n",
+                //pix_y, pix_x);
             }
             // помечаем структуру съеденного пикселя как пустую
             concrete_pixel.alive = false;
@@ -643,44 +597,20 @@ void check_pixels_down()
     for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
 
-        //если пиксель-еда не съеден,
-        //его X в пределах 10 pix от координаты X левой границы
-        // и не больше X квадратика
-        // и его координата Y не меньше координаты Y квадратика +
-        // высота в писеклях * 2,
-        // тогда мы считаем, что встретим его на своем пути
-        if ( concrete_pixel.found == false &&
-             concrete_pixel.c <= X + pix_x &&
-             concrete_pixel.c > X &&
-             concrete_pixel.d <= Y + (pix_y*2))
-        {
-
-              printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found %d \n",
-              concrete_pixel.c, X, concrete_pixel.d, Y,
-              concrete_pixel.found);
-
-              //запомнили, что нашли этот пиксель
-              concrete_pixel.found = true;
-            /*
-              printf("concrete_pixel.c is %d,
-              X is %d, concrete_pixel.d is %d, Y is %d,
-              concrete_pixel.found is %d \n",
-              concrete_pixel.c, X, concrete_pixel.d, Y,
-              concrete_pixel.found);
-            */
-            pixels[i] =  concrete_pixel;
-
-
-        }
-
         //если пиксель уже найден и его координаты находятся
         // "внутри" координат квадратика, то мы считаем, что он
         //  "съеден"
-        if ( concrete_pixel.found == true &&
-             concrete_pixel.c <= X + pix_x &&
-             concrete_pixel.d <= Y + pix_y)
+        if ( concrete_pixel.c <= X + (pix_x - 1) &&
+             concrete_pixel.c > X &&
+             concrete_pixel.d <= Y + (pix_y - 1) &&
+             concrete_pixel.d >= Y )
         {
+            /*
+              printf("concrete_pixel.c is %d, X is %d,
+              concrete_pixel.d is %d, Y is %d, \n",
+              concrete_pixel.c, X, concrete_pixel.d, Y);
 
+            */
             //увеличиваем счетчик съеденных пикселей
             numpix++;
             int result =  numpix % 3;
@@ -690,7 +620,8 @@ void check_pixels_down()
 
                 pix_y++;
                 pix_x++;
-                printf(" numpix IS %d",  numpix);
+                //printf("in down pix_y is %d, pix_x is %d\n",
+                //pix_y, pix_x);
             }
             // помечаем структуру съеденного пикселя как пустую
             concrete_pixel.alive = false;
@@ -699,54 +630,29 @@ void check_pixels_down()
 
         }
     }
-}
 
+}
 void check_pixels_up()
 {
     int i = 0;
     printf(" numpix up is %d\n",  numpix);
     for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
-        //если пиксель-еда не съеден,
-        //его X в пределах 10 пикселей от координаты X
-        //правой границы
-        // и не меньше координаты X левой границы
-        // и его координата Y больше  координаты Y квадратика +
-        // высота в писеклях,
-        // тогда мы считаем, что встретим его на своем пути
-        if ( concrete_pixel.found == false &&
-             concrete_pixel.c <= X + pix_x &&
-             concrete_pixel.c > X &&
-             concrete_pixel.d >= Y - pix_y)
-        {
-
-              printf("concrete_pixel.c is %d, X is %d, concrete_pixel.d is %d, Y is %d, concrete_pixel.found %d \n",
-              concrete_pixel.c, X, concrete_pixel.d, Y,
-              concrete_pixel.found);
-
-
-            //запомнили, что нашли этот пиксель
-            concrete_pixel.found = true;
-            /*
-              printf("concrete_pixel.c is %d,
-              X is %d, concrete_pixel.d is %d, Y is %d,
-              concrete_pixel.found is %d \n",
-              concrete_pixel.c, X, concrete_pixel.d, Y,
-              concrete_pixel.found);
-            */
-            pixels[i] =  concrete_pixel;
-
-        }
-
         //если пиксель уже найден и его координаты находятся
         // "внутри" координат квадратика, то мы считаем, что он
         //  "съеден"
-        if ( concrete_pixel.found == true &&
-             concrete_pixel.c <= X + pix_x &&
+        if ( concrete_pixel.c <= X + (pix_x - 1) &&
              concrete_pixel.c > X &&
-             concrete_pixel.d <= Y - pix_y)
+             concrete_pixel.d <= Y + (pix_y - 1) &&
+             concrete_pixel.d >= Y)
         {
 
+            /*
+              printf("concrete_pixel.c is %d, X is %d,
+              concrete_pixel.d is %d, Y is %d, \n",
+              concrete_pixel.c, X, concrete_pixel.d, Y);
+
+            */
             //увеличиваем счетчик съеденных пикселей
             numpix++;
             int result =  numpix % 3;
@@ -756,7 +662,8 @@ void check_pixels_up()
 
                 pix_y++;
                 pix_x++;
-                printf(" numpix IS %d",  numpix);
+                // printf("in up pix_y is %d, pix_x is %d\n",
+                //pix_y, pix_x);
             }
 
             // помечаем структуру съеденного пикселя как пустую
