@@ -44,19 +44,16 @@ void* threadFunc(void* p)
 
 void main()
 {
-    // объявляем слушающий сокет
-    int listener;
-
     // опять эта непонятная структура
     struct sockaddr_in addr;
 
     int count = 0;
 
-    // инициализируес слушающий сокет по аналогии с sock на клиенте
-    listener = socket(AF_INET, SOCK_STREAM, 0);
-    if(listener < 0)
+    // объявляем и инициализируем слушающий серверный сокет
+    int listener = socket(AF_INET, SOCK_STREAM, 0);
+    if (listener < 0)
     {
-        perror("socket");
+        perror("invalid socket()");
         exit(1);
     }
 
@@ -82,9 +79,11 @@ void main()
     {
         // возвращаем дескриптор соединения с конкретным сокетом
         sock = accept(listener, NULL, NULL);
+        /* char *addr_client = inet_ntoa(client.sin_addr); */
         //если соединение установлено
         if(sock > 0)
         {
+
             // Выводим сообщение о успешном подключении
             printf("I got connection %d!\n", sock);
             printf("I am writing it to connection[%d]\n", i);
