@@ -45,7 +45,7 @@ void* threadFunc(void* p)
 void main()
 {
     // опять эта непонятная структура
-    struct sockaddr_in addr;
+    struct sockaddr_in serv_in, clnt_in;
 
     int count = 0;
 
@@ -59,14 +59,14 @@ void main()
 
     // инициализируем struct sockaddr_in по аналогии с клиентом
     // (зачем?)
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(3425);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_in.sin_family = AF_INET;
+    serv_in.sin_port = htons(3425);
+    serv_in.sin_addr.s_addr = htonl(INADDR_ANY); /* inet_addr("127.0.0.1") */
 
     // привязываем дескриптор сокета к адресу (зачем?)
-    if(bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+    if(bind(listener, (struct sockaddr *)&serv_in, sizeof(serv_in)) < 0)
     {
-        perror("bind");
+        perror("bind() failed");
         exit(2);
     }
 
@@ -78,15 +78,14 @@ void main()
     while(1)
     {
         // возвращаем дескриптор соединения с конкретным сокетом
-        sock = accept(listener, NULL, NULL);
-        /* char *addr_client = inet_ntoa(client.sin_addr); */
+        int c = sizeof(struct sockaddr_in);
+        sock = accept(listener, (struct sockaddr *)&clnt_in, (socklen_t *)&c);
+
         //если соединение установлено
         if(sock > 0)
         {
-
             // Выводим сообщение о успешном подключении
-            printf("I got connection %d!\n", sock);
-            printf("I am writing it to connection[%d]\n", i);
+            printf("%d sock to connection[%d]\n", sock, i);
             fflush(stdout); /* Не забывай сливать за собой! */
 
             // вытаскиваем структуру из массива в ЛОКАЛЬНУЮ переменную

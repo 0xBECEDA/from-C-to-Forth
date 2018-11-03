@@ -58,8 +58,6 @@ void  main()
     //с адресом сервера, длинну структуры (зачем длинна?)
     if(connect(sock, (struct sockaddr *)&addr,
                sizeof(addr)) < 0)
-
-
     {
         perror("connect");
         exit(2);
@@ -77,14 +75,11 @@ void  main()
     //recv(sock, buf, sizeof(message), 0);
 
     /* Было бы лучше читать данные в цикле, пока сервер не закроет соединение */
-
     recv(sock, buf, sizeof(buf), 0);
 
     //печатаем сообщение
     printf("Server message: %s\n", buf);
+
     //закрываем сокет
-
     close(sock);
-
-
 }
