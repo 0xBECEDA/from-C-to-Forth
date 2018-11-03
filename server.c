@@ -12,30 +12,30 @@
 
 int sock;
 int i = 0;
-
 // объявляем структуру и массив клиентов
 struct connection
 {
-    int descriptor;
+    int thread;
+    int connection;
     char buf[1024];
 
-} clients[1];
+} clients[10];
 struct connection client;
+
 
 // сюда будет записано кол-во прочитанных байтов
 int bytes_read;
-/*
+
 // наш новый поток
-void* threadFunc(void* thread_data)
+void* threadFunc(void* p)
 {
     while (1) {
-        printf(".");
-        //fflush(stdout);
-        usleep(10000); // sleep for 0.01 sec
-        printf("Deskriptor is %d", sock);
+        sleep(3);
+      (struct client *)p;
+        printf("Deskriptor is %d\n", client.connection);
     }
 }
-*/
+
 
 void main()
 {
@@ -77,47 +77,52 @@ void main()
     {
         // возвращаем дескриптор соединения с конкретным сокетом
         sock = accept(listener, NULL, NULL);
-        if(sock < 0)
+        //если соединение установлено
+        if(sock > 0)
         {
-            perror("accept");
-            exit(3);
+            printf("I got connection!\n ");
+
+            // вытаскиваем структуру из массива
+            client = clients[i];
+            // записываем дескриптор соединения
+            client.connection = sock;
+
+            // нетипизированный указатель = NULL
+            //void* thread_data = NULL;
+
+            //создаем идентификатор потока
+            pthread_t thread;
+
+            // создаем поток с помощью pthread_create
+            // в качестве параметров: ссыка на идентификатор,
+            // текущая структура,
+            // название создаваемого потока и указательна структуру
+
+            void *p = &client;
+
+            pthread_create(&thread, NULL, threadFunc, p);
+
+            //записываем идентификатор потока в структуру
+            client.thread = thread;
+            // кладем структуру в массив
+            clients[i] = client;
+
+            i++;
+
+        } else {
+
+        perror("accept");
+        exit(3);
+        close(sock);
         }
-
-        printf("I got connection!");
-        // вытаскиваем структуру из массива
-        client = clients[i];
-        // записываем дескриптор соединения
-        client.descriptor = sock;
-
-        //возвращаем структуру в массив
-        clients[i] = client;
-
-        i++;
-
         /*
-        // нетипизированный указатель = NULL
-        void* thread_data = NULL;
-
-        //создаем идентификатор потока
-        pthread_t thread;
-
-        // создаем поток с помощью pthread_create
-        // в качестве параметров: ссыка на идентификатор, значение
-        // нетипизированного указателя, название создаваемого потока и
-        // данные
-
-        pthread_create(&thread, NULL, threadFunc, thread_data);
-
-        */
-
-
         //если соединение установлено, получаем данные
         while(1)
         {
             client = clients[0];
             //читаем и записываем данные от первого клиента
 
-            bytes_read = recv(client.descriptor,
+            bytes_read = recv(client.connection,
                               client.buf, 1024, 0);
             // если какие-то байты бли прочитаны, отправляем
             // сообщние второму клиенту
@@ -128,7 +133,7 @@ void main()
             if(bytes_read > 0) {
                 //вытаскиваем дескриптор второго клиента
                 client = clients[1];
-              int second_decriptor = client.descriptor;
+                int second_decriptor = client.connection;
                 //возвращаем структуру первого клиента
                 client = clients[0];
                 // таким образом отправляем данные из структуры
@@ -138,7 +143,7 @@ void main()
             }
             //проверяем, не пришло ли сообщение от второго клиента
             client = clients[1];
-            bytes_read = recv(client.descriptor,
+            bytes_read = recv(client.connection,
                               client.buf, 1024, 0);
 
             if (bytes_read < 0) {
@@ -149,7 +154,7 @@ void main()
             if(bytes_read > 0) {
                 //вытаскиваем дескриптор первого клиента
                 client = clients[0];
-                int first_decriptor = client.descriptor;
+                int first_decriptor = client.connection;
                 // возвращаем структуру второго клиента
                 client = clients[1];
                 // таким образом отправляем данные из структуры
@@ -160,5 +165,7 @@ void main()
             }
 
         }
+        */
     }
+
 }
