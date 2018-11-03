@@ -31,7 +31,7 @@ void* threadFunc(void* p)
 {
     struct connection client = *(struct connection *)p;
 
-    printf("Thread %X started!\n", client.thread);
+    printf("Thread %X started with param %x!\n", client.thread, p);
     fflush(stdout); /* Не забывай сливать за собой! */
 
     while (1) {
