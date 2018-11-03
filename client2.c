@@ -14,14 +14,14 @@ char buf[1024];
 void  main()
 {
 /*
-    int i = 10;
-     while(i = 10) {
-    //printf("Buf before scanf: %s\n", buf);
-    scanf("%s", buf);
-    //fflush (stdout);
-    printf("Buf after scanf: %s\n", buf);
-    //fflush (stdout);
-    }
+  int i = 10;
+  while(i = 10) {
+  //printf("Buf before scanf: %s\n", buf);
+  scanf("%s", buf);
+  //fflush (stdout);
+  printf("Buf after scanf: %s\n", buf);
+  //fflush (stdout);
+  }
 */
 
 
