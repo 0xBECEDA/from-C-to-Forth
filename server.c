@@ -20,7 +20,7 @@ struct connection
     char buf[1024];
 
 } clients[10];
-struct connection client;
+
 
 
 // сюда будет записано кол-во прочитанных байтов
@@ -29,10 +29,15 @@ int bytes_read;
 // наш новый поток
 void* threadFunc(void* p)
 {
+    struct connection client = *(struct connection *)p;
+
+    printf("Thread %X started!\n", client.thread);
+    fflush(stdout); /* Не забывай сливать за собой! */
+
     while (1) {
         sleep(3);
-      (struct client *)p;
-        printf("Deskriptor is %d\n", client.connection);
+        printf("Desсriptor is %d\n", client.connection);
+        fflush(stdout); /* Не забывай сливать за собой! */
     }
 }
 
@@ -80,41 +85,41 @@ void main()
         //если соединение установлено
         if(sock > 0)
         {
-            printf("I got connection!\n ");
+            // Выводим сообщение о успешном подключении
+            printf("I got connection %d!\n", sock);
+            printf("I am writing it to connection[%d]\n", i);
+            fflush(stdout); /* Не забывай сливать за собой! */
 
-            // вытаскиваем структуру из массива
-            client = clients[i];
-            // записываем дескриптор соединения
+            // вытаскиваем структуру из массива в ЛОКАЛЬНУЮ переменную
+            struct connection client = clients[i];
+
+            // записываем дескриптор соединения в структуру
             client.connection = sock;
 
-            // нетипизированный указатель = NULL
-            //void* thread_data = NULL;
-
-            //создаем идентификатор потока
+            //создаем переменную для идентификатора потока
             pthread_t thread;
 
-            // создаем поток с помощью pthread_create
-            // в качестве параметров: ссыка на идентификатор,
-            // текущая структура,
-            // название создаваемого потока и указательна структуру
-
-            void *p = &client;
-
-            pthread_create(&thread, NULL, threadFunc, p);
+            // создаем поток с помощью pthread_create, которая получает:
+            // - указатель на переменную потока, чтобы вернуть дескриптор потока
+            // - атрибуты потока (по умолчанию: NULL)
+            // - функция потока
+            // - аргумент, передаваемый в функцию потока
+            pthread_create(&thread, NULL, threadFunc, (void *)&client);
 
             //записываем идентификатор потока в структуру
             client.thread = thread;
-            // кладем структуру в массив
+
+            // кладем структуру из ЛОКАЛЬНОЙ переменной в массив
             clients[i] = client;
 
+            // увеличиваем индекс в массиве
             i++;
-
         } else {
-
-        perror("accept");
-        exit(3);
-        close(sock);
+            perror("accept");
+            exit(3);
+            close(sock);
         }
+
         /*
         //если соединение установлено, получаем данные
         while(1)
