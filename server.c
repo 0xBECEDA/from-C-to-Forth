@@ -59,7 +59,7 @@ void* threadFunc(void* p)
 
 void main()
 {
-    // опять эта непонятная структура
+    // зачем тебе 2 структуры?
     struct sockaddr_in serv_in, clnt_in;
 
     int count = 0;
@@ -73,12 +73,14 @@ void main()
     }
 
     // инициализируем struct sockaddr_in по аналогии с клиентом
-    // (зачем?)
+
     serv_in.sin_family = AF_INET;
     serv_in.sin_port = htons(3425);
     serv_in.sin_addr.s_addr = htonl(INADDR_ANY); /* inet_addr("127.0.0.1") */
 
-    // привязываем дескриптор сокета к адресу (зачем?)
+    // привязываем дескриптор сокета к адресу
+    // параметры: дескриптор слушающего сокета,
+    // указатель на структуру сервера, размер структуры
     if(bind(listener, (struct sockaddr *)&serv_in, sizeof(serv_in)) < 0)
     {
         perror("bind() failed");
@@ -89,10 +91,11 @@ void main()
     // очереди ожидания
     listen(listener, 1);
 
-    // бесконечный цикл(?)
+    // бесконечный цикл
     while(1)
     {
         // возвращаем дескриптор соединения с конкретным сокетом
+        // приравниваем размер структуры  в байтах к переменной (?)
         int c = sizeof(struct sockaddr_in);
         int sock = accept(listener, (struct sockaddr *)&clnt_in, (socklen_t *)&c);
 
