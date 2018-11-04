@@ -10,8 +10,8 @@
 #include <errno.h>
 #include <linux/unistd.h>
 
-int sock;
-int i = 0;
+
+int conn_idx = 0;
 // объявляем структуру и массив клиентов
 struct connection
 {
@@ -20,13 +20,12 @@ struct connection
     char buf[1024];
 
 } clients[5];
-struct connection client;
 
 void test (cnt)
 {
     printf("\n| %10s | %10s | %10s |\n", "thread", "connection", "buf");
-    for ( i = 0; i <= cnt; i++ ) {
-        client = clients[i];
+    for ( int i = 0; i <= cnt; i++ ) {
+        struct connection client = clients[i];
         printf("| %10X | %10d | %10s |\n",
                client.thread, client.connection, client.buf);
         fflush(stdout); /* Не забывай сливать за собой! */
@@ -36,7 +35,7 @@ void test (cnt)
 // наш новый поток
 void* threadFunc(void* p)
 {
-     client = *(struct connection *)p;
+    struct connection client = *(struct connection *)p;
 
 //    printf("Thread %X started with param %x!\n, Desсriptor is %d\n Bufer is %s\n", client.thread, p, client.connection, client.buf);
     //  fflush(stdout); /* Не забывай сливать за собой! */
@@ -95,17 +94,17 @@ void main()
     {
         // возвращаем дескриптор соединения с конкретным сокетом
         int c = sizeof(struct sockaddr_in);
-        sock = accept(listener, (struct sockaddr *)&clnt_in, (socklen_t *)&c);
+        int sock = accept(listener, (struct sockaddr *)&clnt_in, (socklen_t *)&c);
 
         //если соединение установлено
         if(sock > 0)
         {
             // Выводим сообщение о успешном подключении
-            printf("%d sock to connection[%d]\n", sock, i);
+            printf("%d sock to connection[%d]\n", sock, conn_idx);
             fflush(stdout); /* Не забывай сливать за собой! */
 
             // вытаскиваем структуру из массива в ЛОКАЛЬНУЮ переменную
-            client = clients[i];
+            struct connection client = clients[conn_idx];
 
             // записываем дескриптор соединения в структуру
             client.connection = sock;
@@ -118,16 +117,16 @@ void main()
             // - атрибуты потока (по умолчанию: NULL)
             // - функция потока
             // - аргумент, передаваемый в функцию потока
-            pthread_create(&thread, NULL, threadFunc, (void *)&client);
+            pthread_create(&thread, NULL, threadFunc, (void *)&clients[conn_idx]);
 
             //записываем идентификатор потока в структуру
             client.thread = thread;
 
             // кладем структуру из ЛОКАЛЬНОЙ переменной в массив
-            clients[i] = client;
+            clients[conn_idx] = client;
 
             // увеличиваем индекс в массиве
-            i++;
+            conn_idx++;
         } else {
             perror("accept");
             exit(3);
