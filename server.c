@@ -22,15 +22,17 @@ struct connection
 } clients[5];
 struct connection client;
 
-void test ()
+void test (cnt)
 {
-    for ( i = 0; i <= 5; i++) {
-    client = clients[i];
-    printf("Thread %X started\n, Desсriptor is %d\n Bufer is %s\n", client.thread, client.connection, client.buf);
-    fflush(stdout); /* Не забывай сливать за собой! */
-    clients[i] = client;
+    printf("\n| %10s | %10s | %10s |\n", "thread", "connection", "buf");
+    for ( i = 0; i <= cnt; i++ ) {
+        client = clients[i];
+        printf("| %10X | %10d | %10s |\n",
+               client.thread, client.connection, client.buf);
+        fflush(stdout); /* Не забывай сливать за собой! */
     }
 }
+
 // наш новый поток
 void* threadFunc(void* p)
 {
@@ -41,6 +43,7 @@ void* threadFunc(void* p)
 
     while (1) {
         sleep(3);
+        test(2);
         //printf("Desсriptor is %d\n, Bufer is %s", client.connection);
         //fflush(stdout); /* Не забывай сливать за собой! */
 /*
