@@ -19,7 +19,7 @@ struct connection
     int connection;
     char buf[1024];
 
-} clients[5];
+} clients[1];
 
 void test (cnt)
 {
@@ -37,22 +37,41 @@ void test (cnt)
 void* threadFunc(void* p)
 {
     struct connection client = *(struct connection *)p;
-
-//      printf("Thread %X started with param %x!\n, Desсriptor is %d\n Bufer is %s\n", client.thread, p, client.connection, client.buf);
-    //  fflush(stdout); /* Не забывай сливать за собой! */
     test(2);
     while (1) {
         sleep(3);
-        //printf("Desсriptor is %d\n, Bufer is %s", client.connection);
-        //fflush(stdout); /* Не забывай сливать за собой! */
-/*
+
+        // читаем из соединения
         int bytes_read = recv(client.connection,
-                          client.buf, 1024, 0);
+                              client.buf, 1024, 0);
 
         if(bytes_read > 0 ) {
-        send
+            // проверка, что получили
+            printf ("Message  is: %s, sock is %d\n", client.buf,
+                    client.connection);
+            fflush(stdout);
+            //сохраняю дескриптор соединения в локальную переменную
+            int descriptor = client.connection;
+            //сохраняю указатель на буфер в локальную переменную
+            int pointer = &client.buf;
+            printf ("&client.buf is %X, int pointer is %X\n",
+                    &client.buf, pointer);
+            // ищем все структуры, чьи дескрипторы соединений
+            // не совпадают с текущим
+            for (int j = 0; j <= sizeof(clients); j++) {
+                client = clients[j];
+                // если нашли чужую структуру, отправляем данные
+                if (client.connection != descriptor &&
+                    client.connection != 0) {
+                    printf("client.connection is %d, desc is %d, pointer is %X\n",
+                           client.connection, descriptor, pointer);
+                    // скорее всего все падает тут11
+                    send(client.connection, pointer,
+                         bytes_read, 0);
+
+                }
+            }
         }
-*/
     }
 }
 
@@ -120,7 +139,8 @@ void main()
             // - атрибуты потока (по умолчанию: NULL)
             // - функция потока
             // - аргумент, передаваемый в функцию потока
-            pthread_create(&thread, NULL, threadFunc, (void *)&clients[conn_idx]);
+            pthread_create(&thread, NULL, threadFunc,
+                           (void *)&clients[conn_idx]);
 
             //записываем идентификатор потока в структуру
             client.thread = thread;
@@ -137,57 +157,6 @@ void main()
             close(sock);
         }
 
-        /*
-        //если соединение установлено, получаем данные
-        while(1)
-        {
-            client = clients[0];
-            //читаем и записываем данные от первого клиента
-
-            bytes_read = recv(client.connection,
-                              client.buf, 1024, 0);
-            // если какие-то байты бли прочитаны, отправляем
-            // сообщние второму клиенту
-            if (bytes_read < 0) {
-                printf ("Error in 1st!");
-            }
-
-            if(bytes_read > 0) {
-                //вытаскиваем дескриптор второго клиента
-                client = clients[1];
-                int second_decriptor = client.connection;
-                //возвращаем структуру первого клиента
-                client = clients[0];
-                // таким образом отправляем данные из структуры
-                // первого клиента по дескриптору второго
-                send(second_decriptor, client.buf,
-                     bytes_read, 0);
-            }
-            //проверяем, не пришло ли сообщение от второго клиента
-            client = clients[1];
-            bytes_read = recv(client.connection,
-                              client.buf, 1024, 0);
-
-            if (bytes_read < 0) {
-                printf ("Error in 2nd!");
-            }
-
-            // если что-то было прочитано
-            if(bytes_read > 0) {
-                //вытаскиваем дескриптор первого клиента
-                client = clients[0];
-                int first_decriptor = client.connection;
-                // возвращаем структуру второго клиента
-                client = clients[1];
-                // таким образом отправляем данные из структуры
-                // второго клиента по дескриптору первого
-                send(first_decriptor, client.buf,
-                     bytes_read, 0);
-
-            }
-
-        }
-        */
     }
 
 }

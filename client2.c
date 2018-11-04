@@ -13,17 +13,6 @@
 char buf[1024];
 void  main()
 {
-/*
-  int i = 10;
-  while(i = 10) {
-  //printf("Buf before scanf: %s\n", buf);
-  scanf("%s", buf);
-  //fflush (stdout);
-  printf("Buf after scanf: %s\n", buf);
-  //fflush (stdout);
-  }
-*/
-
 
     //объявляем сокет
     int sock;
@@ -62,23 +51,22 @@ void  main()
         perror("connect");
         exit(2);
     }
+    while (1) {
+        // отправляем
+        scanf("%s", buf);
 
-    // отправляем
-    scanf("%s", buf);
+        //передаем дескриптор сокета, указатель на буфер с данными
+        //длинну буфера в байтах, флаги
+        // send возвращает кол-во отправленных байтов
+        send(sock, buf, sizeof(buf), 0);
 
-    //передаем дескриптор сокета, указатель на буфер с данными (?!)
-    //длинну буфера в байтах, флаги
-    // send возвращает кол-во отправленных байтов
-    send(sock, buf, sizeof(buf), 0);
+        /* Было бы лучше читать данные в цикле, пока сервер не закроет           соединение */
+        recv(sock, buf, sizeof(buf), 0);
 
-    // читаем данные (их прислал сервер?), параметры аналогичны
-    //recv(sock, buf, sizeof(message), 0);
+        //печатаем сообщение
+        printf("Server message: %s\n", buf);
 
-    /* Было бы лучше читать данные в цикле, пока сервер не закроет соединение */
-    recv(sock, buf, sizeof(buf), 0);
-
-    //печатаем сообщение
-    printf("Server message: %s\n", buf);
+    }
 
     //закрываем сокет
     close(sock);
