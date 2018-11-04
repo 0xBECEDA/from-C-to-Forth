@@ -19,25 +19,29 @@ struct connection
     int connection;
     char buf[1024];
 
-} clients[10];
+} clients[1];
 
-
-
-// сюда будет записано кол-во прочитанных байтов
-int bytes_read;
 
 // наш новый поток
 void* threadFunc(void* p)
 {
     struct connection client = *(struct connection *)p;
 
-    printf("Thread %X started with param %x!\n", client.thread, p);
+    printf("Thread %X started with param %x!\n, Desсriptor is %d\n Bufer is %s\n", client.thread, p, client.connection, client.buf);
     fflush(stdout); /* Не забывай сливать за собой! */
 
     while (1) {
         sleep(3);
-        printf("Desсriptor is %d\n", client.connection);
-        fflush(stdout); /* Не забывай сливать за собой! */
+        //printf("Desсriptor is %d\n, Bufer is %s", client.connection);
+        //fflush(stdout); /* Не забывай сливать за собой! */
+/*
+        int bytes_read = recv(client.connection,
+                          client.buf, 1024, 0);
+
+        if(bytes_read > 0 ) {
+        send
+        }
+*/
     }
 }
 
