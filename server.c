@@ -19,16 +19,25 @@ struct connection
     int connection;
     char buf[1024];
 
-} clients[1];
+} clients[5];
+struct connection client;
 
-
+void test ()
+{
+    for ( i = 0; i <= 5; i++) {
+    client = clients[i];
+    printf("Thread %X started\n, Desсriptor is %d\n Bufer is %s\n", client.thread, client.connection, client.buf);
+    fflush(stdout); /* Не забывай сливать за собой! */
+    clients[i] = client;
+    }
+}
 // наш новый поток
 void* threadFunc(void* p)
 {
-    struct connection client = *(struct connection *)p;
+     client = *(struct connection *)p;
 
-    printf("Thread %X started with param %x!\n, Desсriptor is %d\n Bufer is %s\n", client.thread, p, client.connection, client.buf);
-    fflush(stdout); /* Не забывай сливать за собой! */
+//    printf("Thread %X started with param %x!\n, Desсriptor is %d\n Bufer is %s\n", client.thread, p, client.connection, client.buf);
+    //  fflush(stdout); /* Не забывай сливать за собой! */
 
     while (1) {
         sleep(3);
@@ -93,7 +102,7 @@ void main()
             fflush(stdout); /* Не забывай сливать за собой! */
 
             // вытаскиваем структуру из массива в ЛОКАЛЬНУЮ переменную
-            struct connection client = clients[i];
+            client = clients[i];
 
             // записываем дескриптор соединения в структуру
             client.connection = sock;
