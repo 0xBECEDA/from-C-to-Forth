@@ -24,9 +24,10 @@ struct connection client;
 
 void test (cnt)
 {
+    client = *(struct connection *)p;
     printf("\n| %10s | %10s | %10s |\n", "thread", "connection", "buf");
-    for ( i = 0; i <= cnt; i++ ) {
-        client = clients[i];
+    for ( int j = 0; j <= cnt; j++ ) {
+        client = clients[j];
         printf("| %10X | %10d | %10s |\n",
                client.thread, client.connection, client.buf);
         fflush(stdout); /* Не забывай сливать за собой! */
@@ -38,12 +39,11 @@ void* threadFunc(void* p)
 {
      client = *(struct connection *)p;
 
-//    printf("Thread %X started with param %x!\n, Desсriptor is %d\n Bufer is %s\n", client.thread, p, client.connection, client.buf);
+//      printf("Thread %X started with param %x!\n, Desсriptor is %d\n Bufer is %s\n", client.thread, p, client.connection, client.buf);
     //  fflush(stdout); /* Не забывай сливать за собой! */
-
+    test(2);
     while (1) {
         sleep(3);
-        test(2);
         //printf("Desсriptor is %d\n, Bufer is %s", client.connection);
         //fflush(stdout); /* Не забывай сливать за собой! */
 /*
@@ -128,6 +128,8 @@ void main()
 
             // увеличиваем индекс в массиве
             i++;
+            //  test(2);
+
         } else {
             perror("accept");
             exit(3);
