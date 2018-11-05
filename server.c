@@ -66,8 +66,7 @@ void* threadFunc(void* p)
                     printf("client.connection is %d, desc is %d, pointer is %X\n",
                            client.connection, descriptor, pointer);
                     // скорее всего все падает тут11
-                    send(client.connection, pointer,
-                         bytes_read, 0);
+                    send(client.connection, pointer, 1024, 0);
 
                 }
             }
