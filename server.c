@@ -10,7 +10,6 @@
 #include <errno.h>
 #include <linux/unistd.h>
 
-
 int conn_idx = 0;
 // объявляем структуру и массив клиентов
 struct connection
@@ -45,7 +44,7 @@ void* threadFunc(void* p)
         int bytes_read = recv(client.connection,
                               client.buf, 1024, 0);
 
-        if(bytes_read > 0 ) {
+        if (bytes_read > 0) {
             // проверка, что получили
             printf ("Message  is: %s, sock is %d\n", client.buf,
                     client.connection);
@@ -58,15 +57,20 @@ void* threadFunc(void* p)
                     &client.buf, pointer);
             // ищем все структуры, чьи дескрипторы соединений
             // не совпадают с текущим
+
             for (int j = 0; j <= sizeof(clients); j++) {
                 client = clients[j];
-                // если нашли чужую структуру, отправляем данные
+                // Условие: дескриптор отличный от нашего,
+                // дескриптор не нулевой, поток существует.
                 if (client.connection != descriptor &&
-                    client.connection != 0) {
+                    client.connection != 0 && client.thread != 0) {
                     printf("client.connection is %d, desc is %d, pointer is %X\n",
                            client.connection, descriptor, pointer);
-                    // скорее всего все падает тут11
-                    send(client.connection, pointer, 1024, 0);
+                    // скорее всего все падает тут
+                    /* верно. но ошибка, как я уже написал, - выше */
+                    send(client.connection, pointer,
+                         bytes_read, 0);
+
 
                 }
             }
@@ -78,6 +82,7 @@ void* threadFunc(void* p)
 void main()
 {
     // зачем тебе 2 структуры?
+    /* а посмотри где они используются */
     struct sockaddr_in serv_in, clnt_in;
 
     int count = 0;
@@ -90,8 +95,7 @@ void main()
         exit(1);
     }
 
-    // инициализируем struct sockaddr_in по аналогии с клиентом
-
+    // инициализируем struct sockaddr_in
     serv_in.sin_family = AF_INET;
     serv_in.sin_port = htons(3425);
     serv_in.sin_addr.s_addr = htonl(INADDR_ANY); /* inet_addr("127.0.0.1") */
@@ -105,7 +109,7 @@ void main()
         exit(2);
     }
 
-    // Слушаем запросы. Передаетм дескриптор сокета и размер
+    // Слушаем запросы. Передаем дескриптор сокета и размер
     // очереди ожидания
     listen(listener, 1);
 
@@ -114,6 +118,7 @@ void main()
     {
         // возвращаем дескриптор соединения с конкретным сокетом
         // приравниваем размер структуры  в байтах к переменной (?)
+        /* посмотри параметры accept(). это временная переменная для него */
         int c = sizeof(struct sockaddr_in);
         int sock = accept(listener, (struct sockaddr *)&clnt_in, (socklen_t *)&c);
 
@@ -149,13 +154,10 @@ void main()
 
             // увеличиваем индекс в массиве
             conn_idx++;
-
         } else {
             perror("accept");
             exit(3);
             close(sock);
         }
-
     }
-
 }
