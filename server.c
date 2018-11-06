@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <linux/unistd.h>
+
 int conn_idx = 0;
 // объявляем структуру и массив клиентов
 struct connection
@@ -32,10 +33,18 @@ void test (cnt)
 }
 
 // наш новый поток
-void* threadFunc(void* p)
+void* threadFunc(void* param)
 {
-    struct connection client = *(struct connection *)p;
+    struct connection client = *(struct connection *)param;
+
     test(2);
+
+    /* у меня этот параметр явно неправильный */
+    printf ("this threadFunc has p = %X\n", param);
+    /* sizeof возвращает размер в байтах */
+    printf("sizeof(clients) = %d\n", sizeof(clients));
+    fflush(stdout);
+
     while (1) {
         sleep(3);
 
@@ -45,8 +54,7 @@ void* threadFunc(void* p)
 
         if (bytes_read > 0) {
             // проверка, что получили
-            printf ("Message  is: %s, sock is %d\n", client.buf,
-                    client.connection);
+            printf ("msg from [%d]: [%s]\n", client.connection, client.buf);
             fflush(stdout);
             //сохраняю дескриптор соединения в локальную переменную
             int descriptor = client.connection;
@@ -58,10 +66,12 @@ void* threadFunc(void* p)
             // ищем все структуры, чьи дескрипторы соединений
             // не совпадают с текущим
 
+
             for (int j = 0; j <= sizeof(clients); j++) {
                 client = clients[j];
                 printf("In bufer in loop: %s\n", pointer);
                 printf("j: %d\n", j);
+                fflush(stdout);
                 // Условие: дескриптор отличный от нашего,
                 // дескриптор не нулевой, поток существует.
                 if (client.connection != descriptor &&
@@ -71,10 +81,9 @@ void* threadFunc(void* p)
                     // printf("In bufer: %s\n", pointer);
                     // скорее всего все падает тут
                     /* верно. но ошибка, как я уже написал, - выше */
+                    fflush(stdout);
                     send(client.connection, pointer,
                          bytes_read, 0);
-
-
                 }
             }
         }

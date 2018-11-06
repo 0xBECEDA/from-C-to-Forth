@@ -65,8 +65,12 @@ void  main()
         int bytes_read =  recv(sock, buf, sizeof(buf), 0);
 
         if (bytes_read > 0) {
-        //печатаем сообщение
-        printf("Server message: %s\n", buf);
+            // печатаем сообщение
+            printf("Server message: %s\n", buf);
+        } else {
+            // печатаем ошибку
+            perror("Client2 error");
+            exit(3);
         }
     }
 
