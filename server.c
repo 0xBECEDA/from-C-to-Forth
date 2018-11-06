@@ -20,12 +20,13 @@ struct connection
 
 } clients[1];
 
+struct connection client;
 void test (cnt)
 {
     // client = *(struct connection *)p;
     printf("\n| %10s | %10s | %10s |\n", "thread", "connection", "buf");
     for ( int i = 0; i <= cnt; i++ ) {
-        struct connection client = clients[i];
+        client = clients[i];
         printf("| %10X | %10d | %10s |\n",
                client.thread, client.connection, client.buf);
         fflush(stdout); /* Не забывай сливать за собой! */
@@ -35,7 +36,7 @@ void test (cnt)
 // наш новый поток
 void* threadFunc(void* param)
 {
-    struct connection client = *(struct connection *)param;
+    int index = (int)param;
 
     test(2);
 
@@ -45,6 +46,7 @@ void* threadFunc(void* param)
     printf("sizeof(clients) = %d\n", sizeof(clients));
     fflush(stdout);
 
+    client = clients[index];
     while (1) {
         sleep(3);
 
@@ -143,7 +145,7 @@ void main()
             fflush(stdout); /* Не забывай сливать за собой! */
 
             // вытаскиваем структуру из массива в ЛОКАЛЬНУЮ переменную
-            struct connection client = clients[conn_idx];
+            client = clients[conn_idx];
 
             // записываем дескриптор соединения в структуру
             client.connection = sock;
@@ -157,7 +159,9 @@ void main()
             // - функция потока
             // - аргумент, передаваемый в функцию потока
             pthread_create(&thread, NULL, threadFunc,
-                           (void *)&clients[conn_idx]);
+                           (void *)conn_idx);
+
+                           // (void *)&clients[conn_idx]);
 
             //записываем идентификатор потока в структуру
             client.thread = thread;
