@@ -9,7 +9,6 @@
 #include <signal.h>
 #include <errno.h>
 #include <linux/unistd.h>
-
 int conn_idx = 0;
 // объявляем структуру и массив клиентов
 struct connection
@@ -55,17 +54,21 @@ void* threadFunc(void* p)
             int pointer = &client.buf;
             printf ("&client.buf is %X, int pointer is %X\n",
                     &client.buf, pointer);
+            printf("In bufer before loop: %s\n", pointer);
             // ищем все структуры, чьи дескрипторы соединений
             // не совпадают с текущим
 
             for (int j = 0; j <= sizeof(clients); j++) {
                 client = clients[j];
+                printf("In bufer in loop: %s\n", pointer);
+                printf("j: %d\n", j);
                 // Условие: дескриптор отличный от нашего,
                 // дескриптор не нулевой, поток существует.
                 if (client.connection != descriptor &&
                     client.connection != 0 && client.thread != 0) {
                     printf("client.connection is %d, desc is %d, pointer is %X\n",
                            client.connection, descriptor, pointer);
+                    // printf("In bufer: %s\n", pointer);
                     // скорее всего все падает тут
                     /* верно. но ошибка, как я уже написал, - выше */
                     send(client.connection, pointer,
