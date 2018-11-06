@@ -67,7 +67,7 @@ void* threadFunc(void* param)
             // не совпадают с текущим
 
 
-            for (int j = 0; j <= sizeof(clients); j++) {
+            for (int j = 0; j <= 1; j++) {
                 client = clients[j];
                 printf("In bufer in loop: %s\n", pointer);
                 printf("j: %d\n", j);
@@ -98,7 +98,8 @@ void main()
     struct sockaddr_in serv_in, clnt_in;
 
     int count = 0;
-
+    int p = &clients;
+    printf("Addr of clients is %X\n", p);
     // объявляем и инициализируем слушающий серверный сокет
     int listener = socket(AF_INET, SOCK_STREAM, 0);
     if (listener < 0)
