@@ -20,72 +20,65 @@ struct connection
 
 } clients[1];
 
-struct connection client;
+
 void test (cnt)
 {
-    // client = *(struct connection *)p;
     printf("\n| %10s | %10s | %10s |\n", "thread", "connection", "buf");
     for ( int i = 0; i <= cnt; i++ ) {
-        client = clients[i];
         printf("| %10X | %10d | %10s |\n",
-               client.thread, client.connection, client.buf);
-        fflush(stdout); /* Не забывай сливать за собой! */
+               clients[i].thread, clients[i].connection, clients[i].buf);
     }
+    fflush(stdout);
 }
 
 // наш новый поток
 void* threadFunc(void* param)
 {
-    int index = (int)param;
+    int idx = (int)param;
 
     test(2);
 
-    /* у меня этот параметр явно неправильный */
-    printf ("this threadFunc has p = %X\n", param);
-    /* sizeof возвращает размер в байтах */
-    printf("sizeof(clients) = %d\n", sizeof(clients));
+    printf ("this threadFunc has param = %X\n", param);
     fflush(stdout);
 
-    client = clients[index];
     while (1) {
         sleep(3);
 
         // читаем из соединения
-        int bytes_read = recv(client.connection,
-                              client.buf, 1024, 0);
+        int bytes_read = recv(clients[idx].connection,
+                              clients[idx].buf, 1024, 0);
 
         if (bytes_read > 0) {
             // проверка, что получили
-            printf ("msg from [%d]: [%s]\n", client.connection, client.buf);
+            printf ("msg from [%d]: [%s]\n",
+                    clients[idx].connection, clients[idx].buf);
             fflush(stdout);
             //сохраняю дескриптор соединения в локальную переменную
-            int descriptor = client.connection;
+            int descriptor = clients[idx].connection;
             //сохраняю указатель на буфер в локальную переменную
-            int pointer = &client.buf;
+            int pointer = &clients[idx].buf;
             printf ("&client.buf is %X, int pointer is %X\n",
-                    &client.buf, pointer);
+                    &clients[idx].buf, pointer);
             printf("In bufer before loop: %s\n", pointer);
+
             // ищем все структуры, чьи дескрипторы соединений
             // не совпадают с текущим
-
-
             for (int j = 0; j <= 1; j++) {
-                client = clients[j];
+                /* client = clients[j]; */
                 printf("In bufer in loop: %s\n", pointer);
                 printf("j: %d\n", j);
                 fflush(stdout);
                 // Условие: дескриптор отличный от нашего,
                 // дескриптор не нулевой, поток существует.
-                if (client.connection != descriptor &&
-                    client.connection != 0 && client.thread != 0) {
+                if (clients[j].connection != descriptor &&
+                    clients[j].connection != 0 && clients[j].thread != 0) {
                     printf("client.connection is %d, desc is %d, pointer is %X\n",
-                           client.connection, descriptor, pointer);
+                           clients[j].connection, descriptor, pointer);
                     // printf("In bufer: %s\n", pointer);
                     // скорее всего все падает тут
                     /* верно. но ошибка, как я уже написал, - выше */
                     fflush(stdout);
-                    send(client.connection, pointer,
-                         bytes_read, 0);
+                    send(clients[j].connection, pointer, bytes_read, 0);
                 }
             }
         }
@@ -144,11 +137,8 @@ void main()
             printf("%d sock to connection[%d]\n", sock, conn_idx);
             fflush(stdout); /* Не забывай сливать за собой! */
 
-            // вытаскиваем структуру из массива в ЛОКАЛЬНУЮ переменную
-            client = clients[conn_idx];
-
             // записываем дескриптор соединения в структуру
-            client.connection = sock;
+            clients[conn_idx].connection = sock;
 
             //создаем переменную для идентификатора потока
             pthread_t thread;
@@ -164,10 +154,7 @@ void main()
                            // (void *)&clients[conn_idx]);
 
             //записываем идентификатор потока в структуру
-            client.thread = thread;
-
-            // кладем структуру из ЛОКАЛЬНОЙ переменной в массив
-            clients[conn_idx] = client;
+            clients[conn_idx].thread = thread;
 
             // увеличиваем индекс в массиве
             conn_idx++;
