@@ -6,18 +6,20 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <fcntl.h>
-//char message[] = "Hello there!\n";
-
-// буфер, откуда сокет возьмет данные
-//char buf[sizeof(message)];
 
 char buf[1024];
 void  main()
 {
+    int fd = 0; // stdin
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+    char buf_stdin[255];
+
     //объявляем сокет
     int sock;
-    // выделяем ему адрс в структуре socaddr_in (?)
-    /* Выделяем память под структуру addr, которая имеет тип sockaddr_in */
+    /* Выделяем память под структуру addr,
+       которая имеет тип sockaddr_in */
     struct sockaddr_in addr;
 
     // инициализируем сокет
@@ -34,9 +36,7 @@ void  main()
     fcntl(sock, F_SETFL, O_NONBLOCK);
     //инициализируем struct sockaddr_in
 
-    // семейство адресов AF_INET. Зачем писать еще раз, если уже
-    // указывали в строке 21?
-    /* где эта строка 21? */
+    // семейство адресов AF_INET
     addr.sin_family = AF_INET;
     addr.sin_port = htons(3425); // присваиваем порт
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // 127.0.0.1
@@ -52,48 +52,42 @@ void  main()
     while(r<0) {
 
         r = connect(sock, (struct sockaddr *)&addr,
-                       sizeof(addr));
+                    sizeof(addr));
         if (r < 0) {
-            //  break;
-            // }
+
             perror("connect");
-            //   exit(2);
+
         }
     }
 
     while (1) {
-        printf("I am in loop");
         // отправляем
         /* вернее сначала читаем в буфер строку */
-        scanf("%s", buf);
-        // int amount = 0;
-        //while (1) {
+
+        int len = -1;
+
+        sleep(3);
+        len = read(fd, buf, sizeof(buf));
+
         // передаем дескриптор сокета, указатель на буфер с данными
         // длинну буфера в байтах, флаги
         // send возвращает кол-во отправленных байтов
+        if (len > 0) {
+            int  amount = send(sock, buf, sizeof(buf), 0);
 
-          int  amount = send(sock, buf, sizeof(buf), 0);
-          // if (amount!=0) {
-                printf("amount %d\n", amount);
-                fflush(stdout);
-                //    break;
-                // }
-                // }
+            printf("amount %d\n", amount);
+            fflush(stdout);
 
-                //  while (1) {
-            int bytes_read =  recv(sock, buf, sizeof(buf), 0);
-
-            if (bytes_read > 0) {
-                // печатаем сообщение
-                printf("Server message: %s\n", buf);
-                fflush(stdout);
-            }
-            //else {
-                // печатаем ошибку
-                // perror("Client2 error");
-                // exit(3);
-            //}
         }
+
+        int bytes_read =  recv(sock, buf, sizeof(buf), 0);
+
+        if (bytes_read > 0) {
+            // печатаем сообщение
+            printf("Client #2:   %s\n", buf);
+            fflush(stdout);
+        }
+    }
     //закрываем сокет
     close(sock);
 }
