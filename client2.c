@@ -66,20 +66,21 @@ void  main()
         // отправляем
         /* вернее сначала читаем в буфер строку */
         scanf("%s", buf);
-        int amount = 0;
-        while (1) {
+        // int amount = 0;
+        //while (1) {
         // передаем дескриптор сокета, указатель на буфер с данными
         // длинну буфера в байтах, флаги
         // send возвращает кол-во отправленных байтов
 
-            amount = send(sock, buf, sizeof(buf), 0);
-            if (amount!=0) {
+          int  amount = send(sock, buf, sizeof(buf), 0);
+          // if (amount!=0) {
                 printf("amount %d\n", amount);
-                break;
-            }
-        }
+                fflush(stdout);
+                //    break;
+                // }
+                // }
 
-        while (1) {
+                //  while (1) {
             int bytes_read =  recv(sock, buf, sizeof(buf), 0);
 
             if (bytes_read > 0) {
@@ -93,7 +94,6 @@ void  main()
                 // exit(3);
             //}
         }
-    }
     //закрываем сокет
     close(sock);
 }
