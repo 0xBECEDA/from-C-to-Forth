@@ -54,10 +54,10 @@ void  main()
         r = connect(sock, (struct sockaddr *)&addr,
                        sizeof(addr));
         if (r < 0) {
-       //  break;
-       // }
-        perror("connect");
-        //   exit(2);
+            //  break;
+            // }
+            perror("connect");
+            //   exit(2);
         }
     }
 
