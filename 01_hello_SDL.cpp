@@ -1,15 +1,15 @@
 #include<SDL2/SDL.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <signal.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <linux/unistd.h>
 #include <pthread.h>
-#include <signal.h>
 #include <errno.h>
-
-//#define size_x 10
-//#define sizy_y 10
+#include <fcntl.h>
+#include <netinet/in.h>
 
 // включить SDL и сделать окно
 bool init();
@@ -58,7 +58,6 @@ int Y = 0;
 
 struct pixel
 {
-    //  bool found = false;
     bool alive = false;
     int c;
     int d;
@@ -77,6 +76,19 @@ struct box
 //структура для квадратика
 struct box main_character;
 
+// структура "врага"
+struct enemy
+{
+    int c;
+    int d;
+} pixels_enemy[100];
+
+//структура для квадратика
+struct enemy enemy_character;
+
+//дескриптор сокета и структура сервера
+int sockfd;
+struct sockaddr_in servaddr;
 //отражает кол-во найденных рандомно закрашенных пикселей
 int ColorPixel = 0;
 
@@ -461,8 +473,14 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
 {
     // printf ("-------------------------begin\n");
     //  printf("In show_box  X is %d; Y is %d\n", X, Y);
+    int cnt = 0;
     for (int j = box_y; j<(Y + pix_y); j++) {
         for (int i = box_x; i<(X + pix_x); i++) {
+            main_character = pixels_box[cnt];
+            main_character.c = i;
+            main_character.d = j;
+            pixels_box[cnt] = main_character;
+            pixels_box[cnt++];
             DrawPixel(surface, i, j, red, green, blue);
         }
     }
@@ -476,10 +494,15 @@ void show_pixels()
     SDL_LockSurface(surface);
     for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
+        enemy_character = pixels_enemy[i];
         if (concrete_pixel.alive == true) {
             DrawPixel(surface, concrete_pixel.c,
                       concrete_pixel.d, R, G, B);
         }
+
+        //отрисовка "врага"
+        DrawPixel(surface, enemy_character.c,
+                  enemy_character.d, 255, 0, 0);
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -772,6 +795,32 @@ void* threadFunc(void* thread_data)
     }
 }
 
+void* udp_socket(void* pointer)
+{
+    while (true) {
+        usleep(10000); // sleep for 0.01 sec
+
+        int len = sizeof(servaddr);
+
+        // int p = &len;
+            //отправляем пакет с рандомными пикселями
+            sendto(sockfd, pixels, 100, MSG_CONFIRM,
+                   (const struct sockaddr *) &servaddr,
+                   sizeof(servaddr));
+        //отпрявляем пакет с квадратиком
+        sendto(sockfd, pixels_box, 100, MSG_CONFIRM,
+               (const struct sockaddr *) &servaddr,
+               sizeof(servaddr));
+        // принимаем пакет с рандомными пикселями
+        recvfrom(sockfd, pixels, 100, MSG_WAITALL,
+                 (struct sockaddr *) &servaddr,
+                 &len);
+        // принимаем пакет с квадратиком-врагом
+        recvfrom(sockfd, pixels_enemy, 100, MSG_WAITALL,
+                 (struct sockaddr *) &servaddr,
+                 &len);
+    }
+}
 
 // void sigHandler( int signum )
 // {
@@ -779,6 +828,30 @@ void* threadFunc(void* thread_data)
 //     fflush(stdout);
 //     show_pixels();
 // }
+
+void udp_init() {
+
+    // Создаем сокет.
+    //Должны в случае успеха получить его дескриптор
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    fcntl(sockfd, F_SETFL, O_NONBLOCK);
+
+    // заполняем данные о сервере
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(8080);
+    servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    //создаем новый поток
+    void* pointer = NULL;
+
+    pthread_t udp_thread;
+
+    pthread_create(&udp_thread, NULL, udp_socket, pointer);
+}
 
 int main( int argc, char* args[] )
 {
@@ -799,6 +872,10 @@ int main( int argc, char* args[] )
         printf( "Failed to initialize surface!\n" );
     }
 
+    //создаем сокет
+    udp_init();
+
+
     // нетипизированный указатель = NULL
     void* thread_data = NULL;
 
@@ -811,14 +888,6 @@ int main( int argc, char* args[] )
     // данные
 
     pthread_create(&thread, NULL, threadFunc, thread_data);
-
-    //перевод потока в отсоединенное состояние (?)
-    //pthread_detach(thread);
-
-    // pthread_join(thread, NULL);
-    // PrintAllEvents();
-
-    // signal( SIGUSR2, sigHandler );
 
     // цикл, обрабатывающий события, пока не встретим событие "выход"
     while (256 != event.type) {
