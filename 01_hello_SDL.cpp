@@ -800,7 +800,7 @@ void* udp_socket(void* pointer)
     while (true) {
         usleep(10000); // sleep for 0.01 sec
 
-        int len = sizeof(servaddr);
+        socklen_t len = sizeof(servaddr);
 
         // int p = &len;
             //отправляем пакет с рандомными пикселями
@@ -814,11 +814,11 @@ void* udp_socket(void* pointer)
         // принимаем пакет с рандомными пикселями
         recvfrom(sockfd, pixels, 100, MSG_WAITALL,
                  (struct sockaddr *) &servaddr,
-                 &len);
+                 (socklen_t *)&len);
         // принимаем пакет с квадратиком-врагом
         recvfrom(sockfd, pixels_enemy, 100, MSG_WAITALL,
                  (struct sockaddr *) &servaddr,
-                 &len);
+                 (socklen_t *)&len);
     }
 }
 
