@@ -18,7 +18,7 @@ struct connection
     int connection;
     char buf[1024];
 
-} clients[1];
+} clients[2];
 
 
 void test (cnt)
