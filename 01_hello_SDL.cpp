@@ -73,7 +73,7 @@ struct box
     int d;
 };
 
-struct box pixels_box[99];
+struct box pixels_box[100];
 //структура для квадратика
 struct box main_character;
 
@@ -874,12 +874,14 @@ struct test_str
 };
 
 struct test_str TEST;
+
 void test() {
-    struct test_str test_box[99];
-    /*Путем простых арифметических действий становится понятно,
-      что цифры не сходятся */
+
+    struct test_str test_box[100];
+
     printf("size of pixels_box array is %d\n", sizeof(pixels_box));
     printf("size of box struct is %d\n", sizeof(main_character));
+
     /*вывод последней структуры массива до сериализации */
     main_character =  pixels_box[99];
 
@@ -887,27 +889,24 @@ void test() {
            main_character.c, main_character.d);
     fflush(stdout);
 
-    char buffer[792];
+    char buffer[800];
 
     memcpy(buffer, pixels_box, 792);
 
     int i = 0;
     int cont = 0;
 
-    /*цикл не удается построить так, чтоб не оказаться
-      за границей буфера, т.к. количество байт в массиве
-      не соответствует количеству структур*/
-
     while(i<=99) {
 
         TEST = test_box[i];
         TEST.c = buffer[cont];
-        // printf("Test.c = %d, cont is %d\n", TEST.c, cont);
+        printf("Test.c = %d, cont is %d\n", TEST.c, cont);
         cont = cont + 4;
         TEST.d = buffer[cont];
-        // printf("Test.d = %d, cont is %d\n", TEST.d, cont);
-        cont = cont + 4;
+        printf("Test.d = %d, cont is %d, i ia %d\n",
+               TEST.d, cont, i);
         test_box[i] = TEST;
+        cont = cont + 4;
         i++;
     }
 
@@ -916,9 +915,11 @@ void test() {
     /*проверка последней структуры после десериализации
       не сходится. */
     TEST =  test_box[99];
+
     printf("After deserialization X is %d; Y is %d\n",
            TEST.c, TEST.d);
 }
+
 int main( int argc, char* args[] )
 {
     srand(time(NULL));
