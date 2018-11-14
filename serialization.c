@@ -47,7 +47,7 @@ int main( int argc, char* args[] )
     for(int i=0; i<BOX_SIZE; i++) {
         test_box[i].c = counter++;
         test_box[i].d = counter++;
-        printf("initialization: %d : %d, %d\n", i, test_box[i].c, test_box[i].d);
+        printf("initialization: %d : %X, %X\n", i, test_box[i].c, test_box[i].d);
     }
 
     int memsize = sizeof(struct test_str)*BOX_SIZE;
