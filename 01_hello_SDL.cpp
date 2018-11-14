@@ -25,7 +25,7 @@ void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
 void show_box (int box_x, int box_y, int red, int green, int blue);
 void show_pixels();
-
+void test();
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -71,8 +71,9 @@ struct box
 {
     int c;
     int d;
-} pixels_box[100];
+};
 
+struct box pixels_box[99];
 //структура для квадратика
 struct box main_character;
 
@@ -81,7 +82,7 @@ struct enemy
 {
     int c;
     int d;
-} pixels_enemy[100];
+} pixels_enemy[99];
 
 //структура для квадратика
 struct enemy enemy_character;
@@ -472,19 +473,30 @@ void PixelArray () {
 void show_box(int box_x, int box_y, int red, int green, int blue)
 {
     // printf ("-------------------------begin\n");
-    //  printf("In show_box  X is %d; Y is %d\n", X, Y);
+    printf("In show_box  X is %d; Y is %d\n", X, Y);
     int cnt = 0;
-    for (int j = box_y; j<(Y + pix_y); j++) {
-        for (int i = box_x; i<(X + pix_x); i++) {
+    /*что-то происходит тут*/
+    for ( int j = box_y; j<(Y + pix_y); j++) {
+        for ( int i = box_x; i<(X + pix_x); i++) {
             main_character = pixels_box[cnt];
             main_character.c = i;
             main_character.d = j;
             pixels_box[cnt] = main_character;
             pixels_box[cnt++];
             DrawPixel(surface, i, j, red, green, blue);
+
         }
     }
-//    printf ("-------------------------end\n");
+
+    /*pixels_box[99] = 100 структур. Сnt считает от 0, значит
+     после выхода из цикла должно быть сnt = 99;
+    */
+
+    printf ("cnt is %d\n", cnt);
+    main_character = pixels_box[99];
+    printf("  X is %d; Y is %d\n",
+           main_character.c, main_character.d);
+    // fflush(stdout);
 }
 
 void show_pixels()
@@ -494,15 +506,15 @@ void show_pixels()
     SDL_LockSurface(surface);
     for (i; i <= 100; i++) {
         concrete_pixel = pixels[i];
-        enemy_character = pixels_enemy[i];
+        // enemy_character = pixels_enemy[i];
         if (concrete_pixel.alive == true) {
             DrawPixel(surface, concrete_pixel.c,
                       concrete_pixel.d, R, G, B);
         }
 
         //отрисовка "врага"
-        DrawPixel(surface, enemy_character.c,
-                  enemy_character.d, 255, 0, 0);
+        //DrawPixel(surface, enemy_character.c,
+        //        enemy_character.d, 255, 0, 0);
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -777,6 +789,9 @@ void Handle_Keydown(SDL_Keysym* keysym)
         R = 255;
         G = 255;
         B = 255;
+        break;
+    case SDLK_t:
+        test();
     default:
         printf("Can't find this key\n");
         break;
@@ -802,7 +817,6 @@ void* udp_socket(void* pointer)
 
         socklen_t len = sizeof(servaddr);
 
-        // int p = &len;
             //отправляем пакет с рандомными пикселями
             sendto(sockfd, pixels, 100, MSG_CONFIRM,
                    (const struct sockaddr *) &servaddr,
@@ -853,6 +867,58 @@ void udp_init() {
     pthread_create(&udp_thread, NULL, udp_socket, pointer);
 }
 
+struct test_str
+{
+    int c;
+    int d;
+};
+
+struct test_str TEST;
+void test() {
+    struct test_str test_box[99];
+    /*Путем простых арифметических действий становится понятно,
+      что цифры не сходятся */
+    printf("size of pixels_box array is %d\n", sizeof(pixels_box));
+    printf("size of box struct is %d\n", sizeof(main_character));
+    /*вывод последней структуры массива до сериализации */
+    main_character =  pixels_box[99];
+
+    printf("Before serialezation X is %d; Y is %d\n",
+           main_character.c, main_character.d);
+    fflush(stdout);
+
+    char buffer[792];
+
+    memcpy(buffer, pixels_box, 792);
+
+    int i = 0;
+    int cont = 0;
+
+    /*цикл не удается построить так, чтоб не оказаться
+      за границей буфера, т.к. количество байт в массиве
+      не соответствует количеству структур*/
+
+    while(i<=99) {
+
+        TEST = test_box[i];
+        TEST.c = buffer[cont];
+        // printf("Test.c = %d, cont is %d\n", TEST.c, cont);
+        cont = cont + 4;
+        TEST.d = buffer[cont];
+        // printf("Test.d = %d, cont is %d\n", TEST.d, cont);
+        cont = cont + 4;
+        test_box[i] = TEST;
+        i++;
+    }
+
+    printf("cont  %d\n", cont);
+
+    /*проверка последней структуры после десериализации
+      не сходится. */
+    TEST =  test_box[99];
+    printf("After deserialization X is %d; Y is %d\n",
+           TEST.c, TEST.d);
+}
 int main( int argc, char* args[] )
 {
     srand(time(NULL));
@@ -873,7 +939,7 @@ int main( int argc, char* args[] )
     }
 
     //создаем сокет
-    udp_init();
+    // udp_init();
 
 
     // нетипизированный указатель = NULL
