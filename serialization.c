@@ -25,15 +25,14 @@ struct test_str
 
 void serialization (struct test_str * input, void * output, int count)
 {
-    /* объявление нетипизированного указателя, я так понимаю,
-       что в pnt мы перезаписываем указатель на выделенную память
+    /*
        копируем указатель в pnt чтобы его инкрементить
     */
     void * pnt = output;
 
     /* до тех пор, пока i < BOX_SIZE, выполняем цикл */
 
-    for(int i=0; i<BOX_SIZE; i++) {
+    for(int i=0; i<count; i++) {
         /*содержимое поля структуры кладем в разыменованный, приведенный
           к типу int указатель*/
         /*Подозреваю, что здесь идет запись в выделенную память. Мы привели
@@ -42,9 +41,8 @@ void serialization (struct test_str * input, void * output, int count)
           И дальше скопировали в него значение поля структуры*/
 
         *(int *)pnt = input[i].c;
-        /* говорим, что pnt равен по размеру int(?)
-           зачем тогда +=?
-           посмотри что за операция += в си https://prog-cpp.ru/c-operation/
+        /* Я так понимаю, что таким образом мы двигаем указатель
+           на следующие пустые 4 байта
         */
         pnt += sizeof(int);
         /*аналогично*/
@@ -53,11 +51,27 @@ void serialization (struct test_str * input, void * output, int count)
     }
 }
 
-void deserialization ()
+/* Я попытаюсь взять содержимое в выделенной памяти и
+   перезаписать в структуру.
+   Функция принимает указатель на выделенную память и счетчик*/
+void deserialization (void * mp, int cnt)
 {
-    /* TODO please */
-}
+    /*копируем указатель*/
+    void *p = mp;
 
+    /*создаем массив для десериализованных данных*/
+    struct test_str deserial_array[BOX_SIZE];
+
+    for(int i=0; i<cnt; i++) {
+
+        deserial_array[i].c = *(int *)p;
+        printf("%2d: %2X\n", i, deserial_array[i].c);
+        p += sizeof(int);
+        deserial_array[i].d = *(int *)p;
+        printf("%2d: %2X\n", i, deserial_array[i].d);
+        p += sizeof(int);
+    }
+}
 
 int main( int argc, char* args[] )
 {
@@ -70,8 +84,8 @@ int main( int argc, char* args[] )
     printf("test_box placed in the stack, addr is %p\n", (void *)test_box);
 
     /* указатель в виде счетчика
-    нет, это просто значение, которое будет увеличиваться
-    на 1 каждую итерацию, т.е. счетчик (но не цикла)
+       нет, это просто значение, которое будет увеличиваться
+       на 1 каждую итерацию, т.е. счетчик (но не цикла)
     */
     int counter = 0xABCDEF01;
 
@@ -106,5 +120,6 @@ int main( int argc, char* args[] )
         printf("%2d: %p : %2hhX \n", i, (void *)(mempnt+i), *(char* )(void *)(mempnt+i));
     }
 
-    deserialization();
+    deserialization(mempnt, BOX_SIZE);
+
 }
