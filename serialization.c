@@ -89,7 +89,11 @@ int main( int argc, char* args[] )
     /*передаем функции массив структур, указатель на выделенную память и box_size */
     serialization(test_box, mempnt, BOX_SIZE);
 
+
+    /* после возврата из функции идем сюда*/
     for(int i=0; i<sizeof(test_box); i++) {
+        /*вывод указателя на каждый байт в mempnt
+          и содержимого этого байта (?)*/
         printf("%2d: %p : %2hhX \n", i, (void *)(mempnt+i), *(char* )(void *)(mempnt+i));
     }
 
