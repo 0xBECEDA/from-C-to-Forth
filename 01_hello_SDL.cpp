@@ -473,9 +473,9 @@ void PixelArray () {
 void show_box(int box_x, int box_y, int red, int green, int blue)
 {
     // printf ("-------------------------begin\n");
-    printf("In show_box  X is %d; Y is %d\n", X, Y);
+    //printf("In show_box  X is %d; Y is %d\n", X, Y);
     int cnt = 0;
-    /*что-то происходит тут*/
+
     for ( int j = box_y; j<(Y + pix_y); j++) {
         for ( int i = box_x; i<(X + pix_x); i++) {
             main_character = pixels_box[cnt];
@@ -488,15 +488,6 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
         }
     }
 
-    /*pixels_box[99] = 100 структур. Сnt считает от 0, значит
-     после выхода из цикла должно быть сnt = 99;
-    */
-
-    printf ("cnt is %d\n", cnt);
-    main_character = pixels_box[99];
-    printf("  X is %d; Y is %d\n",
-           main_character.c, main_character.d);
-    // fflush(stdout);
 }
 
 void show_pixels()
@@ -876,11 +867,9 @@ struct test_str
 struct test_str TEST;
 
 void test() {
+    int BOX_SIZE = 100;
+    struct test_str test_box[BOX_SIZE];
 
-    struct test_str test_box[100];
-
-    printf("size of pixels_box array is %d\n", sizeof(pixels_box));
-    printf("size of box struct is %d\n", sizeof(main_character));
 
     /*вывод последней структуры массива до сериализации */
     main_character =  pixels_box[99];
@@ -890,30 +879,27 @@ void test() {
     fflush(stdout);
 
     char buffer[800];
-
-    memcpy(buffer, pixels_box, 792);
+    memcpy(buffer, pixels_box, 800);
 
     int i = 0;
     int cont = 0;
 
     while(i<=99) {
 
-        TEST = test_box[i];
-        TEST.c = buffer[cont];
-        printf("Test.c = %d, cont is %d\n", TEST.c, cont);
-        cont = cont + 4;
-        TEST.d = buffer[cont];
-        printf("Test.d = %d, cont is %d, i ia %d\n",
-               TEST.d, cont, i);
-        test_box[i] = TEST;
-        cont = cont + 4;
+        test_box[i].c = buffer[cont];
+        //printf("Test.c = %d, cont is %d\n", test_box[i].c, cont);
+        cont += sizeof(int);
+        test_box[i].d = buffer[cont];
+        //printf("Test.d = %d, cont is %d, i ia %d\n",
+        //       test_box[i].d, cont, i);
+        cont += sizeof(int);
         i++;
     }
 
     printf("cont  %d\n", cont);
 
     /*проверка последней структуры после десериализации
-      не сходится. */
+     */
     TEST =  test_box[99];
 
     printf("After deserialization X is %d; Y is %d\n",

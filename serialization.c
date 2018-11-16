@@ -53,23 +53,27 @@ void serialization (struct test_str * input, void * output, int count)
 
 /* Я попытаюсь взять содержимое в выделенной памяти и
    перезаписать в структуру.
-   Функция принимает указатель на выделенную память и счетчик*/
+   Функция принимает указатель на сериализованные данные и счетчик*/
 void deserialization (void * mp, int cnt)
 {
     /*копируем указатель*/
     void *p = mp;
 
-    /*создаем массив для десериализованных данных*/
-    struct test_str deserial_array[BOX_SIZE];
+    /*выделем память для десериализованных данных*/
+    int memsize = sizeof(struct test_str)*BOX_SIZE;
+    void * newpnt = malloc(memsize);
+
 
     for(int i=0; i<cnt; i++) {
 
-        deserial_array[i].c = *(int *)p;
-        printf("%2d: %2X\n", i, deserial_array[i].c);
+        *(int *)newpnt = *(int *)p;
+        printf("%2d: %2X\n", i, *(int *)newpnt);
         p += sizeof(int);
-        deserial_array[i].d = *(int *)p;
-        printf("%2d: %2X\n", i, deserial_array[i].d);
+        newpnt += sizeof(int);
+        *(int *)newpnt = *(int *)p;
+        printf("%2d: %2X\n", i, *(int *)newpnt);
         p += sizeof(int);
+        newpnt += sizeof(int);
     }
 }
 
