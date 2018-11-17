@@ -23,13 +23,14 @@ struct test_str
   указатель на вывод, счетчик */
 
 
-void serialization (struct test_str * input, void * output, int count)
+void  * serialization (struct test_str * input, void * output, int count)
 {
     /*
        копируем указатель в pnt чтобы его инкрементить
     */
     void * pnt = output;
 
+    struct test_str * serial_ret = (struct test_str *)pnt;
     /* до тех пор, пока i < BOX_SIZE, выполняем цикл */
 
     for(int i=0; i<count; i++) {
@@ -49,6 +50,7 @@ void serialization (struct test_str * input, void * output, int count)
         *(int *)pnt = input[i].d;
         pnt += sizeof(int);
     }
+    return serial_ret;
 }
 
 /* Я попытаюсь взять содержимое в выделенной памяти и
@@ -56,29 +58,28 @@ void serialization (struct test_str * input, void * output, int count)
    Функция принимает указатель на сериализованные данные и счетчик
    и возвращает указатель на десериализованную структуру
 */
-struct test_str * deserialization (void * mp, int cnt)
+void * deserialization (void * serial_buf, void * deserial_buf, int cnt)
 {
     /*копируем указатель*/
-    void *p = mp;
+    void *p = serial_buf;
 
-    /*выделем память для десериализованных данных*/
-    int memsize = sizeof(struct test_str)*BOX_SIZE;
-    void * newpnt = malloc(memsize);
+
+    void * pnt = deserial_buf;
     /* пока newpnt не изменился формируем возвращаемый указатель*/
-    struct test_str * ret = (struct test_str *)newpnt;
+    struct test_str * ret = (struct test_str *)deserial_buf;
 
     for(int i=0; i<cnt; i++) {
-        *(int *)newpnt = *(int *)p;
-        printf("%2d: %2X\n", i, *(int *)newpnt);
+        *(int *)deserial_buf = *(int *)p;
+        printf("%2d: %2X\n", i, *(int *)deserial_buf);
         p += sizeof(int);
-        newpnt += sizeof(int);
-        *(int *)newpnt = *(int *)p;
-        printf("%2d: %2X\n", i, *(int *)newpnt);
+        deserial_buf += sizeof(int);
+        *(int *)deserial_buf = *(int *)p;
+        printf("%2d: %2X\n", i, *(int *)deserial_buf);
         p += sizeof(int);
-        newpnt += sizeof(int);
+        deserial_buf += sizeof(int);
     }
 
-    return newpnt;
+    return ret;
 }
 
 int main( int argc, char* args[] )
@@ -116,7 +117,7 @@ int main( int argc, char* args[] )
     printf("allocate %d bytes on addr %p\n", memsize, mempnt);
 
     /*передаем функции массив структур, указатель на выделенную память и box_size */
-    serialization(test_box, mempnt, BOX_SIZE);
+    mempnt = serialization(test_box, mempnt, BOX_SIZE);
 
 
     /* после возврата из функции идем сюда*/
@@ -128,6 +129,10 @@ int main( int argc, char* args[] )
         printf("%2d: %p : %2hhX \n", i, (void *)(mempnt+i), *(char* )(void *)(mempnt+i));
     }
 
-    deserialization(mempnt, BOX_SIZE);
+    /*выделем память для десериализованных данных*/
+    int mem = sizeof(struct test_str)*BOX_SIZE;
+    void * newpnt = malloc(mem);
+
+    deserialization(mempnt, newpnt, BOX_SIZE);
 
 }
