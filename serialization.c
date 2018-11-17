@@ -53,8 +53,10 @@ void serialization (struct test_str * input, void * output, int count)
 
 /* Я попытаюсь взять содержимое в выделенной памяти и
    перезаписать в структуру.
-   Функция принимает указатель на сериализованные данные и счетчик*/
-void deserialization (void * mp, int cnt)
+   Функция принимает указатель на сериализованные данные и счетчик
+   и возвращает указатель на десериализованную структуру
+*/
+struct test_str * deserialization (void * mp, int cnt)
 {
     /*копируем указатель*/
     void *p = mp;
@@ -62,10 +64,10 @@ void deserialization (void * mp, int cnt)
     /*выделем память для десериализованных данных*/
     int memsize = sizeof(struct test_str)*BOX_SIZE;
     void * newpnt = malloc(memsize);
-
+    /* пока newpnt не изменился формируем возвращаемый указатель*/
+    struct test_str * ret = (struct test_str *)newpnt;
 
     for(int i=0; i<cnt; i++) {
-
         *(int *)newpnt = *(int *)p;
         printf("%2d: %2X\n", i, *(int *)newpnt);
         p += sizeof(int);
@@ -75,6 +77,8 @@ void deserialization (void * mp, int cnt)
         p += sizeof(int);
         newpnt += sizeof(int);
     }
+
+    return newpnt;
 }
 
 int main( int argc, char* args[] )
