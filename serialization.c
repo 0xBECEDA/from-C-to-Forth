@@ -74,11 +74,11 @@ void * deserialization (void * serial_buf, int cnt)
 
     for(int i=0; i<cnt; i++) {
         *(int *)deserial_buf = *(int *)p;
-        printf("%2d: %2X\n", i, *(int *)deserial_buf);
+        //   printf("%2d: %2X\n", i, *(int *)deserial_buf);
         p += sizeof(int);
         deserial_buf += sizeof(int);
         *(int *)deserial_buf = *(int *)p;
-        printf("%2d: %2X\n", i, *(int *)deserial_buf);
+        // printf("%2d: %2X\n", i, *(int *)deserial_buf);
         p += sizeof(int);
         deserial_buf += sizeof(int);
     }
@@ -127,6 +127,10 @@ int main( int argc, char* args[] )
     }
 
 
-    deserialization(mempnt, BOX_SIZE);
+   void * deserial =  deserialization(mempnt, BOX_SIZE);
 
+   for(int i=0; i<6; i++) {
+       printf(" After all %2d: %p : %2X \n", i, (deserial+(4*i)),
+              *(int* )(deserial+(4*i)));
+   }
 }
