@@ -23,14 +23,16 @@ struct test_str
   указатель на вывод, счетчик */
 
 
-void  * serialization (struct test_str * input, void * output, int count)
+void  * serialization (struct test_str * input, int count)
 {
-    /*
-       копируем указатель в pnt чтобы его инкрементить
-    */
-    void * pnt = output;
+    /* умножаем количество байт в структуре на box_size и кладем результат в memsize*/
+    int memsize = sizeof(struct test_str)*BOX_SIZE;
 
-    struct test_str * serial_ret = (struct test_str *)pnt;
+    /*выделяем память на размер memsize и возвращаем нетипизированный указатель на него */
+    void * pnt = malloc(memsize);
+    void * serial_ret = pnt;
+    printf("allocate %d bytes on addr %p\n", memsize, pnt);
+
     /* до тех пор, пока i < BOX_SIZE, выполняем цикл */
 
     for(int i=0; i<count; i++) {
@@ -58,13 +60,15 @@ void  * serialization (struct test_str * input, void * output, int count)
    Функция принимает указатель на сериализованные данные и счетчик
    и возвращает указатель на десериализованную структуру
 */
-void * deserialization (void * serial_buf, void * deserial_buf, int cnt)
+void * deserialization (void * serial_buf, int cnt)
 {
     /*копируем указатель*/
     void *p = serial_buf;
 
+    /*выделем память для десериализованных данных*/
+    int mem = sizeof(struct test_str)*BOX_SIZE;
+    void * deserial_buf = malloc(mem);
 
-    void * pnt = deserial_buf;
     /* пока newpnt не изменился формируем возвращаемый указатель*/
     struct test_str * ret = (struct test_str *)deserial_buf;
 
@@ -109,15 +113,8 @@ int main( int argc, char* args[] )
         printf("initialization: %d : %X, %X\n", i, test_box[i].c, test_box[i].d);
     }
 
-    /* умножаем количество байт в структуре на box_size и кладем результат в memsize*/
-    int memsize = sizeof(struct test_str)*BOX_SIZE;
-
-    /*выделяем память на размер memsize и возвращаем нетипизированный указатель на него */
-    void * mempnt = malloc(memsize);
-    printf("allocate %d bytes on addr %p\n", memsize, mempnt);
-
     /*передаем функции массив структур, указатель на выделенную память и box_size */
-    mempnt = serialization(test_box, mempnt, BOX_SIZE);
+    void *mempnt = serialization(test_box, BOX_SIZE);
 
 
     /* после возврата из функции идем сюда*/
@@ -129,10 +126,7 @@ int main( int argc, char* args[] )
         printf("%2d: %p : %2hhX \n", i, (void *)(mempnt+i), *(char* )(void *)(mempnt+i));
     }
 
-    /*выделем память для десериализованных данных*/
-    int mem = sizeof(struct test_str)*BOX_SIZE;
-    void * newpnt = malloc(mem);
 
-    deserialization(mempnt, newpnt, BOX_SIZE);
+    deserialization(mempnt, BOX_SIZE);
 
 }
