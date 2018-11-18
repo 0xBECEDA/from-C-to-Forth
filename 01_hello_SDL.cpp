@@ -827,12 +827,6 @@ void* udp_socket(void* pointer)
     }
 }
 
-// void sigHandler( int signum )
-// {
-//     printf(":: caught signal %d\n", signum );
-//     fflush(stdout);
-//     show_pixels();
-// }
 
 void udp_init() {
 
@@ -865,38 +859,41 @@ struct test_str
 };
 
 struct test_str TEST;
+struct test_str test_box[100];
 
+void * serialization() {
+    void * buffer = malloc(800);
+    memcpy(buffer, pixels_box, 800);
+    return buffer;
+}
+
+void deserialization (void * input) {
+
+    void * buffer = input;
+    int i = 0;
+    while ( i <= 99) {
+
+        test_box[i].c = *(int *)buffer;
+        //printf("Test.c = %d, cont is %d\n", test_box[i].c, cont);
+        buffer += sizeof(int);
+        test_box[i].d = *(int *)buffer;
+        //printf("Test.d = %d, cont is %d, i ia %d\n",
+        //       test_box[i].d, cont, i);
+        buffer += sizeof(int);
+        i++;
+    }
+}
 void test() {
-    int BOX_SIZE = 100;
-    struct test_str test_box[BOX_SIZE];
 
-
-    /*вывод последней структуры массива до сериализации */
+    /*вывод последней структуры массива до сериализации*/
     main_character =  pixels_box[99];
 
-    printf("Before serialezation X is %d; Y is %d\n",
+    printf("Before serialization X is %d; Y is %d\n",
            main_character.c, main_character.d);
     fflush(stdout);
 
-    char buffer[800];
-    memcpy(buffer, pixels_box, 800);
-
-    int i = 0;
-    int cont = 0;
-
-    while(i<=99) {
-
-        test_box[i].c = buffer[cont];
-        //printf("Test.c = %d, cont is %d\n", test_box[i].c, cont);
-        cont += sizeof(int);
-        test_box[i].d = buffer[cont];
-        //printf("Test.d = %d, cont is %d, i ia %d\n",
-        //       test_box[i].d, cont, i);
-        cont += sizeof(int);
-        i++;
-    }
-
-    printf("cont  %d\n", cont);
+    void * buf = serialization();
+    deserialization(buf);
 
     /*проверка последней структуры после десериализации
      */
@@ -904,6 +901,7 @@ void test() {
 
     printf("After deserialization X is %d; Y is %d\n",
            TEST.c, TEST.d);
+    fflush(stdout);
 }
 
 int main( int argc, char* args[] )
