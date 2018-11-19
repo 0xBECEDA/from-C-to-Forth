@@ -1,17 +1,26 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <unistd.h>
+
+#define SIZE 10
 
 int main(int argc, char *argv[])
 {
-    int a, b, charInput, tmp;
-re:
-    printf("a=");
+    int a, b, cnt, charInput, tmp;
+
     scanf("%d", &a);
-    printf("b=");
+    printf("abc\n");
+    fflush(stdout);
+    return 0;
+
+re:
+    printf("a=\n");
+    scanf("%d", &a);
+    printf("b=\n");
     scanf("%d", &b);
     printf("%d\n", a+b);
 
-    printf("Exit (y/n)? ");
+    printf("Exit (y/n)? \n");
 
     do {
         charInput = getchar();
