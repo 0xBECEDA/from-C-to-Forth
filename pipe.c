@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#define SIZE 4
+#define SIZE 1024
 
 void toPipe (int inPipe[], char outstr[])
 {
@@ -20,16 +20,25 @@ void toPipe (int inPipe[], char outstr[])
     }
 }
 
-void fromPipe(int outPipe[])
+void fromPipe(int outPipe[], int len, char retval[])
 {
-    char buf[SIZE] = "";
-    int cnt = read(outPipe[0], buf, SIZE); /* read from pipe in */
+    char buf[SIZE];
+    memset(buf, 0, SIZE);
+    int cnt = read(outPipe[0], buf, len);
     if (-1 == cnt) {
         perror("read from pipe");
         exit(-1);
     }
-    printf(":: %d [child out]\n%s", cnt, buf);
+    printf(":: %d [child out]\n%s\n", cnt, buf);
     fflush(stdout);
+    if (NULL != retval) {
+        if (SIZE <= len) {
+            printf("out of buf");
+            fflush(stdout);
+            exit(-1);
+        }
+        strncpy(retval, buf, len);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -38,8 +47,21 @@ int main(int argc, char *argv[])
     int in, out, cnt;
 
     int inPipe[2], outPipe[2];
-    pipe(inPipe);
-    pipe(outPipe);
+    /* The first integer in the array (element 0)
+       is set up and opened for reading,
+       while the second integer (element 1) is
+       set up and opened for writing.
+    */
+    if (pipe(inPipe)==-1)
+    {
+        perror("Pipe Failed");
+        return -1;
+    }
+    if (pipe(outPipe)==-1)
+    {
+        perror("Pipe Failed");
+        return -1;
+    }
 
     switch(fork()) {
     case -1:       /* error */
@@ -64,9 +86,21 @@ int main(int argc, char *argv[])
     printf(":: pid = %d\n", pid);
     fflush(stdout);
 
-    toPipe(inPipe, "2\n");
+    char result[SIZE];
 
-    fromPipe(outPipe);
+    fromPipe(outPipe, 30, NULL);
+    toPipe(inPipe, "5\n");
+    fromPipe(outPipe, 30, NULL);
+    toPipe(inPipe, "7\n");
+    fromPipe(outPipe, 30, result);
+    toPipe(inPipe, "y\n");
+
+    int pos = strcspn(result, "\n");
+    *(result+pos) = 0;
+    fromPipe(outPipe, 30, NULL);
+
+    printf("Result is [%s]\n", result);
+    fflush(stdout);
 
     return 0;
 }

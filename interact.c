@@ -8,19 +8,14 @@ int main(int argc, char *argv[])
 {
     int a, b, cnt, charInput, tmp;
 
-    scanf("%d", &a);
-    printf("abc\n");
-    fflush(stdout);
-    return 0;
-
 re:
-    printf("a=\n");
+    printf("a=\n"); fflush(stdout);
     scanf("%d", &a);
-    printf("b=\n");
+    printf("b=\n"); fflush(stdout);
     scanf("%d", &b);
-    printf("%d\n", a+b);
+    printf("%d\n", a+b); fflush(stdout);
 
-    printf("Exit (y/n)? \n");
+    printf("Exit (y/n)? \n"); fflush(stdout);
 
     do {
         charInput = getchar();
@@ -39,6 +34,6 @@ re:
         goto re;
     }
 
-    printf("bye!\n");
+    printf("bye!\n"); fflush(stdout);
     return 0;
 }
