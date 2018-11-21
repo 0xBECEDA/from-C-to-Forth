@@ -45,33 +45,41 @@ int main(int argc, char *argv[])
 {
     int pid;
     int in, out, cnt;
-
+    /*инициализация двух массивов*/
     int inPipe[2], outPipe[2];
     /* The first integer in the array (element 0)
        is set up and opened for reading,
        while the second integer (element 1) is
        set up and opened for writing.
     */
+    /*если канал с данными создать не удалось,
+      то отправляем сообщение об ошибке*/
     if (pipe(inPipe)==-1)
     {
         perror("Pipe Failed");
         return -1;
     }
+    /*аналогично*/
     if (pipe(outPipe)==-1)
     {
         perror("Pipe Failed");
         return -1;
     }
-
+    /*создание нового процесса*/
     switch(fork()) {
+    /*если -1, то возвращаем ошибку*/
     case -1:       /* error */
         perror("fork");
         return -1;
+
     case 0:        /* child process */
         /* close stdin & stdout */
+        /*закрытие процессов по дескриптору(?)
+          откуда взялись дескрипторы?*/
         close(0);
         close(1);
         /* child stdin! ->  pipe in  */
+        /*создаем дубликат файлового дескриптора*/
         dup2(inPipe[0], 0);
         close(inPipe[1]);
         /* child stdout ->  pipe out */
