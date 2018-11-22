@@ -8,6 +8,7 @@
 
 #define SIZE 1024
 
+
 void toPipe (int inPipe[], char outstr[])
 {
     /*len равна длине строки из массива outstr*/
@@ -31,14 +32,15 @@ void fromPipe(int outPipe[], int len, char retval[])
     char buf[SIZE];
     /*заполняем массив нулями*/
     memset(buf, 0, SIZE);
-    /*читаем в buf количество байт, равное len из канала,
-      который находится в outPipe[0]*/
+    /*записываем в buf кол-во байт равное len из
+      конца канала на чтение*/
     int cnt = read(outPipe[0], buf, len);
     /*если количество байт -1, возвращаем ошибку*/
     if (-1 == cnt) {
         perror("read from pipe");
         exit(-1);
     }
+
     /*выводим количество прочитанныз байт из буфера (?)*/
     printf(":: %d [child out]\n%s\n", cnt, buf);
     fflush(stdout);
@@ -60,7 +62,8 @@ int main(int argc, char *argv[])
 {
     int pid;
     int in, out, cnt;
-    /*инициализация двух массивов*/
+    /*инициализация двух массивов,
+      куда мы будем записывать дескрипторы */
     int inPipe[2], outPipe[2];
     /* The first integer in the array (element 0)
        is set up and opened for reading,
@@ -68,7 +71,8 @@ int main(int argc, char *argv[])
        set up and opened for writing.
     */
     /*если канал с данными создать не удалось,
-      то отправляем сообщение об ошибке*/
+      то отправляем сообщение об ошибке, в противном
+      случае в массив будут записаны дескрипторы концов канала*/
     if (pipe(inPipe)==-1)
     {
         perror("Pipe Failed");
@@ -80,28 +84,26 @@ int main(int argc, char *argv[])
         perror("Pipe Failed");
         return -1;
     }
-    /*создание нового процесса*/
-    switch(fork()) {
+    /*создание дочернего процесса*/
+    switch(pid = fork()) {
     /*если -1, то возвращаем ошибку*/
     case -1:       /* error */
         perror("fork");
         return -1;
 
-    case 0:        /* child process */
-        /* close stdin & stdout */
-        /*закрытие процессов по дескриптору(?)
-          откуда взялись дескрипторы?*/
+    case 0: /*дочерний процесс создан*/
+        /*отвязываем stdin и stdout от их дескрипторов*/
         close(0);
         close(1);
         /* child stdin! ->  pipe in  */
-        /*создаем дубликат файлового дескриптора*/
+        /*привязываем конец канала на чтение к stdin*/
         dup2(inPipe[0], 0);
-        /*закрываем увнвл с данными*/
+        /*отвязываем конец канала на запись от его дескриптора*/
         close(inPipe[1]);
         /* child stdout ->  pipe out */
-        /*аналогично*/
+        /*отвязываем конец канала на чтение от его дескриптора*/
         close(outPipe[0]);
-        /*дублируем дескриптор*/
+        /*привязываем конец канала на запись к stdout*/
         dup2(outPipe[1], 1);
         /* run program */
         /* запускаем новую программу вместо программы,
