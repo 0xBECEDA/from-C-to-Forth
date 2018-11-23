@@ -17,7 +17,7 @@ void toPipe (int inPipe[], char outstr[])
     printf(":: strlen(outstr) = %d\n", len);
     fflush(stdout);
     /*записываем количество байтов len из outstr в inPipe[1],
-      то есть фактически записываем из outstr из stdout*/
+      то есть фактически пишем из outstr в InPipe */
     int cnt = write(inPipe[1], outstr, len);
     /*если количество байт -1, возвращаем сообщение об ошибке*/
     if (-1 == cnt) {
@@ -33,23 +33,23 @@ void fromPipe(int outPipe[], int len, char retval[])
     char buf[SIZE];
     /*заполняем массив нулями*/
     memset(buf, 0, SIZE);
-    /*записываем в buf кол-во байт равное len из
-      родительского конца канала на чтение
-      читаем из stdin*/
+    /*читаем в buf кол-во байт равное len из outPipe */
     int cnt = read(outPipe[0], buf, len);
     /*если количество байт -1, возвращаем ошибку*/
     if (-1 == cnt) {
         perror("read from pipe");
         exit(-1);
     }
-
     /*выводим количество прочитанныз байт из буфера (?)*/
     printf(":: %d [child out]\n%s\n", cnt, buf);
     fflush(stdout);
-    /*если retval не равно нулю и при этом длина больше 1024 байт,
-      то печатаем сообщение об ошибке*/
+    /*если retval равно нулю - ничего не делаем */
     if (NULL != retval) {
+        /* иначе */
         if (SIZE <= len) {
+            /* если этом длина больше 1024 байт,
+               то печатаем сообщение об ошибке,
+               чтобы избежать переполнения */
             printf("out of buf");
             fflush(stdout);
             exit(-1);
