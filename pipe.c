@@ -16,7 +16,8 @@ void toPipe (int inPipe[], char outstr[])
     /*выводим длину*/
     printf(":: strlen(outstr) = %d\n", len);
     fflush(stdout);
-    /*записываем количество байтов len из outstr в inPipe[1] */
+    /*записываем количество байтов len из outstr в inPipe[1],
+      то есть фактически записываем из outstr из stdout*/
     int cnt = write(inPipe[1], outstr, len);
     /*если количество байт -1, возвращаем сообщение об ошибке*/
     if (-1 == cnt) {
@@ -33,7 +34,8 @@ void fromPipe(int outPipe[], int len, char retval[])
     /*заполняем массив нулями*/
     memset(buf, 0, SIZE);
     /*записываем в buf кол-во байт равное len из
-      конца канала на чтение*/
+      родительского конца канала на чтение
+      читаем из stdin*/
     int cnt = read(outPipe[0], buf, len);
     /*если количество байт -1, возвращаем ошибку*/
     if (-1 == cnt) {
@@ -119,15 +121,17 @@ int main(int argc, char *argv[])
     fflush(stdout);
     /*объявляем массив на 1024 байата*/
     char result[SIZE];
-
+    /*прочитать 30 байт из stdin*/
     fromPipe(outPipe, 30, NULL);
+    /*записать "5\n" в stdout*/
     toPipe(inPipe, "5\n");
+    /*прочитать 30 байт из stdin*/
     fromPipe(outPipe, 30, NULL);
     toPipe(inPipe, "7\n");
+    /*прочитать 30 байт из stdin в result*/
     fromPipe(outPipe, 30, result);
     toPipe(inPipe, "y\n");
-    /*не понимаю, что это.
-      Нагуглила, что strcspn ищет первое вхождение в строку. */
+    /*Нагуглила, что strcspn ищет первое вхождение в строку. */
     int pos = strcspn(result, "\n");
     /*что это?*/
     *(result+pos) = 0;
