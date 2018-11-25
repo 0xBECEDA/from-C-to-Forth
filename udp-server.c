@@ -76,47 +76,47 @@ void  main() {
     /*инициализируем промежуточный буфер*/
     char buffer[2000];
     while (1) {
-    n = recvfrom(sockfd, buffer, MAXLINE,
-                 MSG_WAITALL, ( struct sockaddr *) &cliaddr,
-                 &len);
-    /*вытаскиваем идентификатор*/
-    int ident_client = buffer;
-    printf("ident_client is %d\n", ident_client);
-    int i = 0;
-    for(int i = 0; i<=1; i++) {
+        n = recvfrom(sockfd, buffer, MAXLINE,
+                     MSG_WAITALL, ( struct sockaddr *) &cliaddr,
+                     &len);
+        /*вытаскиваем идентификатор*/
+        int ident_client = buffer;
+        printf("ident_client is %d\n", ident_client);
+        int i = 0;
+        for(int i = 0; i<=1; i++) {
 
-        if (clients[i].ident != ident_client
-            && clients[i].ident == 0) {
+            if (clients[i].ident != ident_client
+                && clients[i].ident == 0) {
 
-            void* pointer = NULL;
+                void* pointer = NULL;
 
-            pthread_t udp_thread;
-            /*Не забудь написать функцию потока!*/
-            pthread_create(&udp_thread, NULL, udp_socket, pointer);
-            /*кладем идентификатор потока в структуру*/
-            clients[i].thread = udp_thread;
-            /*копируем данные клиента в структуру*/
-            dub_array[cnt] = cliaddr;
-            clients[i].p = pnt;
-            printf("pnt is %X\n", clients[i].p);
-            printf("thread ident is %X\n",  clients[i].thread);
-            pnt += sizeof(cliaddr);
-            cnt++;
-            break;
+                pthread_t udp_thread;
+                /*Не забудь написать функцию потока!*/
+                pthread_create(&udp_thread, NULL, udp_socket, pointer);
+                /*кладем идентификатор потока в структуру*/
+                clients[i].thread = udp_thread;
+                /*копируем данные клиента в структуру*/
+                dub_array[cnt] = cliaddr;
+                clients[i].p = pnt;
+                printf("pnt is %X\n", clients[i].p);
+                printf("thread ident is %X\n",  clients[i].thread);
+                pnt += sizeof(cliaddr);
+                cnt++;
+                break;
+            }
+
         }
 
-    }
+        //отправляем пакет
 
-    //отправляем пакет
-
-    // парамеры: дескриптор сокета, с кторого отправляем, указатель на
-    // буфер с данными, длинну данных, флаги, указатель на структуру,
-    // содержащую данные клиента, размер структуры
-      /*
-    sendto(sockfd, (const char *)hello, strlen(hello),
-         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
-         len);
-    printf("Hello message sent.\n");
-      */
+        // парамеры: дескриптор сокета, с кторого отправляем, указатель на
+        // буфер с данными, длинну данных, флаги, указатель на структуру,
+        // содержащую данные клиента, размер структуры
+        /*
+          sendto(sockfd, (const char *)hello, strlen(hello),
+          MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
+          len);
+          printf("Hello message sent.\n");
+        */
     }
 }
