@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <time.h>
 
 #define PORT     8080
 #define MAXLINE 1024
@@ -15,7 +16,7 @@
 int main() {
     int sockfd;
     char buffer[MAXLINE];
-    char *hello = "Hello from client";
+    char hello[20] = "Hello from client";
     struct sockaddr_in  servaddr;
 
     // Создаем сокет. Должны в случае успеха получить его дескриптор
@@ -34,12 +35,21 @@ int main() {
 
     int n, len;
     len = sizeof(servaddr);
+    /*получаем идентификатор*/
+    int ident = rand() % 500;
+    printf("ident is %d\n", ident);
+    int *p = &ident;
+    char buf[100];
+
+    /*сериализуем данные*/
+    memcpy(buf, p, 4);
+    memcpy(buf, hello, 20);
    //отправляем пакет
 
    // парамеры: дескриптор сокета, с кторого отправляем, указатель на
    // буфер с данными, длинну данных, флаги, указатель на структуру,
    // содержащую данные сервера, размер структуры
-    sendto(sockfd, (const char *)hello, strlen(hello),
+    sendto(sockfd, buf,  sizeof(buf),
            MSG_CONFIRM, (const struct sockaddr *) &servaddr,
            sizeof(servaddr));
     printf("Hello message sent.\n");

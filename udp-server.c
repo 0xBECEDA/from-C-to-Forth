@@ -21,12 +21,12 @@ struct connection
     int thread;
     int ident;
     char buf[2000];
-    struct clidubble *p;
+    struct sockaddr_in *p;
 } clients[2];
 
 void* udp_socket(void* pointer)
 {
-
+    printf("Thread is going\n");
 }
 
 // Driver code
@@ -36,19 +36,16 @@ void  main() {
     /*проблема в следующих двух строчках кода*/
     struct sockaddr_in servaddr, cliaddr, clidubble;
     /*создаем массив структур*/
-    struct clidubble dub_array[2];
+    struct sockaddr_in dub_array[2];
     // Создаем сокет. Должны в случае успеха получить его дескриптор
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    /*тут заполняем блок памяти данными сервера
-    memset(&servaddr, 0, sizeof(servaddr));
+    /*тут заполняем блок памяти данными сервера*/
+    memset(dub_array, 0, sizeof(dub_array));
 
-    тут заполняем блок памяти данными клиента
-    memset(&cliaddr, 0, sizeof(cliaddr));
-    */
 
     // заполняем данные о сервере
     servaddr.sin_family = AF_INET; // IPv4
@@ -63,16 +60,11 @@ void  main() {
         exit(EXIT_FAILURE);
     }
 
-    /*
-    void* pointer = NULL;
-
-    pthread_t udp_thread;
-
-    pthread_create(&udp_thread, NULL, udp_socket, pointer);
-    */
     int len, n;
 
     len = sizeof(cliaddr);
+    /*передаем указатель на структуру с данными клиента*/
+    struct sockaddr_in *pnt = dub_array;
     //получаем пакет от клиента
 
     // в случае получения должны вернется кол-во принятых байт
@@ -83,30 +75,37 @@ void  main() {
 
     /*инициализируем промежуточный буфер*/
     char buffer[2000];
-      n = recvfrom(sockfd, buffer, MAXLINE,
+    while (1) {
+    n = recvfrom(sockfd, buffer, MAXLINE,
                  MSG_WAITALL, ( struct sockaddr *) &cliaddr,
                  &len);
-      /*вытаскиваем идентификатор*/
-      char ident_client = buffer;
-      for (int i = 0; i<=1; i++) {
-          if (clients[i].ident != ident_client) {
+    /*вытаскиваем идентификатор*/
+    int ident_client = buffer;
+    printf("ident_client is %d\n", ident_client);
+    int i = 0;
+    for(int i = 0; i<=1; i++) {
 
-              void* pointer = NULL;
+        if (clients[i].ident != ident_client
+            && clients[i].ident == 0) {
 
-              pthread_t udp_thread;
-              /*Не забудь написать функцию потока!*/
-              pthread_create(&udp_thread, NULL, udp_socket, pointer);
-              /*кладем идентификатор потока в структуру*/
-              clients[i].thread = udp_thread;
-              /*копируем данные клиента в структуру*/
-              dub_array[cnt] = cliaddr;
-              /*передаем указатель на структуру с данными клиента*/
-              clients[i].p = dub_array[cnt];
+            void* pointer = NULL;
 
-              cnt++;
-          }
+            pthread_t udp_thread;
+            /*Не забудь написать функцию потока!*/
+            pthread_create(&udp_thread, NULL, udp_socket, pointer);
+            /*кладем идентификатор потока в структуру*/
+            clients[i].thread = udp_thread;
+            /*копируем данные клиента в структуру*/
+            dub_array[cnt] = cliaddr;
+            clients[i].p = pnt;
+            printf("pnt is %X\n", clients[i].p);
+            printf("thread ident is %X\n",  clients[i].thread);
+            pnt += sizeof(cliaddr);
+            cnt++;
+            break;
+        }
 
-      }
+    }
 
     //отправляем пакет
 
@@ -119,4 +118,5 @@ void  main() {
          len);
     printf("Hello message sent.\n");
       */
+    }
 }
