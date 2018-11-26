@@ -65,6 +65,10 @@ void  main() {
     len = sizeof(cliaddr);
     /*передаем указатель на структуру с данными клиента*/
     struct sockaddr_in *pnt = dub_array;
+    /*инициализируем промежуточный буфер*/
+    char buffer[2000];
+    char *pont = buffer;
+
     //получаем пакет от клиента
 
     // в случае получения должны вернется кол-во принятых байт
@@ -73,17 +77,21 @@ void  main() {
     // флаги, указатель на структуру с данными клиента, ссылку на
     // длинну структуры клиента
 
-    /*инициализируем промежуточный буфер*/
-    char buffer[2000];
+
     while (1) {
         n = recvfrom(sockfd, buffer, MAXLINE,
                      MSG_WAITALL, ( struct sockaddr *) &cliaddr,
                      &len);
         /*вытаскиваем идентификатор*/
-        int ident_client = buffer;
+        int ident_client = *(int *)pont;
         printf("ident_client is %d\n", ident_client);
+        /*проверяем, не новый ди у нас клиент.
+          Для этого проверяем идентификаторы клиентов и
+          идентификатор из пакета*/
         int i = 0;
         for(int i = 0; i<=1; i++) {
+            /*если нашли новыйидентификатор,
+              то записываем данные клиента в массив*/
 
             if (clients[i].ident != ident_client
                 && clients[i].ident == 0) {
@@ -92,15 +100,18 @@ void  main() {
 
                 pthread_t udp_thread;
                 /*Не забудь написать функцию потока!*/
-                pthread_create(&udp_thread, NULL, udp_socket, pointer);
+                pthread_create(&udp_thread, NULL,
+                               udp_socket, pointer);
                 /*кладем идентификатор потока в структуру*/
                 clients[i].thread = udp_thread;
                 /*копируем данные клиента в структуру*/
                 dub_array[cnt] = cliaddr;
                 clients[i].p = pnt;
-                printf("pnt is %X\n", clients[i].p);
+                printf("size of cliaddr %d\n", sizeof(cliaddr));
                 printf("thread ident is %X\n",  clients[i].thread);
+                printf("clients[i].p is %X\n", clients[i].p);
                 pnt += sizeof(cliaddr);
+                printf("pnt is %X\n", pnt);
                 cnt++;
                 break;
             }
