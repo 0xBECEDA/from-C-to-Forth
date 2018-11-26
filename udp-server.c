@@ -31,6 +31,13 @@ void* udp_socket(void* pointer)
 
 // Driver code
 void  main() {
+
+    struct sockaddr_in test[2];
+    struct sockaddr_in * sockaddr_pnt = test;
+    printf("one 0x%X\n", sockaddr_pnt);
+    sockaddr_pnt += 1;
+    printf("two 0x%X\n", sockaddr_pnt);
+
     int cnt = 0;
     int sockfd;
     /*проблема в следующих двух строчках кода*/
