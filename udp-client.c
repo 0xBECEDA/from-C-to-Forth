@@ -26,7 +26,7 @@ int main() {
     }
 
     //тут заполняем блок памяти данными сервера
-     memset(&servaddr, 0, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
 
     // заполняем данные о сервере
     servaddr.sin_family = AF_INET;
@@ -36,19 +36,23 @@ int main() {
     int n, len;
     len = sizeof(servaddr);
     /*получаем идентификатор*/
+    srand(time(NULL));
     int ident = rand() % 500;
     printf("ident is %d\n", ident);
     int *p = &ident;
     char buf[100];
-
+    char *pnt = buf;
     /*сериализуем данные*/
-    memcpy(buf, p, 4);
-    memcpy(buf, hello, 20);
-   //отправляем пакет
-
-   // парамеры: дескриптор сокета, с кторого отправляем, указатель на
-   // буфер с данными, длинну данных, флаги, указатель на структуру,
-   // содержащую данные сервера, размер структуры
+    memcpy(pnt, p, 4);
+    pnt += sizeof(ident);
+    memcpy(pnt, hello, 20);
+    //отправляем пакет
+    pnt -= sizeof(ident);
+    int i = *(int *)pnt;
+    printf("ident in int is %d\n", i);
+    // парамеры: дескриптор сокета, с кторого отправляем, указатель на
+    // буфер с данными, длинну данных, флаги, указатель на структуру,
+    // содержащую данные сервера, размер структуры
     sendto(sockfd, buf,  sizeof(buf),
            MSG_CONFIRM, (const struct sockaddr *) &servaddr,
            sizeof(servaddr));
