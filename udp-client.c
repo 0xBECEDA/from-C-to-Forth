@@ -16,7 +16,7 @@
 int main() {
     int sockfd;
     char buffer[MAXLINE];
-    char hello[20] = "Hello from client";
+    char hello[20] = "Hello from other client";
     struct sockaddr_in  servaddr;
 
     // Создаем сокет. Должны в случае успеха получить его дескриптор
@@ -40,7 +40,7 @@ int main() {
     int ident = rand() % 500;
     printf("ident is %d\n", ident);
     int *p = &ident;
-    char buf[100];
+    char buf[2000];
     char *pnt = buf;
     /*сериализуем данные*/
     memcpy(pnt, p, 4);
@@ -53,10 +53,10 @@ int main() {
     // парамеры: дескриптор сокета, с кторого отправляем, указатель на
     // буфер с данными, длинну данных, флаги, указатель на структуру,
     // содержащую данные сервера, размер структуры
+    while (1) {
     sendto(sockfd, buf,  sizeof(buf),
            MSG_CONFIRM, (const struct sockaddr *) &servaddr,
            sizeof(servaddr));
-    printf("Hello message sent.\n");
 
     //получаем пакет
 
@@ -68,9 +68,11 @@ int main() {
     n = recvfrom(sockfd, (char *)buffer, MAXLINE,
                  MSG_WAITALL, (struct sockaddr *) &servaddr,
                  &len);
-    buffer[n] = '\0';
-    printf("Server : %s\n", buffer);
 
+    //buffer[n] = '\0';
+    /*выводится ерунда, потому что данные не десериализованны*/
+    printf("Server : %s\n", buffer);
+    }
     close(sockfd);
     return 0;
 }
