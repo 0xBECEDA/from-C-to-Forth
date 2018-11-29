@@ -25,7 +25,8 @@ void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
 void show_box (int box_x, int box_y, int red, int green, int blue);
 void show_pixels();
-void test();
+void deserialization(void * input);
+void * serialization();
 //окно, которое мы показываем
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -78,14 +79,8 @@ struct box pixels_box[100];
 struct box main_character;
 
 // структура "врага"
-struct enemy
-{
-    int c;
-    int d;
-} pixels_enemy[99];
-
-//структура для квадратика
-struct enemy enemy_character;
+struct box enemy;
+struct box pixels_enemy[100];
 
 //дескриптор сокета и структура сервера
 int sockfd;
@@ -495,40 +490,22 @@ void show_pixels()
     int p = 0;
     int i = 0;
     SDL_LockSurface(surface);
-    for (i; i <= 100; i++) {
-        concrete_pixel = pixels[i];
-        // enemy_character = pixels_enemy[i];
-        if (concrete_pixel.alive == true) {
-            DrawPixel(surface, concrete_pixel.c,
-                      concrete_pixel.d, R, G, B);
-        }
+    for (i; i <= 99; i++) {
 
+        if (pixels[i].alive == true) {
+            DrawPixel(surface, pixels[i].c,
+                      pixels[i].d, R, G, B);
+        }
         //отрисовка "врага"
-        //DrawPixel(surface, enemy_character.c,
-        //        enemy_character.d, 255, 0, 0);
+/*
+        DrawPixel(surface, pixels_enemy[i].c,
+                  pixels_enemy[i].d, 255, 0, 0);
+*/
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
 }
 
-//void time () {
-
-/*
-  time_t T = 0; // unixtime in 32-bits
-  time(&T); // T != 0
-
-  struct tm TM;
-  struct tm *TM_pnt;
-
-  TM_pnt = localtime(&T); // return pounter
-  TM = *TM_pnt;
-
-  или эквивалентно
-
-  TM = *localtime(&T);
-*/
-
-//}
 void check_pixels_right()
 {
     int i = 0;
@@ -781,8 +758,6 @@ void Handle_Keydown(SDL_Keysym* keysym)
         G = 255;
         B = 255;
         break;
-    case SDLK_t:
-        test();
     default:
         printf("Can't find this key\n");
         break;
@@ -805,25 +780,23 @@ void* udp_socket(void* pointer)
 {
     while (true) {
         usleep(10000); // sleep for 0.01 sec
+        /*сериализуем данные*/
+
+        void * buffer = serialization();
 
         socklen_t len = sizeof(servaddr);
 
-            //отправляем пакет с рандомными пикселями
-            sendto(sockfd, pixels, 100, MSG_CONFIRM,
-                   (const struct sockaddr *) &servaddr,
-                   sizeof(servaddr));
-        //отпрявляем пакет с квадратиком
-        sendto(sockfd, pixels_box, 100, MSG_CONFIRM,
+        sendto(sockfd, buffer, 3500, MSG_CONFIRM,
                (const struct sockaddr *) &servaddr,
                sizeof(servaddr));
-        // принимаем пакет с рандомными пикселями
-        recvfrom(sockfd, pixels, 100, MSG_WAITALL,
-                 (struct sockaddr *) &servaddr,
-                 (socklen_t *)&len);
+
         // принимаем пакет с квадратиком-врагом
-        recvfrom(sockfd, pixels_enemy, 100, MSG_WAITALL,
+        recvfrom(sockfd, buffer, 100, MSG_WAITALL,
                  (struct sockaddr *) &servaddr,
                  (socklen_t *)&len);
+
+        /*десериализуем полученные данные*/
+        deserialization(buffer);
     }
 }
 
@@ -852,40 +825,69 @@ void udp_init() {
     pthread_create(&udp_thread, NULL, udp_socket, pointer);
 }
 
-struct test_str
-{
-    int c;
-    int d;
-};
 
-struct test_str TEST;
-struct test_str test_box[100];
 
 void * serialization() {
-    void * buffer = malloc(800);
-    memcpy(buffer, pixels_box, 800);
-    return buffer;
+
+    void * udp_buffer = malloc(3500);
+    /*сохраняем неизмененный указатель на буфер*/
+    void *pnt = udp_buffer;
+    /*получаем идентификатор*/
+    srand(time(NULL));
+    int ident = rand() % 500;
+    void *p = &ident;
+    /*десериализуем идентификатор квадратика*/
+    memcpy(udp_buffer, p, 4);
+    udp_buffer += sizeof(ident);
+    /*десериализуем квадратик*/
+    memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
+    udp_buffer += sizeof(pixels_box);
+    /*десериализуем рандомные пиксели*/
+    memcpy(udp_buffer, pixels, sizeof(pixels));
+    /*возвращаем указатель на буфер*/
+    return pnt;
 }
 
 void deserialization (void * input) {
 
     void * buffer = input;
+    /*сохраняем неизмененный указатель*/
+    void * pnt = input;
+
     int i = 0;
+    /*пропускаем идентификатор, он нам не нужен*/
+    buffer += sizeof(int);
+    /*десериализуем данные врага*/
     while ( i <= 99) {
 
-        test_box[i].c = *(int *)buffer;
+        pixels_enemy[i].c = *(int *)buffer;
         //printf("Test.c = %d, cont is %d\n", test_box[i].c, cont);
         buffer += sizeof(int);
-        test_box[i].d = *(int *)buffer;
+        pixels_enemy[i].d = *(int *)buffer;
         //printf("Test.d = %d, cont is %d, i ia %d\n",
         //       test_box[i].d, cont, i);
         buffer += sizeof(int);
         i++;
     }
+    int j = 0;
+    /*десериализуем пиксели*/
+    while (j <=99) {
+        pixels[j].alive = *(bool *)buffer;
+        buffer += sizeof(bool);
+
+        pixels[j].c = *(int *)buffer;
+        buffer += sizeof(int);
+
+        pixels[j].d = *(int *)buffer;
+        buffer += sizeof(int);
+    }
+    /*освобождаем место в памяти*/
+    free(pnt);
 }
+/*
 void test() {
 
-    /*вывод последней структуры массива до сериализации*/
+/*вывод последней структуры массива до сериализации
     main_character =  pixels_box[99];
 
     printf("Before serialization X is %d; Y is %d\n",
@@ -896,14 +898,14 @@ void test() {
     deserialization(buf);
 
     /*проверка последней структуры после десериализации
-     */
+
     TEST =  test_box[99];
 
     printf("After deserialization X is %d; Y is %d\n",
            TEST.c, TEST.d);
     fflush(stdout);
 }
-
+*/
 int main( int argc, char* args[] )
 {
     srand(time(NULL));
@@ -922,9 +924,15 @@ int main( int argc, char* args[] )
         // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize surface!\n" );
     }
+    /*вызываем квадратик*/
+    //show_box(X, Y, 0, 0, 0);
+
+    /*делаем пиксели голубыми и вызываем их отрисовку*/
+    //B = 255;
+    //show_pixels();
 
     //создаем сокет
-    // udp_init();
+    //udp_init();
 
 
     // нетипизированный указатель = NULL
@@ -943,17 +951,8 @@ int main( int argc, char* args[] )
     // цикл, обрабатывающий события, пока не встретим событие "выход"
     while (256 != event.type) {
         SDL_WaitEventTimeout(& event, 100);
-        // printf("%d\n", event.type);
-        //fflush(stdout);
-
-        // paint (& event);
         switch (event.type) {
         case SDL_MOUSEMOTION:
-            // printf("We got a motion event.\n");
-
-            // if  (paint_mode == 1) {
-                // paint (& event);
-            // }
             break;
         case SDL_KEYDOWN:
             Handle_Keydown(&event.key.keysym);
