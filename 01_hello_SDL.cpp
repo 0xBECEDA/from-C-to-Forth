@@ -960,7 +960,6 @@ int main( int argc, char* args[] )
         case SDL_WINDOWEVENT:
             break;
         default:
-
             break;
         }
         PixelArray();
