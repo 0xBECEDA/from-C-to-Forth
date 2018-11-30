@@ -479,10 +479,8 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
             pixels_box[cnt] = main_character;
             pixels_box[cnt++];
             DrawPixel(surface, i, j, red, green, blue);
-
         }
     }
-
 }
 
 void show_pixels()
@@ -775,28 +773,31 @@ void* threadFunc(void* thread_data)
         usleep(10000); // sleep for 0.01 sec
     }
 }
-
+int counter_for_while = 1;
 void* udp_socket(void* pointer)
 {
     while (true) {
-        usleep(10000); // sleep for 0.01 sec
+        //usleep(10000); // sleep for 0.01 sec
         /*сериализуем данные*/
-
+        printf("..........\n");
         void * buffer = serialization();
-
+        printf("returned pointer after serial is %X\n", buffer);
         socklen_t len = sizeof(servaddr);
 
         sendto(sockfd, buffer, 3500, MSG_CONFIRM,
                (const struct sockaddr *) &servaddr,
                sizeof(servaddr));
-
+        printf("пакет был отправлен\n");
         // принимаем пакет с квадратиком-врагом
         recvfrom(sockfd, buffer, 100, MSG_WAITALL,
                  (struct sockaddr *) &servaddr,
                  (socklen_t *)&len);
-
+         printf("пакет был принят\n");
         /*десериализуем полученные данные*/
         deserialization(buffer);
+        printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
+        counter_for_while++;
+
     }
 }
 
@@ -823,6 +824,7 @@ void udp_init() {
     pthread_t udp_thread;
 
     pthread_create(&udp_thread, NULL, udp_socket, pointer);
+    printf("инициализация udp прошла успешно\n");
 }
 
 
@@ -830,8 +832,10 @@ void udp_init() {
 void * serialization() {
 
     void * udp_buffer = malloc(3500);
+    printf("udp_buffer in serial is %X\n", udp_buffer);
     /*сохраняем неизмененный указатель на буфер*/
     void *pnt = udp_buffer;
+    //printf("pnt in serial is %X\n", pnt);
     /*получаем идентификатор*/
     srand(time(NULL));
     int ident = rand() % 500;
@@ -844,7 +848,10 @@ void * serialization() {
     udp_buffer += sizeof(pixels_box);
     /*десериализуем рандомные пиксели*/
     memcpy(udp_buffer, pixels, sizeof(pixels));
+    printf("сериализация прошла успешно\n");
     /*возвращаем указатель на буфер*/
+    printf("pnt in serial before return is %X\n", pnt);
+    printf("...........\n");
     return pnt;
 }
 
@@ -853,36 +860,44 @@ void deserialization (void * input) {
     void * buffer = input;
     /*сохраняем неизмененный указатель*/
     void * pnt = input;
-
+    printf("pointer-buffer in  deserial is %X\n", buffer);
     int i = 0;
     /*пропускаем идентификатор, он нам не нужен*/
+    int ident = *(int *)buffer;
+    // printf("ident is %d\n", ident);
     buffer += sizeof(int);
+    //printf("buffer + int in  deserial is %X\n", buffer);
     /*десериализуем данные врага*/
     while ( i <= 99) {
 
         pixels_enemy[i].c = *(int *)buffer;
-        //printf("Test.c = %d, cont is %d\n", test_box[i].c, cont);
         buffer += sizeof(int);
         pixels_enemy[i].d = *(int *)buffer;
-        //printf("Test.d = %d, cont is %d, i ia %d\n",
-        //       test_box[i].d, cont, i);
         buffer += sizeof(int);
         i++;
     }
+    printf("первый while прошел успешно\n");
+    printf("buffer after while in  deserial is %X\n", buffer);
     int j = 0;
     /*десериализуем пиксели*/
     while (j <=99) {
+        //printf("..........\n");
         pixels[j].alive = *(bool *)buffer;
         buffer += sizeof(bool);
-
+        //printf("buffer in %d iteration is %X\n", j, buffer);
         pixels[j].c = *(int *)buffer;
         buffer += sizeof(int);
-
+        //printf("buffer in %d iteration is %X\n", j, buffer);
         pixels[j].d = *(int *)buffer;
         buffer += sizeof(int);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        j++;
     }
     /*освобождаем место в памяти*/
+    //printf("до вызова free()\n");
     free(pnt);
+    printf("десериализация прошла успешно\n");
+    printf("...........\n");
 }
 /*
 void test() {
@@ -924,15 +939,18 @@ int main( int argc, char* args[] )
         // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize surface!\n" );
     }
-    /*вызываем квадратик*/
-    //show_box(X, Y, 0, 0, 0);
+    /*вызываем квадратик
+    show_box(X, Y, 0, 0, 0);
 
+    SDL_UnlockSurface(surface);
+    SDL_UpdateWindowSurface( gWindow );
+    */
     /*делаем пиксели голубыми и вызываем их отрисовку*/
-    //B = 255;
-    //show_pixels();
+    B = 255;
+    show_pixels();
 
     //создаем сокет
-    //udp_init();
+    udp_init();
 
 
     // нетипизированный указатель = NULL
