@@ -495,10 +495,10 @@ void show_pixels()
                       pixels[i].d, R, G, B);
         }
         //отрисовка "врага"
-/*
+
         DrawPixel(surface, pixels_enemy[i].c,
                   pixels_enemy[i].d, 255, 0, 0);
-*/
+
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -777,9 +777,10 @@ int counter_for_while = 1;
 void* udp_socket(void* pointer)
 {
     while (true) {
-        //usleep(10000); // sleep for 0.01 sec
+        printf("до..........\n");
+        usleep(10000); // sleep for 0.01 sec
+        printf("после..........\n");
         /*сериализуем данные*/
-        printf("..........\n");
         void * buffer = serialization();
         printf("returned pointer after serial is %X\n", buffer);
         socklen_t len = sizeof(servaddr);
