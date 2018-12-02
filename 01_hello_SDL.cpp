@@ -851,27 +851,35 @@ int counter_for_while = 1;
 void* udp_socket(void* pointer)
 {
     while (true) {
-        printf("{:\n");
+        printf("{::udp_socket()\n");
         usleep(100000); // sleep for 0.01 sec
         /* сериализуем данные */
-        void * buffer = serialization();
+        void *buffer = serialization();
         printf("returned pointer after serial is %X\n", buffer);
+
         socklen_t len = sizeof(servaddr);
 
-        sendto(sockfd, buffer, 3500, MSG_CONFIRM,
-               (const struct sockaddr *) &servaddr,
-               sizeof(servaddr));
-        printf("пакет был отправлен\n");
-        /*  принимаем пакет с квадратиком-врагом */
-        recvfrom(sockfd, buffer, 100, MSG_WAITALL,
-                 (struct sockaddr *) &servaddr,
-                 (socklen_t *)&len);
-         printf("пакет был принят\n");
+        ssize_t sended =
+            sendto(sockfd, buffer, 3500, MSG_CONFIRM,
+                   (const struct sockaddr *) &servaddr,
+                   sizeof(servaddr));
+        printf("пакет был отправлен %d bytes\n", (int)sended);
+
+        /* принимаем пакет с квадратиком-врагом */
+        /* А почему только с квадратиком-врагом?
+           первым же идет идентикатор клиента? */
+        ssize_t received =
+            recvfrom(sockfd, buffer, 100, MSG_WAITALL,
+                     (struct sockaddr *) &servaddr,
+                     (socklen_t *)&len);
+        printf("пакет был принят %d bytes\n", (int)received);
+
         /* десериализуем полученные данные ERROR HERE */
-        // deserialization(buffer);
-        printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
+        deserialization(buffer);
+
+        // printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
         counter_for_while++;
-        printf(":}");
+        printf("\n:}\n");
     }
 }
 
@@ -912,75 +920,85 @@ pthread_t udp_init()
 }
 
 
+void print_buffer(void *buf, int len)
+{
+    printf("[ ");
+    for(int i=0; i<len; i++) {
+        printf("%02hhx ", *(char* )(buf+i));
+    }
+    printf("]\n");
+}
 
 void * serialization()
 {
+    /* тут нужен правильный sizeof а не 3500,
+       но править не стал */
     void * udp_buffer = malloc(3500);
-    printf("udp_buffer in serial is %X\n", udp_buffer);
-    /*сохраняем неизмененный указатель на буфер*/
+    printf("udp_buffer is %X\n", udp_buffer);
+    /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
-    //printf("pnt in serial is %X\n", pnt);
-    /*получаем идентификатор*/
+    /* создаем идентификатор */
     srand(time(NULL));
     int ident = rand() % 500;
-    void *p = &ident;
-    /*десериализуем идентификатор квадратика*/
-    memcpy(udp_buffer, p, 4);
+    /* сериализуем идентификатор квадратика */
+    /* а кто тебе сказал, что int на всех
+       архитектурах занимает 4 байта? - я поправил */
+    memcpy(udp_buffer, &ident, sizeof(int));
     udp_buffer += sizeof(ident);
-    /*десериализуем квадратик*/
+    /* сериализуем квадратик - нафига, если нам
+       только его координат достаточно для отрисовки? */
     memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
     udp_buffer += sizeof(pixels_box);
-    /*десериализуем рандомные пиксели*/
+    /* сериализуем рандомные пиксели */
     memcpy(udp_buffer, pixels, sizeof(pixels));
-    printf("сериализация прошла успешно\n");
+    printf("serialization():\n");
+    print_buffer(udp_buffer, 3500);
     /*возвращаем указатель на буфер*/
-    printf("pnt in serial before return is %X\n", pnt);
-    printf("...........\n");
     return pnt;
 }
 
 void deserialization (void * input)
 {
-    void * buffer = input;
-    /*сохраняем неизмененный указатель*/
-    void * pnt = input;
-    printf("pointer-buffer in  deserial is %X\n", buffer);
-    int i = 0;
-    /*пропускаем идентификатор, он нам не нужен*/
-    int ident = *(int *)buffer;
-    // printf("ident is %d\n", ident);
-    buffer += sizeof(int);
-    //printf("buffer + int in  deserial is %X\n", buffer);
-    /*десериализуем данные врага*/
-    while ( i <= 99) {
-        pixels_enemy[i].c = *(int *)buffer;
-        buffer += sizeof(int);
-        pixels_enemy[i].d = *(int *)buffer;
-        buffer += sizeof(int);
-        i++;
-    }
-    printf("первый while прошел успешно\n");
-    printf("buffer after while in  deserial is %X\n", buffer);
-    int j = 0;
-    /*десериализуем пиксели*/
-    while (j <=99) {
-        //printf("..........\n");
-        pixels[j].alive = *(bool *)buffer;
-        buffer += sizeof(bool);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        pixels[j].c = *(int *)buffer;
-        buffer += sizeof(int);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        pixels[j].d = *(int *)buffer;
-        buffer += sizeof(int);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        j++;
-    }
-    /*освобождаем место в памяти*/
-    //printf("до вызова free()\n");
-    free(pnt);
-    printf("десериализация прошла успешно\n");
-    printf("...........\n");
+    // void * buffer = input;
+    // /*сохраняем неизмененный указатель*/
+    // void * pnt = input;
+    // printf("pointer-buffer in  deserial is %X\n", buffer);
+    // int i = 0;
+    // /*пропускаем идентификатор, он нам не нужен*/
+    // int ident = *(int *)buffer;
+    // // printf("ident is %d\n", ident);
+    // buffer += sizeof(int);
+    // //printf("buffer + int in  deserial is %X\n", buffer);
+    // /*десериализуем данные врага*/
+    // while ( i <= 99) {
+    //     pixels_enemy[i].c = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     pixels_enemy[i].d = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     i++;
+    // }
+    // printf("первый while прошел успешно\n");
+    // printf("buffer after while in  deserial is %X\n", buffer);
+    // int j = 0;
+    // /*десериализуем пиксели*/
+    // while (j <=99) {
+    //     //printf("..........\n");
+    //     pixels[j].alive = *(bool *)buffer;
+    //     buffer += sizeof(bool);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     pixels[j].c = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     pixels[j].d = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     j++;
+    // }
+    // /*освобождаем место в памяти*/
+    // //printf("до вызова free()\n");
+    // free(pnt);
+    // printf("десериализация прошла успешно\n");
+    // printf("...........\n");
 }
 
 /*
