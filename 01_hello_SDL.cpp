@@ -847,32 +847,31 @@ void* threadFunc(void* thread_data)
    Использует глобальные переменные:
    - counter_for_while
  */
-
 int counter_for_while = 1;
 void* udp_socket(void* pointer)
 {
     while (true) {
-        printf("{:");
+        printf("{:\n");
         usleep(100000); // sleep for 0.01 sec
-        printf(":}");
-        // /*сериализуем данные*/
-        // void * buffer = serialization();
-        // printf("returned pointer after serial is %X\n", buffer);
-        // socklen_t len = sizeof(servaddr);
+        /* сериализуем данные */
+        void * buffer = serialization();
+        printf("returned pointer after serial is %X\n", buffer);
+        socklen_t len = sizeof(servaddr);
 
-        // sendto(sockfd, buffer, 3500, MSG_CONFIRM,
-        //        (const struct sockaddr *) &servaddr,
-        //        sizeof(servaddr));
-        // printf("пакет был отправлен\n");
-        // // принимаем пакет с квадратиком-врагом
-        // recvfrom(sockfd, buffer, 100, MSG_WAITALL,
-        //          (struct sockaddr *) &servaddr,
-        //          (socklen_t *)&len);
-        //  printf("пакет был принят\n");
-        // /*десериализуем полученные данные*/
+        sendto(sockfd, buffer, 3500, MSG_CONFIRM,
+               (const struct sockaddr *) &servaddr,
+               sizeof(servaddr));
+        printf("пакет был отправлен\n");
+        /*  принимаем пакет с квадратиком-врагом */
+        recvfrom(sockfd, buffer, 100, MSG_WAITALL,
+                 (struct sockaddr *) &servaddr,
+                 (socklen_t *)&len);
+         printf("пакет был принят\n");
+        /* десериализуем полученные данные ERROR HERE */
         // deserialization(buffer);
-        // printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
-        // counter_for_while++;
+        printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
+        counter_for_while++;
+        printf(":}");
     }
 }
 
