@@ -863,6 +863,10 @@ void* udp_socket(void* pointer)
             sendto(sockfd, buffer, 3500, MSG_CONFIRM,
                    (const struct sockaddr *) &servaddr,
                    sizeof(servaddr));
+        if(-1 == sended) {
+            printf("Error: Send datagramm\n");
+            exit(EXIT_FAILURE);
+        }
         printf("пакет был отправлен %d bytes\n", (int)sended);
 
         /* принимаем пакет с квадратиком-врагом */
@@ -872,6 +876,11 @@ void* udp_socket(void* pointer)
             recvfrom(sockfd, buffer, 100, MSG_WAITALL,
                      (struct sockaddr *) &servaddr,
                      (socklen_t *)&len);
+        if(-1 == received) {
+            printf("Error: Receive datagramm. Is server running?\n");
+            exit(EXIT_FAILURE);
+        }
+
         printf("пакет был принят %d bytes\n", (int)received);
 
         /* десериализуем полученные данные ERROR HERE */
