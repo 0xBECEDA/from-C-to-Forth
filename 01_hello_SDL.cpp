@@ -803,29 +803,41 @@ void* udp_socket(void* pointer)
 }
 
 
-void udp_init() {
-
+/*
+   Инициализация UDP-сервера и создание потока
+   Использует глобальные переменные
+   - sockfd
+   - servaddr
+   Возвращает идентификатор созданного потока
+ */
+pthread_t udp_init()
+{
     // Создаем сокет.
-    //Должны в случае успеха получить его дескриптор
+    // Должны в случае успеха получить его дескриптор
+    // в глобальную переменную sockfd
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
-
+    // Переводим сокет в неблокирующий режим
     fcntl(sockfd, F_SETFL, O_NONBLOCK);
-
     // заполняем данные о сервере
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(8080);
     servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    //создаем новый поток
-    void* pointer = NULL;
-
-    pthread_t udp_thread;
-
-    pthread_create(&udp_thread, NULL, udp_socket, pointer);
     printf("инициализация udp прошла успешно\n");
+
+    // создаем новый поток
+    pthread_t udp_thread;
+    // Как тебе такой указатель, Илон Маск?
+    void *(*thread_func)(void *) = udp_socket;
+    // Ошибки надо обрабатывать
+    if( 0 != pthread_create(&udp_thread, NULL, thread_func, NULL) ) {
+        perror("thread_create failed");
+        exit(EXIT_FAILURE);
+    }
+    return udp_thread;
 }
 
 
