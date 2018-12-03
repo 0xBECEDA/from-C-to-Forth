@@ -857,7 +857,7 @@ void* udp_socket(void* pointer)
 {
     while (true) {
         printf("{::udp_socket()\n");
-        usleep(100000); // sleep for 0.01 sec
+        usleep(10000); // sleep for 0.01 sec
         /* сериализуем данные */
         void *buffer = serialization();
         printf("returned pointer after serial is %X\n", buffer);
@@ -880,7 +880,7 @@ void* udp_socket(void* pointer)
                      (socklen_t *)&len);
         if(-1 == received) {
             printf("Error: Receive datagramm. Is server running?\n");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
         }
 
         printf("пакет был принят %d bytes\n", (int)received);
@@ -972,48 +972,63 @@ void * serialization()
     /*возвращаем указатель на буфер*/
     return pnt;
 }
-
+// инициалиация мьютекса
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+int desc_mutex = pthread_mutex_init(&mutex, NULL);
 void deserialization (void * input)
 {
-    // void * buffer = input;
-    // /*сохраняем неизмененный указатель*/
-    // void * pnt = input;
-    // printf("pointer-buffer in  deserial is %X\n", buffer);
-    // int i = 0;
-    // /*пропускаем идентификатор, он нам не нужен*/
-    // int ident = *(int *)buffer;
-    // // printf("ident is %d\n", ident);
-    // buffer += sizeof(int);
-    // //printf("buffer + int in  deserial is %X\n", buffer);
-    // /*десериализуем данные врага*/
-    // while ( i <= 99) {
-    //     pixels_enemy[i].c = *(int *)buffer;
-    //     buffer += sizeof(int);
-    //     pixels_enemy[i].d = *(int *)buffer;
-    //     buffer += sizeof(int);
-    //     i++;
-    // }
+    printf("mutex is %d\n",  desc_mutex);
+
+    if ( desc_mutex < 0 ) {
+        printf("мьютекс не инициализирован, код ошибки %d\n",
+               desc_mutex);
+    }
+    void * buffer = input;
+    /*сохраняем неизмененный указатель*/
+    void * pnt = input;
+    printf("pointer-buffer in  deserial is %X\n", buffer);
+    int i = 0;
+    /*пропускаем идентификатор, он нам не нужен*/
+    int ident = *(int *)buffer;
+    // printf("ident is %d\n", ident);
+    buffer += sizeof(int);
+    //printf("buffer + int in  deserial is %X\n", buffer);
+    /*десериализуем данные врага*/
+    while ( i <= 99) {
+        pixels_enemy[i].c = *(int *)buffer;
+        buffer += sizeof(int);
+        pixels_enemy[i].d = *(int *)buffer;
+        buffer += sizeof(int);
+        i++;
+    }
     // printf("первый while прошел успешно\n");
     // printf("buffer after while in  deserial is %X\n", buffer);
-    // int j = 0;
-    // /*десериализуем пиксели*/
-    // while (j <=99) {
-    //     //printf("..........\n");
-    //     pixels[j].alive = *(bool *)buffer;
-    //     buffer += sizeof(bool);
-    //     //printf("buffer in %d iteration is %X\n", j, buffer);
-    //     pixels[j].c = *(int *)buffer;
-    //     buffer += sizeof(int);
-    //     //printf("buffer in %d iteration is %X\n", j, buffer);
-    //     pixels[j].d = *(int *)buffer;
-    //     buffer += sizeof(int);
-    //     //printf("buffer in %d iteration is %X\n", j, buffer);
-    //     j++;
-    // }
-    // /*освобождаем место в памяти*/
-    // //printf("до вызова free()\n");
-    // free(pnt);
-    // printf("десериализация прошла успешно\n");
+    int j = 0;
+     /* десериализуем пиксели */
+     /* закрываем мьютекс здесь,
+       т.к. это критическая секция кода*/
+    pthread_mutex_lock(&mutex);
+    while (j <=99) {
+        //printf("..........\n");
+        pixels[j].alive = *(bool *)buffer;
+        buffer += sizeof(bool);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        pixels[j].c = *(int *)buffer;
+        buffer += sizeof(int);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        pixels[j].d = *(int *)buffer;
+        buffer += sizeof(int);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        j++;
+    }
+
+    /* откываем мьютекс после выхода из цикла*/
+    pthread_mutex_unlock(&mutex);
+
+    /* освобождаем место в памяти */
+    //printf("до вызова free()\n");
+    free(pnt);
+    printf("десериализация прошла успешно\n");
     // printf("...........\n");
 }
 
