@@ -11,7 +11,6 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 
-// включить SDL и сделать окно
 bool init();
 bool create();
 bool surface_create();
@@ -27,7 +26,8 @@ void show_box (int box_x, int box_y, int red, int green, int blue);
 void show_pixels();
 void deserialization(void * input);
 void * serialization();
-//окно, которое мы показываем
+
+/* окно, которое мы показываем */
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
 SDL_Event event;
@@ -35,28 +35,32 @@ SDL_Keysym keysym;
 int SCREEN_WIDTH = 480;
 int SCREEN_HEIGHT = 520;
 
-//переменная отвечает за режим рисования
+/* переменная отвечает за режим рисования */
 int paint_mode = 0;
 
-// цвета
+/*  цвета */
 int R = 0;
 int G = 0;
 int B = 0;
+
+/* ? */
 int numpix = 0;
 int RGBcolor = 0;
-//координаты
+
+/* координаты */
 int pix_y = 10;
 int pix_x = 10;
 //int l = 0;
-//координаты для show_pixels и структур пикселей
+
+/* координаты для show_pixels и структур пикселей */
 int a = 0;
 int b = 0;
-//координаты, для функций с вадратом
+
+/* координаты, для функций с квадратом */
 int X = 0;
 int Y = 0;
 
-//объявление структуры и массива структуры для пикселей
-
+/* объявление структуры и массива структуры для пикселей */
 struct pixel
 {
     bool alive = false;
@@ -65,7 +69,7 @@ struct pixel
 } pixels[100];
 struct pixel concrete_pixel;
 
-// струкутра для запоминания съеденных в будущем пикселей
+/*  струкутра для запоминания съеденных в будущем пикселей */
 struct pixel rem_pixel;
 
 struct box
@@ -74,55 +78,67 @@ struct box
     int d;
 };
 
+/* ? */
 struct box pixels_box[100];
-//структура для квадратика
+
+/* структура для квадратика */
 struct box main_character;
 
-// структура "врага"
+/*  структура "врага" */
 struct box enemy;
 struct box pixels_enemy[100];
 
-//дескриптор сокета и структура сервера
+/* дескриптор сокета и структура сервера */
 int sockfd;
 struct sockaddr_in servaddr;
-//отражает кол-во найденных рандомно закрашенных пикселей
+
+/* отражает кол-во найденных рандомно закрашенных пикселей */
 int ColorPixel = 0;
 
-/* */
+/* Инициализация SDL */
 bool init()
 {
-    // инициализация флага (?) что это такое?
-    bool success = true;
-    // инициализация SDL
-
     // если SDL_Init c SDL_INIT VIDEO в качестве параметра меньше нуля,
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
         printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+        return false;
     }
-
-    return success;
+    return true;
 }
 
-
-/* */
-bool create() {
-
-    bool success = true;
-    gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
-    return success;
+/*
+  Cоздание окна
+  Использует глобальные переменные:
+  - surface
+*/
+bool create()
+{
+    if ( !(gWindow =
+           SDL_CreateWindow("SDL Tutorial",
+                            SDL_WINDOWPOS_UNDEFINED,
+                            SDL_WINDOWPOS_UNDEFINED,
+                            SCREEN_WIDTH,
+                            SCREEN_HEIGHT,
+                            SDL_WINDOW_SHOWN)) ) {
+        printf( "SDL_CreateWindow() failed! SDL_Error: %s\n", SDL_GetError() );
+        return false;
+    }
+    return true;
 }
 
-/* */
+/*
+   Cоздание поверхности окна
+   Использует глобальные переменные:
+   - surface
+ */
 bool surface_create ()
 {
-    bool  success = true;
-// создание поверхности окна
-    surface = SDL_GetWindowSurface( gWindow );
-
-    if ( surface == NULL ) {
+    /*  */
+    if ( !(surface = SDL_GetWindowSurface(gWindow)) ) {
         printf ("Didn't create surface! SDL_Error: %s\n", SDL_GetError());
+        return false;
     }
-    return success;
+    return true;
 }
 
 
@@ -256,7 +272,11 @@ void PrintEvent(SDL_Event * event)
 }
 
 
-/* находим пиксель */
+/*
+   Получение значения пикселя
+   Использует глобальные переменные:
+   - surface
+ */
 Uint32 getpixel( SDL_Surface *surface, int x, int y) {
 // заблокируем поверхность
     SDL_LockSurface(surface);
@@ -297,17 +317,18 @@ Uint32 getpixel( SDL_Surface *surface, int x, int y) {
 }
 
 
-/* */
+/*
+   Отрисовка пикселя
+   Использует глобальные переменные:
+   - surface
+ */
 void DrawPixel(SDL_Surface *screen, int x, int y,
                Uint8 R, Uint8 G, Uint8 B)
 {
     Uint32 color = SDL_MapRGB(surface->format, R, G, B);
-
     /* Here p is the address to the pixel we want to retrieve */
-
     int bpp =  surface->format->BytesPerPixel;
     Uint32 ppr = surface->pitch/bpp;
-
 
     switch (bpp)
     {
@@ -315,7 +336,6 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     {
 
         Uint8 *p = (Uint8 *)surface->pixels + (y * ppr + x )* bpp;
-
         /* pixels – указатель на начало области данных,
            описывающей состояние пикселей поверхности screen */
         /* pitch – количество байт, занимаемых данными
@@ -351,7 +371,6 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
     break;
     case 4: // Возможно 32-bpp...
     {
-
         // Раз у нас есть формула, учитывающая кол-во байтов на пиксель, зачем посредник в виде bufp?
         Uint32 *p = (Uint32 *)surface->pixels + (y * ppr + x );
         /* Поскольку (Uint32 *)screen->pixels возвращает
@@ -422,6 +441,12 @@ void move_box_up ( int &X, int &Y)
 // чтобы не выводить "No more space" раз за разом
 bool no_more_space = false;
 
+/*
+   Заполнение массива пикслей по одному за каждый вызов
+   Использует глобальные переменные:
+   - pixels
+   - no_more_space
+ */
 void PixelArray () {
     //получаем координаты
     // printf("a is %d, b is %d\n", a, b);
@@ -464,13 +489,19 @@ void PixelArray () {
     }
 }
 
-
+/*
+   Отрисовка квадратика
+   surface должна быть заблокирована до вызова этой функции
+   и разблокирована после.
+   Использует глобальные переменные:
+   - surface
+   - pixel_box
+ */
 void show_box(int box_x, int box_y, int red, int green, int blue)
 {
     // printf ("-------------------------begin\n");
     //printf("In show_box  X is %d; Y is %d\n", X, Y);
     int cnt = 0;
-
     for ( int j = box_y; j<(Y + pix_y); j++) {
         for ( int i = box_x; i<(X + pix_x); i++) {
             main_character = pixels_box[cnt];
@@ -483,6 +514,17 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
     }
 }
 
+/*
+   Отрисовка экрана
+   Проходит по массиву пикселей и отрисовывает каждый из них
+   Также отрисовывает квадратики врага, но делает это неправильно
+   Использует глобальные переменные:
+   - gWindow
+   - surface
+   - pixels
+   - pixels_enemy
+
+ */
 void show_pixels()
 {
     int p = 0;
@@ -504,6 +546,13 @@ void show_pixels()
     SDL_UpdateWindowSurface( gWindow );
 }
 
+/*
+  Почему нужны 4 почти одинаковых функции?
+  -
+  В каждой из них прописано сложное условие +
+  каждая функция вызывается в зависимости от того,
+  какая клавиша была нажата.
+*/
 void check_pixels_right()
 {
     int i = 0;
@@ -543,6 +592,9 @@ void check_pixels_right()
     }
 }
 
+/*
+   Почему нужны 4 почти одинаковых функции?
+ */
 void check_pixels_left()
 {
     int i = 0;
@@ -590,6 +642,9 @@ void check_pixels_left()
     }
 }
 
+/*
+   Почему нужны 4 почти одинаковых функции?
+ */
 void check_pixels_down()
 {
     int i = 0;
@@ -633,6 +688,16 @@ void check_pixels_down()
     }
 
 }
+
+/*
+   Функция, которая проверяет, находится ли пиксель
+   внутри координат квадратика, и если это так
+   "сьедает" его, деактивируя пиксель и увеличивая
+   счетчик сьеденных пикселей.
+   Использует глобальные переменные:
+   - pixels
+   - numpix
+ */
 void check_pixels_up()
 {
     int i = 0;
@@ -647,7 +712,6 @@ void check_pixels_up()
              concrete_pixel.d <= Y + (pix_y - 1) &&
              concrete_pixel.d >= Y)
         {
-
             /*
               printf("concrete_pixel.c is %d, X is %d,
               concrete_pixel.d is %d, Y is %d, \n",
@@ -671,7 +735,6 @@ void check_pixels_up()
             concrete_pixel.alive = false;
             //загружаем структуру в массив
             pixels[i] =  concrete_pixel;
-
         }
     }
 }
@@ -687,6 +750,10 @@ void paint(SDL_Event* event)
     SDL_UpdateWindowSurface( gWindow );
 }
 */
+
+/*
+   Функция обработки нажатий клавиш
+ */
 void Handle_Keydown(SDL_Keysym* keysym)
 {
     SDL_Event event;
@@ -763,7 +830,11 @@ void Handle_Keydown(SDL_Keysym* keysym)
 }
 
 
-// функция потока, в качестве параметра - нетипизированный указатель
+/*
+   Функция потока отрисовки
+   В бесконечном цикле он отрисовывает пиксели на экране,
+   вызывая show_pixels()
+ */
 void* threadFunc(void* thread_data)
 {
     while (true) {
@@ -773,133 +844,179 @@ void* threadFunc(void* thread_data)
         usleep(10000); // sleep for 0.01 sec
     }
 }
+
+/*
+   Функция потока, который создается в udp_init()
+   В бесконечном цикле он сериализует/десериализует
+   данные и отправляет/принимает пакеты
+   Использует глобальные переменные:
+   - counter_for_while
+ */
 int counter_for_while = 1;
 void* udp_socket(void* pointer)
 {
     while (true) {
-        printf("до..........\n");
-        usleep(10000); // sleep for 0.01 sec
-        printf("после..........\n");
-        /*сериализуем данные*/
-        void * buffer = serialization();
+        printf("{::udp_socket()\n");
+        usleep(100000); // sleep for 0.01 sec
+        /* сериализуем данные */
+        void *buffer = serialization();
         printf("returned pointer after serial is %X\n", buffer);
+
         socklen_t len = sizeof(servaddr);
 
-        sendto(sockfd, buffer, 3500, MSG_CONFIRM,
-               (const struct sockaddr *) &servaddr,
-               sizeof(servaddr));
-        printf("пакет был отправлен\n");
-        // принимаем пакет с квадратиком-врагом
-        recvfrom(sockfd, buffer, 100, MSG_WAITALL,
-                 (struct sockaddr *) &servaddr,
-                 (socklen_t *)&len);
-         printf("пакет был принят\n");
-        /*десериализуем полученные данные*/
-        deserialization(buffer);
-        printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
-        counter_for_while++;
+        ssize_t sended =
+            sendto(sockfd, buffer, 3500, MSG_CONFIRM,
+                   (const struct sockaddr *) &servaddr,
+                   sizeof(servaddr));
+        if(-1 == sended) {
+            printf("Error: Send datagramm\n");
+            exit(EXIT_FAILURE);
+        }
+        printf("пакет был отправлен %d bytes\n", (int)sended);
+        /* получаем данные */
+        ssize_t received =
+            recvfrom(sockfd, buffer, 100, MSG_WAITALL,
+                     (struct sockaddr *) &servaddr,
+                     (socklen_t *)&len);
+        if(-1 == received) {
+            printf("Error: Receive datagramm. Is server running?\n");
+            exit(EXIT_FAILURE);
+        }
 
+        printf("пакет был принят %d bytes\n", (int)received);
+
+        /* десериализуем полученные данные ERROR HERE */
+        deserialization(buffer);
+
+        // printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
+        counter_for_while++;
+        printf("\n:}\n");
     }
 }
 
 
-void udp_init() {
-
+/*
+   Инициализация UDP-сервера и создание потока udp_socket
+   Использует глобальные переменные:
+   - sockfd
+   - servaddr
+   Возвращает идентификатор созданного потока
+ */
+pthread_t udp_init()
+{
     // Создаем сокет.
-    //Должны в случае успеха получить его дескриптор
+    // Должны в случае успеха получить его дескриптор
+    // в глобальную переменную sockfd
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
-
+    // Переводим сокет в неблокирующий режим
     fcntl(sockfd, F_SETFL, O_NONBLOCK);
-
     // заполняем данные о сервере
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(8080);
     servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    //создаем новый поток
-    void* pointer = NULL;
-
+    // создаем новый поток
     pthread_t udp_thread;
-
-    pthread_create(&udp_thread, NULL, udp_socket, pointer);
-    printf("инициализация udp прошла успешно\n");
+    // Как тебе такой указатель, Илон Маск?
+    void *(*thread_func)(void *) = udp_socket;
+    // Ошибки надо обрабатывать
+    if( 0 != pthread_create(&udp_thread, NULL, thread_func, NULL) ) {
+        perror("thread_create failed");
+        exit(EXIT_FAILURE);
+    }
+    return udp_thread;
 }
 
 
+void print_buffer(void *buf, int len)
+{
+    printf("[ ");
+    for(int i=0; i<len; i++) {
+        printf("%02hhx ", *(char* )(buf+i));
+    }
+    printf("]\n");
+}
 
-void * serialization() {
-
+void * serialization()
+{
+    /* тут нужен правильный sizeof а не 3500,
+       но править не стал
+       - я выделила память с запасом, вдруг помимо массива с пикселями
+       и квадратиком добавится что-то еще*/
     void * udp_buffer = malloc(3500);
-    printf("udp_buffer in serial is %X\n", udp_buffer);
-    /*сохраняем неизмененный указатель на буфер*/
+    printf("udp_buffer is %X\n", udp_buffer);
+    /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
-    //printf("pnt in serial is %X\n", pnt);
-    /*получаем идентификатор*/
+    /* создаем идентификатор */
     srand(time(NULL));
     int ident = rand() % 500;
-    void *p = &ident;
-    /*десериализуем идентификатор квадратика*/
-    memcpy(udp_buffer, p, 4);
+    /* сериализуем идентификатор квадратика */
+
+    memcpy(udp_buffer, &ident, sizeof(int));
     udp_buffer += sizeof(ident);
-    /*десериализуем квадратик*/
+    /* сериализуем квадратик - нафига, если нам
+       только его координат достаточно для отрисовки?
+      - за тем, что когда речь зашла об udp и как передать квадратик,
+       мы опять вернулись к структуре. Ты сказал, что так лучше.
+       Я задолбалась то убирать структуру квадратика, то возвращать.
+       Это уже четвертый раз */
     memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
     udp_buffer += sizeof(pixels_box);
-    /*десериализуем рандомные пиксели*/
+    /* сериализуем рандомные пиксели */
     memcpy(udp_buffer, pixels, sizeof(pixels));
-    printf("сериализация прошла успешно\n");
+    printf("serialization():\n");
+    print_buffer(udp_buffer, 3500);
     /*возвращаем указатель на буфер*/
-    printf("pnt in serial before return is %X\n", pnt);
-    printf("...........\n");
     return pnt;
 }
 
-void deserialization (void * input) {
-
-    void * buffer = input;
-    /*сохраняем неизмененный указатель*/
-    void * pnt = input;
-    printf("pointer-buffer in  deserial is %X\n", buffer);
-    int i = 0;
-    /*пропускаем идентификатор, он нам не нужен*/
-    int ident = *(int *)buffer;
-    // printf("ident is %d\n", ident);
-    buffer += sizeof(int);
-    //printf("buffer + int in  deserial is %X\n", buffer);
-    /*десериализуем данные врага*/
-    while ( i <= 99) {
-
-        pixels_enemy[i].c = *(int *)buffer;
-        buffer += sizeof(int);
-        pixels_enemy[i].d = *(int *)buffer;
-        buffer += sizeof(int);
-        i++;
-    }
-    printf("первый while прошел успешно\n");
-    printf("buffer after while in  deserial is %X\n", buffer);
-    int j = 0;
-    /*десериализуем пиксели*/
-    while (j <=99) {
-        //printf("..........\n");
-        pixels[j].alive = *(bool *)buffer;
-        buffer += sizeof(bool);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        pixels[j].c = *(int *)buffer;
-        buffer += sizeof(int);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        pixels[j].d = *(int *)buffer;
-        buffer += sizeof(int);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        j++;
-    }
-    /*освобождаем место в памяти*/
-    //printf("до вызова free()\n");
-    free(pnt);
-    printf("десериализация прошла успешно\n");
-    printf("...........\n");
+void deserialization (void * input)
+{
+    // void * buffer = input;
+    // /*сохраняем неизмененный указатель*/
+    // void * pnt = input;
+    // printf("pointer-buffer in  deserial is %X\n", buffer);
+    // int i = 0;
+    // /*пропускаем идентификатор, он нам не нужен*/
+    // int ident = *(int *)buffer;
+    // // printf("ident is %d\n", ident);
+    // buffer += sizeof(int);
+    // //printf("buffer + int in  deserial is %X\n", buffer);
+    // /*десериализуем данные врага*/
+    // while ( i <= 99) {
+    //     pixels_enemy[i].c = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     pixels_enemy[i].d = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     i++;
+    // }
+    // printf("первый while прошел успешно\n");
+    // printf("buffer after while in  deserial is %X\n", buffer);
+    // int j = 0;
+    // /*десериализуем пиксели*/
+    // while (j <=99) {
+    //     //printf("..........\n");
+    //     pixels[j].alive = *(bool *)buffer;
+    //     buffer += sizeof(bool);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     pixels[j].c = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     pixels[j].d = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     j++;
+    // }
+    // /*освобождаем место в памяти*/
+    // //printf("до вызова free()\n");
+    // free(pnt);
+    // printf("десериализация прошла успешно\n");
+    // printf("...........\n");
 }
+
 /*
 void test() {
 
@@ -922,6 +1039,8 @@ void test() {
     fflush(stdout);
 }
 */
+
+
 int main( int argc, char* args[] )
 {
     srand(time(NULL));
@@ -940,32 +1059,32 @@ int main( int argc, char* args[] )
         // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize surface!\n" );
     }
-    /*вызываем квадратик
+    /* вызываем квадратик */
+    SDL_LockSurface(surface);
     show_box(X, Y, 0, 0, 0);
-
     SDL_UnlockSurface(surface);
-    SDL_UpdateWindowSurface( gWindow );
-    */
-    /*делаем пиксели голубыми и вызываем их отрисовку*/
+    SDL_UpdateWindowSurface(gWindow);
+
+    /*делаем пиксели белыми и вызываем их отрисовку*/
     B = 255;
+    R = 255;
+    G = 255;
     show_pixels();
 
     //создаем сокет
     udp_init();
+    printf("инициализация udp прошла успешно\n");
 
-
-    // нетипизированный указатель = NULL
-    void* thread_data = NULL;
-
-    //создаем идентификатор потока
+    //создаем поток отрисовки
     pthread_t thread;
-
     // создаем поток с помощью pthread_create
-    // в качестве параметров: ссыка на идентификатор, значение
+    // в качестве параметров: ссылка на идентификатор, значение
     // нетипизированного указателя, название создаваемого потока и
     // данные
-
-    pthread_create(&thread, NULL, threadFunc, thread_data);
+    if( 0 != pthread_create(&thread, NULL, threadFunc, NULL) ) {
+        perror("thread create failed in main()");
+        exit(EXIT_FAILURE);
+    };
 
     // цикл, обрабатывающий события, пока не встретим событие "выход"
     while (256 != event.type) {
@@ -983,7 +1102,6 @@ int main( int argc, char* args[] )
         }
         PixelArray();
 
-        // raise(12);
     }
 
     printf("Event queue empty.\n");
