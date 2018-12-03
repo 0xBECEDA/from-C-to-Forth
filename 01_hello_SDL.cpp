@@ -495,10 +495,10 @@ void show_pixels()
                       pixels[i].d, R, G, B);
         }
         //отрисовка "врага"
-
+        /*
         DrawPixel(surface, pixels_enemy[i].c,
                   pixels_enemy[i].d, 255, 0, 0);
-
+        */
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );

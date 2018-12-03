@@ -23,8 +23,10 @@ struct connection
     struct sockaddr_in *p;
 } clients[2];
 struct connection client;
+
 /*инициализируем промежуточный буфер*/
-char buffer[2000];
+char buffer[3500];
+
 /*будущий дескриптор сокета*/
 int sockfd;
 
@@ -33,7 +35,7 @@ struct sockaddr_in servaddr, cliaddr;
 void* udp_socket(void* pointer)
 {
     printf("Thread is going\n");
-    char *pnt = buffer;
+    void *pnt = buffer;
     int ident = *(int *)pnt;
     /*
     printf("ident in Thread is %d\n", ident);
@@ -102,7 +104,6 @@ void  main() {
     /*передаем указатель на структуру с данными клиента*/
     struct sockaddr_in *pnt = dub_array;
 
-    char *pont = buffer;
 
     //получаем пакет от клиента
 
@@ -117,6 +118,7 @@ void  main() {
         n = recvfrom(sockfd, buffer, MAXLINE,
                      MSG_WAITALL, ( struct sockaddr *) &cliaddr,
                      &len);
+        void * pont = buffer;
         /*вытаскиваем идентификатор*/
         int ident_client = *(int *)pont;
         printf("in main ident_client is %d\n", ident_client);
