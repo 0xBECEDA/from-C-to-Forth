@@ -22,7 +22,8 @@ void move_box_right( int &X, int &Y);
 void move_box_down( int &X, int &Y);
 void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
-void show_box (int box_x, int box_y, int red, int green, int blue);
+void show_box (int box_x, int box_y, int red,
+               int green, int blue);
 void show_pixels();
 void deserialization(void * input);
 void * serialization();
@@ -43,11 +44,12 @@ int R = 0;
 int G = 0;
 int B = 0;
 
-/* ? */
+/* показывает, сколько пикселей съедено */
 int numpix = 0;
+
 int RGBcolor = 0;
 
-/* координаты */
+/* размер сторон квадратика */
 int pix_y = 10;
 int pix_x = 10;
 //int l = 0;
@@ -78,7 +80,7 @@ struct box
     int d;
 };
 
-/* ? */
+/* массив для квадратика */
 struct box pixels_box[100];
 
 /* структура для квадратика */
@@ -95,10 +97,14 @@ struct sockaddr_in servaddr;
 /* отражает кол-во найденных рандомно закрашенных пикселей */
 int ColorPixel = 0;
 
+/* объявление мьютекса */
+pthread_mutex_t mutex;
+
 /* Инициализация SDL */
 bool init()
 {
-    // если SDL_Init c SDL_INIT VIDEO в качестве параметра меньше нуля,
+    /* если SDL_Init c SDL_INIT VIDEO в
+       качестве параметра меньше нуля, */
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
         printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
         return false;
@@ -448,13 +454,16 @@ bool no_more_space = false;
    - no_more_space
  */
 void PixelArray () {
+
+    pthread_mutex_lock(&mutex);
+    printf("mutex в PixelArray залочен\n");
     //получаем координаты
-    // printf("a is %d, b is %d\n", a, b);
     a = rand() % 500;
     b = rand() % 500;
 
     // Цикл, который перебирает массив. Если находит пустое место,
     // записывает структуру
+
     int i; // счетчик цикла
     for (i=0; i<=100; i++) {
         //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
@@ -478,15 +487,17 @@ void PixelArray () {
             break;
         }
     }
-    // Если после окончания цикла i равен максимальному значению
-    // переменной цикла - значит весь массив перебрали, но не нашли
-    // свободной структуры
+    /* Если после окончания цикла i равен максимальному значению
+       переменной цикла - значит весь массив перебрали,
+       но не нашли свободной структуры */
     if (i == 100) {
         if (!no_more_space) {
             printf("::::::::::::::: No space found! \n");
             no_more_space = true;
         }
     }
+    pthread_mutex_unlock(&mutex);
+    printf("mutex в PixelArray разлочен\n");
 }
 
 /*
@@ -857,8 +868,12 @@ void* udp_socket(void* pointer)
 {
     while (true) {
         printf("{::udp_socket()\n");
+        /*судя по выводу printf в PixelArray(),
+          за время "сна" udp-потока, цикл отрабатывает 6 раз*/
         usleep(10000); // sleep for 0.01 sec
-        /* сериализуем данные */
+
+        /* сериализуем данные
+           по какой-то причине в память ничего не записывается*/
         void *buffer = serialization();
         printf("returned pointer after serial is %X\n", buffer);
 
@@ -880,7 +895,11 @@ void* udp_socket(void* pointer)
                      (socklen_t *)&len);
         if(-1 == received) {
             printf("Error: Receive datagramm. Is server running?\n");
-            //exit(EXIT_FAILURE);
+            /* закоммитила выход, поскольку сокет
+               в неблокирующем режиме, и как только
+               принятый пакет отсутствует, мы вылетаем */
+
+               //exit(EXIT_FAILURE);
         }
 
         printf("пакет был принят %d bytes\n", (int)received);
@@ -968,21 +987,21 @@ void * serialization()
     /* сериализуем рандомные пиксели */
     memcpy(udp_buffer, pixels, sizeof(pixels));
     printf("serialization():\n");
-    print_buffer(udp_buffer, 3500);
+
+    //print_buffer(udp_buffer, 3500);
+
     /*возвращаем указатель на буфер*/
     return pnt;
 }
-// инициалиация мьютекса
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int desc_mutex = pthread_mutex_init(&mutex, NULL);
+
 void deserialization (void * input)
 {
-    printf("mutex is %d\n",  desc_mutex);
+      printf("mutex is %d\n", mutex);
 
-    if ( desc_mutex < 0 ) {
-        printf("мьютекс не инициализирован, код ошибки %d\n",
-               desc_mutex);
-    }
+    //if ( desc_mutex < 0 ) {
+    //  printf("мьютекс не инициализирован, код ошибки %d\n",
+    //         desc_mutex);
+    // }
     void * buffer = input;
     /*сохраняем неизмененный указатель*/
     void * pnt = input;
@@ -1008,6 +1027,7 @@ void deserialization (void * input)
      /* закрываем мьютекс здесь,
        т.к. это критическая секция кода*/
     pthread_mutex_lock(&mutex);
+    printf("mutex в deserial залочен\n");
     while (j <=99) {
         //printf("..........\n");
         pixels[j].alive = *(bool *)buffer;
@@ -1024,12 +1044,10 @@ void deserialization (void * input)
 
     /* откываем мьютекс после выхода из цикла*/
     pthread_mutex_unlock(&mutex);
-
+    printf("mutex в deserial разлочен\n");
     /* освобождаем место в памяти */
-    //printf("до вызова free()\n");
     free(pnt);
     printf("десериализация прошла успешно\n");
-    // printf("...........\n");
 }
 
 /*
@@ -1074,6 +1092,9 @@ int main( int argc, char* args[] )
         // печатаем сообщение об ошибке, если инициализация не удалась
         printf( "Failed to initialize surface!\n" );
     }
+
+    mutex = PTHREAD_MUTEX_INITIALIZER;
+
     /* вызываем квадратик */
     SDL_LockSurface(surface);
     show_box(X, Y, 0, 0, 0);
