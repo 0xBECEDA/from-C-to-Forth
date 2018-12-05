@@ -975,7 +975,7 @@ void* serialization()
        но править не стал
        - я выделила память с запасом, вдруг помимо массива с пикселями
        и квадратиком добавится что-то еще*/
-    void * udp_buffer = malloc(3500);
+    void * udp_buffer = malloc(sizeof(int) + sizeof(pixels_box) + sizeof(pixels));
 
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
@@ -990,15 +990,28 @@ void* serialization()
 
     /* сериализуем квадратик - нафига, если нам
        только его координат достаточно для отрисовки?
-      - за тем, что когда речь зашла об udp и как передать квадратик,
-       мы опять вернулись к структуре. Ты сказал, что так лучше.
-       Я задолбалась то убирать структуру квадратика, то возвращать.
+      - за тем, что когда речь зашла об udp и
+       как передать квадратик, мы опять вернулись к структуре.
+       Ты сказал, что так лучше.
+       Я задолбалась то убирать структуру квадратика,
+       то возвращать.
        Это уже четвертый раз */
     memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
     udp_buffer += sizeof(pixels_box);
 
     /* сериализуем pixels */
     memcpy(udp_buffer, pixels, sizeof(pixels));
+    udp_buffer += sizeof(pixels);
+
+    printf("buffer after serial pixels is  0x%X\n", udp_buffer);
+    printf("pixels size is %d\n", sizeof(pixels));
+
+    /*НЕ ЗАБУДЬ УБРАТЬ ЭТУ СТРОКУ!
+      перед тем, как раскомментить это, акомменть строку 996*/
+    // udp_buffer += sizeof(bool);
+    //printf("pixels_enemy[0].d is %d, in bufer pixels_enemy[0].d is %d\n", pixels_enemy[0].d, *(int*)udp_buffer);
+
+    //print_buffer(udp_buffer, 4);
 
     /*возвращаем указатель на буфер*/
     return pnt;
@@ -1015,7 +1028,7 @@ void deserialization (void * input)
     void * buffer = input;
     /*сохраняем неизмененный указатель*/
     void * pnt = input;
-    printf("pointer-buffer in  deserial is %X\n", buffer);
+    printf("pointer-buffer in beginning of deserial is %X\n", buffer);
     int i = 0;
     /*пропускаем идентификатор, он нам не нужен*/
     int ident = *(int *)buffer;
@@ -1030,8 +1043,8 @@ void deserialization (void * input)
         buffer += sizeof(int);
         i++;
     }
-    // printf("первый while прошел успешно\n");
-    // printf("buffer after while in  deserial is %X\n", buffer);
+    // printf(" pixels_enemy[99].c is %d, main_character[99].c is %d\n", pixels_enemy[99].c, pixels_box[99].c);
+    printf("buffer after deserialization of pixels_enemy is %X\n", buffer);
     int j = 0;
      /* десериализуем пиксели */
      /* закрываем мьютекс здесь,
@@ -1051,7 +1064,7 @@ void deserialization (void * input)
         //printf("buffer in %d iteration is %X\n", j, buffer);
         j++;
     }
-
+    printf("after all deserialization buffer is %X\n", buffer);
     /* откываем мьютекс после выхода из цикла*/
     pthread_mutex_unlock(&mutex);
     printf("mutex в deserial разлочен\n");
