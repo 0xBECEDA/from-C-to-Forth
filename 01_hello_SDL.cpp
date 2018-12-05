@@ -453,8 +453,9 @@ bool no_more_space = false;
    - pixels
    - no_more_space
  */
-void PixelArray () {
-
+void PixelArray ()
+{
+    printf("хочу залочить mutex в PixelArray\n");
     pthread_mutex_lock(&mutex);
     printf("mutex в PixelArray залочен\n");
     //получаем координаты
@@ -841,6 +842,15 @@ void Handle_Keydown(SDL_Keysym* keysym)
 }
 
 
+void print_buffer(void *buf, int len)
+{
+    printf("[ ");
+    for(int i=0; i<len; i++) {
+        printf("%02hhX ", *(char* )(buf+i));
+    }
+    printf("]\n");
+}
+
 /*
    Функция потока отрисовки
    В бесконечном цикле он отрисовывает пиксели на экране,
@@ -867,15 +877,19 @@ int counter_for_while = 1;
 void* udp_socket(void* pointer)
 {
     while (true) {
-        printf("{::udp_socket()\n");
         /*судя по выводу printf в PixelArray(),
           за время "сна" udp-потока, цикл отрабатывает 6 раз*/
+        printf("::udp_socket():: before sleep\n");
         usleep(10000); // sleep for 0.01 sec
 
         /* сериализуем данные
            по какой-то причине в память ничего не записывается*/
         void *buffer = serialization();
-        printf("returned pointer after serial is %X\n", buffer);
+        printf("::udp_socket():: returned pointer after serial is 0x%X\n", buffer);
+
+        /* Выводить буфер надо от его начала а не с конца */
+        printf("::udp_socket():: serializad data:\n");
+        print_buffer(buffer, 3500);
 
         socklen_t len = sizeof(servaddr);
 
@@ -884,32 +898,31 @@ void* udp_socket(void* pointer)
                    (const struct sockaddr *) &servaddr,
                    sizeof(servaddr));
         if(-1 == sended) {
-            printf("Error: Send datagramm\n");
+            printf("::udp_socket():: Error: Send datagramm\n");
             exit(EXIT_FAILURE);
         }
-        printf("пакет был отправлен %d bytes\n", (int)sended);
+        printf("::udp_socket():: пакет был отправлен %d bytes\n", (int)sended);
         /* получаем данные */
         ssize_t received =
             recvfrom(sockfd, buffer, 100, MSG_WAITALL,
                      (struct sockaddr *) &servaddr,
                      (socklen_t *)&len);
         if(-1 == received) {
-            printf("Error: Receive datagramm. Is server running?\n");
+            printf("::udp_socket():: Error: Receive datagramm. Is server running?\n");
             /* закоммитила выход, поскольку сокет
                в неблокирующем режиме, и как только
                принятый пакет отсутствует, мы вылетаем */
 
                //exit(EXIT_FAILURE);
+        } else {
+            printf("::udp_socket():: пакет был принят %d bytes\n", (int)received);
         }
-
-        printf("пакет был принят %d bytes\n", (int)received);
 
         /* десериализуем полученные данные ERROR HERE */
         deserialization(buffer);
 
-        // printf("цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
+        printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
         counter_for_while++;
-        printf("\n:}\n");
     }
 }
 
@@ -950,32 +963,31 @@ pthread_t udp_init()
 }
 
 
-void print_buffer(void *buf, int len)
-{
-    printf("[ ");
-    for(int i=0; i<len; i++) {
-        printf("%02hhx ", *(char* )(buf+i));
-    }
-    printf("]\n");
-}
-
-void * serialization()
+/*
+   Сериализует рандомный идентификатор, квадратик и pixels_box в
+   буфер, который выделяет.
+   Возвращает указатель на выделеный буфер
+   Использует глобальные переменные: - udp_buffer
+ */
+void* serialization()
 {
     /* тут нужен правильный sizeof а не 3500,
        но править не стал
        - я выделила память с запасом, вдруг помимо массива с пикселями
        и квадратиком добавится что-то еще*/
     void * udp_buffer = malloc(3500);
-    printf("udp_buffer is %X\n", udp_buffer);
+
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
+
     /* создаем идентификатор */
     srand(time(NULL));
     int ident = rand() % 500;
-    /* сериализуем идентификатор квадратика */
 
+    /* сериализуем идентификатор квадратика */
     memcpy(udp_buffer, &ident, sizeof(int));
     udp_buffer += sizeof(ident);
+
     /* сериализуем квадратик - нафига, если нам
        только его координат достаточно для отрисовки?
       - за тем, что когда речь зашла об udp и как передать квадратик,
@@ -984,11 +996,9 @@ void * serialization()
        Это уже четвертый раз */
     memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
     udp_buffer += sizeof(pixels_box);
-    /* сериализуем рандомные пиксели */
-    memcpy(udp_buffer, pixels, sizeof(pixels));
-    printf("serialization():\n");
 
-    //print_buffer(udp_buffer, 3500);
+    /* сериализуем pixels */
+    memcpy(udp_buffer, pixels, sizeof(pixels));
 
     /*возвращаем указатель на буфер*/
     return pnt;
