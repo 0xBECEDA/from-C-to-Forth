@@ -28,6 +28,9 @@ void show_pixels();
 void deserialization(void * input);
 void * serialization();
 
+/* объявление мьютекса */
+pthread_mutex_t mutex;
+
 /* окно, которое мы показываем */
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -96,9 +99,6 @@ struct sockaddr_in servaddr;
 
 /* отражает кол-во найденных рандомно закрашенных пикселей */
 int ColorPixel = 0;
-
-/* объявление мьютекса */
-pthread_mutex_t mutex;
 
 /* Инициализация SDL */
 bool init()
@@ -390,58 +390,34 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 }
 
 
-/* не вызывается без соответствующей команды с клавы "3" */
 void move_box_right ( int &X, int &Y)
 {
-
     show_box(X, Y, 0, 0, 0);
-
     X++;
-
-    // отрисовываю с новыми координатами
     show_box(X, Y, 255, 255, 255);
-
-
 }
 
 void move_box_left ( int &X, int &Y)
 {
-
     show_box(X, Y, 0, 0, 0);
-
     X--;
-
-    // отрисовываю с новыми координатами
     show_box(X, Y, 255, 255, 255);
-
 }
 
 void move_box_down ( int &X, int &Y)
 {
-
     show_box(X, Y, 0, 0, 0);
-
-    //двигаем квадратик вниз
-     Y++;
-
+    Y++;
     show_box(X, Y, 255, 255, 255);
-
 }
 
 void move_box_up ( int &X, int &Y)
 {
-
     show_box(X, Y, 0, 0, 0);
-    //двигаем квадратик вверх
-
     Y--;
-    // отрисовываю с новыми координатами
-
     show_box(X, Y, 255, 255, 255);
 }
 
-
-//заполняет массив пикселей
 
 // флаг сообщающий об исчерпании структур в массиве
 // чтобы не выводить "No more space" раз за разом
@@ -455,16 +431,19 @@ bool no_more_space = false;
  */
 void PixelArray ()
 {
-    printf("хочу залочить mutex в PixelArray\n");
-    pthread_mutex_lock(&mutex);
-    printf("mutex в PixelArray залочен\n");
+    /* mutex lock */
+    printf("хочу залочить mutex 0x%X в PixelArray\n", &mutex);
+    if(0 != pthread_mutex_lock(&mutex)) {
+        perror("pthread_mutex_lock failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("mutex в PixelArray 0x%X залочен\n", &mutex);
     //получаем координаты
     a = rand() % 500;
     b = rand() % 500;
 
     // Цикл, который перебирает массив. Если находит пустое место,
     // записывает структуру
-
     int i; // счетчик цикла
     for (i=0; i<=100; i++) {
         //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
@@ -497,8 +476,13 @@ void PixelArray ()
             no_more_space = true;
         }
     }
-    pthread_mutex_unlock(&mutex);
-    printf("mutex в PixelArray разлочен\n");
+
+    /* mutex unlock */
+    if(0 != pthread_mutex_unlock(&mutex)) {
+        perror("pthread_mutex_lock failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("mutex в PixelArray 0x%X разлочен\n", &mutex);
 }
 
 /*
@@ -1023,59 +1007,65 @@ void* serialization()
     return pnt;
 }
 
-void deserialization (void * input)
+void deserialization (void *input)
 {
-    printf("::deserialization():: mutex is 0x%X\n", mutex);
-
-    /*сохраняем неизмененный указатель*/
-    void * pnt = input;
+    /* закрываем мьютекс здесь,
+       т.к. это критическая секция кода*/
+    if(0 != pthread_mutex_lock(&mutex)) {
+        perror("pthread_mutex_lock failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("::deserialization():: mutex 0x%X залочен\n", &mutex);
 
     void * buffer = input;
     printf("::deserialization():: pointer-buffer in beginning of deserial is %X\n", buffer);
 
     int i = 0;
+
     /*пропускаем идентификатор, он нам не нужен*/
     int ident = *(int *)buffer;
     printf("::deserialization():: ident is %d\n", ident);
     buffer += sizeof(int);
     printf("::deserialization():: buffer after  deserial ident is %X\n", buffer);
 
-    // /*десериализуем данные врага*/
+    /*десериализуем данные врага*/
     while ( i <= 99) {
-    //     pixels_enemy[i].c = *(int *)buffer;
+        pixels_enemy[i].c = *(int *)buffer; // ?
         buffer += sizeof(int);
-    //     pixels_enemy[i].d = *(int *)buffer;
+        pixels_enemy[i].d = *(int *)buffer; // ?
         buffer += sizeof(int);
-    //     i++;
+        i++;
     }
-    printf("::deserialization():: pixels_enemy[99].c is %d, main_character[99].c is %d\n", pixels_enemy[99].c, pixels_box[99].c);
-    printf("::deserialization():: buffer after deserialization of pixels_enemy is %X\n", buffer);
+    printf("::deserialization():: pixels_enemy[99].c is %d, main_character[99].c is %d\n",
+           pixels_enemy[99].c, pixels_box[99].c);
+    printf("::deserialization():: buffer after deserialization of pixels_enemy is %X\n",
+           buffer);
     int j = 0;
-    // /* десериализуем пиксели */
-    // /* закрываем мьютекс здесь,
-    //    т.к. это критическая секция кода*/
-    // pthread_mutex_lock(&mutex);
-    // printf("::deserialization():: mutex в deserial залочен\n");
+    /* десериализуем пиксели */
     while (j <=99) {
-    //     //printf("..........\n");
-    //     pixels[j].alive = *(bool *)buffer;
+        printf("..........\n");
+          // pixels[j].alive = *(bool *)buffer; // ?
         buffer += sizeof(bool);
-    //     //printf("buffer in %d iteration is %X\n", j, buffer);
-    //     pixels[j].c = *(int *)buffer;
+        printf("buffer in %d iteration is %X\n", j, buffer);
+          // pixels[j].c = *(int *)buffer; // ?
         buffer += sizeof(int);
-    //     //printf("buffer in %d iteration is %X\n", j, buffer);
-    //     pixels[j].d = *(int *)buffer;
+        printf("buffer in %d iteration is %X\n", j, buffer);
+          // pixels[j].d = *(int *)buffer; // ?
         buffer += sizeof(int);
-    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+        printf("buffer in %d iteration is %X\n", j, buffer);
         j++;
     }
     printf("::deserialization():: after all deserialization buffer is %X\n", buffer);
-    // /* откываем мьютекс после выхода из цикла*/
-    // pthread_mutex_unlock(&mutex);
-    // printf("::deserialization():: mutex в deserial разлочен\n");
 
     /* освобождаем место в памяти */
-    free(pnt);
+    free(input);
+
+    /* откываем мьютекс после выхода из цикла*/
+    if(0 != pthread_mutex_unlock(&mutex)) {
+        perror("pthread_mutex_lock failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("::deserialization():: mutex 0x%X разлочен\n", &mutex);
     printf("::deserialization():: десериализация прошла успешно\n");
 }
 
@@ -1122,7 +1112,12 @@ int main( int argc, char* args[] )
         printf( "Failed to initialize surface!\n" );
     }
 
-    mutex = PTHREAD_MUTEX_INITIALIZER;
+    if (0 != pthread_mutex_init(&mutex, NULL)) {
+        perror("Error: pthread_mutex_init failed");
+        exit(EXIT_FAILURE);
+    } else {
+        printf("mutex initialized 0x%X\n", &mutex);
+    }
 
     /* вызываем квадратик */
     SDL_LockSurface(surface);
