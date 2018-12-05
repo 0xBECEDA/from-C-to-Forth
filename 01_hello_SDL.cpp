@@ -881,9 +881,12 @@ void* udp_socket(void* pointer)
           за время "сна" udp-потока, цикл отрабатывает 6 раз*/
         printf("::udp_socket():: before sleep\n");
         usleep(10000); // sleep for 0.01 sec
+        printf("::udp_socket():: after sleep\n");
 
         /* сериализуем данные*/
+        printf("::udp_socket():: before serialization\n");
         void *buffer = serialization();
+        printf("::udp_socket():: after serialization\n");
         printf("::udp_socket():: returned pointer after serial is 0x%X\n", buffer);
 
         /* Выводить буфер надо от его начала а не с конца */
@@ -918,7 +921,9 @@ void* udp_socket(void* pointer)
         }
 
         /* десериализуем полученные данные ERROR HERE */
+        printf("::udp_socket():: before DEserialization\n");
         deserialization(buffer);
+        printf("::udp_socket():: after DEserialization\n");
 
         printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
         counter_for_while++;
@@ -978,7 +983,7 @@ void* serialization()
 
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
-    printf("buffer in beginning serial is  0x%X\n", udp_buffer);
+    printf("::serialization():: buffer in beginning serial is  0x%X\n", udp_buffer);
     /* создаем идентификатор */
     srand(time(NULL));
     int ident = rand() % 500;
@@ -986,7 +991,7 @@ void* serialization()
     /* сериализуем идентификатор квадратика */
     memcpy(udp_buffer, &ident, sizeof(int));
     udp_buffer += sizeof(ident);
-    printf("buffer after serial ident is  0x%X\n", udp_buffer);
+    printf("::serialization():: buffer after serial ident is  0x%X\n", udp_buffer);
     /* сериализуем квадратик - нафига, если нам
        только его координат достаточно для отрисовки?
       - за тем, что когда речь зашла об udp и
@@ -997,13 +1002,13 @@ void* serialization()
        Это уже четвертый раз */
     memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
     udp_buffer += sizeof(pixels_box);
-    printf("buffer after serial pixels_box is  0x%X\n", udp_buffer);
+    printf("::serialization():: buffer after serial pixels_box is  0x%X\n", udp_buffer);
     /* сериализуем pixels */
     memcpy(udp_buffer, pixels, sizeof(pixels));
     udp_buffer += sizeof(pixels);
 
-    printf("buffer after serial pixels is  0x%X\n", udp_buffer);
-    printf("pixels size is %d\n", sizeof(pixels));
+    printf("::serialization():: buffer after serial pixels is  0x%X\n", udp_buffer);
+    printf("::serialization():: pixels size is %d\n", sizeof(pixels));
 
     /*НЕ ЗАБУДЬ УБРАТЬ ЭТУ СТРОКУ ПОТОМ!
       перед тем, как раскомментить это, закомменть строку 1003*/
@@ -1018,18 +1023,18 @@ void* serialization()
 
 void deserialization (void * input)
 {
-    printf("mutex is %d\n", mutex);
+    printf("::deserialization():: mutex is %d\n", mutex);
 
     void * buffer = input;
     /*сохраняем неизмененный указатель*/
     void * pnt = input;
-    printf("pointer-buffer in beginning of deserial is %X\n", buffer);
+    printf("::deserialization():: pointer-buffer in beginning of deserial is %X\n", buffer);
     int i = 0;
     /*пропускаем идентификатор, он нам не нужен*/
     int ident = *(int *)buffer;
     // printf("ident is %d\n", ident);
     buffer += sizeof(int);
-    printf("buffer after  deserial ident is %X\n", buffer);
+    printf("::deserialization():: buffer after  deserial ident is %X\n", buffer);
     /*десериализуем данные врага*/
     while ( i <= 99) {
         pixels_enemy[i].c = *(int *)buffer;
@@ -1038,14 +1043,14 @@ void deserialization (void * input)
         buffer += sizeof(int);
         i++;
     }
-    // printf(" pixels_enemy[99].c is %d, main_character[99].c is %d\n", pixels_enemy[99].c, pixels_box[99].c);
-    printf("buffer after deserialization of pixels_enemy is %X\n", buffer);
+    printf("::deserialization():: pixels_enemy[99].c is %d, main_character[99].c is %d\n", pixels_enemy[99].c, pixels_box[99].c);
+    printf("::deserialization():: buffer after deserialization of pixels_enemy is %X\n", buffer);
     int j = 0;
     /* десериализуем пиксели */
     /* закрываем мьютекс здесь,
        т.к. это критическая секция кода*/
     pthread_mutex_lock(&mutex);
-    printf("mutex в deserial залочен\n");
+    printf("::deserialization():: mutex в deserial залочен\n");
     while (j <=99) {
         //printf("..........\n");
         pixels[j].alive = *(bool *)buffer;
@@ -1059,13 +1064,13 @@ void deserialization (void * input)
         //printf("buffer in %d iteration is %X\n", j, buffer);
         j++;
     }
-    printf("after all deserialization buffer is %X\n", buffer);
+    printf("::deserialization():: after all deserialization buffer is %X\n", buffer);
     /* откываем мьютекс после выхода из цикла*/
     pthread_mutex_unlock(&mutex);
-    printf("mutex в deserial разлочен\n");
+    printf("::deserialization():: mutex в deserial разлочен\n");
     /* освобождаем место в памяти */
     free(pnt);
-    printf("десериализация прошла успешно\n");
+    printf("::deserialization():: десериализация прошла успешно\n");
 }
 
 /*
