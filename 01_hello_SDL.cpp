@@ -922,7 +922,7 @@ void* udp_socket(void* pointer)
 
         /* десериализуем полученные данные ERROR HERE */
         printf("::udp_socket():: before DEserialization\n");
-        deserialization(buffer);
+        // deserialization(buffer);
         printf("::udp_socket():: after DEserialization\n");
 
         printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
