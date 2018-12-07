@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+//#include <stdbool.h>
 #include <signal.h>
 #include <time.h>
 #include <unistd.h>
@@ -28,9 +29,6 @@ void show_pixels();
 void deserialization(void * input);
 void * serialization();
 
-/* объявление мьютекса */
-pthread_mutex_t mutex;
-
 /* окно, которое мы показываем */
 SDL_Window* gWindow = NULL;
 SDL_Surface* surface = NULL;
@@ -55,7 +53,6 @@ int RGBcolor = 0;
 /* размер сторон квадратика */
 int pix_y = 10;
 int pix_x = 10;
-//int l = 0;
 
 /* координаты для show_pixels и структур пикселей */
 int a = 0;
@@ -65,10 +62,12 @@ int b = 0;
 int X = 0;
 int Y = 0;
 
+/*идентификатор игрока-клиента*/
+int identificator;
 /* объявление структуры и массива структуры для пикселей */
 struct pixel
 {
-    bool alive = false;
+    char alive = 0;
     int c;
     int d;
 } pixels[100];
@@ -99,6 +98,9 @@ struct sockaddr_in servaddr;
 
 /* отражает кол-во найденных рандомно закрашенных пикселей */
 int ColorPixel = 0;
+
+/* объявление мьютекса */
+pthread_mutex_t mutex;
 
 /* Инициализация SDL */
 bool init()
@@ -390,34 +392,58 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 }
 
 
+/* не вызывается без соответствующей команды с клавы "3" */
 void move_box_right ( int &X, int &Y)
 {
+
     show_box(X, Y, 0, 0, 0);
+
     X++;
+
+    // отрисовываю с новыми координатами
     show_box(X, Y, 255, 255, 255);
+
+
 }
 
 void move_box_left ( int &X, int &Y)
 {
+
     show_box(X, Y, 0, 0, 0);
+
     X--;
+
+    // отрисовываю с новыми координатами
     show_box(X, Y, 255, 255, 255);
+
 }
 
 void move_box_down ( int &X, int &Y)
 {
+
     show_box(X, Y, 0, 0, 0);
-    Y++;
+
+    //двигаем квадратик вниз
+     Y++;
+
     show_box(X, Y, 255, 255, 255);
+
 }
 
 void move_box_up ( int &X, int &Y)
 {
+
     show_box(X, Y, 0, 0, 0);
+    //двигаем квадратик вверх
+
     Y--;
+    // отрисовываю с новыми координатами
+
     show_box(X, Y, 255, 255, 255);
 }
 
+
+//заполняет массив пикселей
 
 // флаг сообщающий об исчерпании структур в массиве
 // чтобы не выводить "No more space" раз за разом
@@ -431,26 +457,23 @@ bool no_more_space = false;
  */
 void PixelArray ()
 {
-    /* mutex lock */
-    printf("хочу залочить mutex 0x%X в PixelArray\n", &mutex);
-    if(0 != pthread_mutex_lock(&mutex)) {
-        perror("pthread_mutex_lock failed");
-        exit(EXIT_FAILURE);
-    }
-    printf("mutex в PixelArray 0x%X залочен\n", &mutex);
+    printf("хочу залочить mutex в PixelArray\n");
+    pthread_mutex_lock(&mutex);
+    printf("mutex в PixelArray залочен\n");
     //получаем координаты
     a = rand() % 500;
     b = rand() % 500;
 
     // Цикл, который перебирает массив. Если находит пустое место,
     // записывает структуру
+
     int i; // счетчик цикла
     for (i=0; i<=100; i++) {
         //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
         //вытаскиваем структуру из массива
         concrete_pixel = pixels[i];
         //если alive = 0;
-        if(concrete_pixel.alive == false)
+        if(concrete_pixel.alive == 0)
         {
             // заполняем структуру
             concrete_pixel.c = a;
@@ -458,7 +481,7 @@ void PixelArray ()
             //printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",
             //concrete_pixel.c,
             // concrete_pixel.d);
-            concrete_pixel.alive = true;
+            concrete_pixel.alive = 1;
             //printf("concrete_pixel.alive is %d\n",
             //       concrete_pixel.alive);
             //возвращаем структуру в массив
@@ -476,13 +499,8 @@ void PixelArray ()
             no_more_space = true;
         }
     }
-
-    /* mutex unlock */
-    if(0 != pthread_mutex_unlock(&mutex)) {
-        perror("pthread_mutex_lock failed");
-        exit(EXIT_FAILURE);
-    }
-    printf("mutex в PixelArray 0x%X разлочен\n", &mutex);
+    pthread_mutex_unlock(&mutex);
+    printf("mutex в PixelArray разлочен\n");
 }
 
 /*
@@ -506,8 +524,18 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
             pixels_box[cnt] = main_character;
             pixels_box[cnt++];
             DrawPixel(surface, i, j, red, green, blue);
+
         }
     }
+    SDL_UpdateWindowSurface( gWindow );
+}
+
+void show_enemy() {
+    for (int i = 0; i <=99; i++) {
+        DrawPixel(surface, pixels_enemy[i].c, pixels_enemy[i].d,
+                  255, 0, 0);
+    }
+//    SDL_UpdateWindowSurface( gWindow );
 }
 
 /*
@@ -528,15 +556,16 @@ void show_pixels()
     SDL_LockSurface(surface);
     for (i; i <= 99; i++) {
 
-        if (pixels[i].alive == true) {
+        if (pixels[i].alive == 1) {
             DrawPixel(surface, pixels[i].c,
                       pixels[i].d, R, G, B);
         }
         //отрисовка "врага"
-        /*
-        DrawPixel(surface, pixels_enemy[i].c,
-                  pixels_enemy[i].d, 255, 0, 0);
-        */
+
+        /* DrawPixel(surface, pixels_enemy[i].c,
+           pixels_enemy[i].d, 255, 0, 0); */
+        // printf("pixels_enemy[i].c %d, pixels_enemy[i].d %d, i %d\n", pixels_enemy[i].c, pixels_enemy[i].d, i);
+
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -580,7 +609,7 @@ void check_pixels_right()
             }
 
             // помечаем структуру съеденного пикселя как пустую
-            concrete_pixel.alive = false;
+            concrete_pixel.alive = 0;
             //загружаем структуру в массив
             pixels[i] =  concrete_pixel;
 
@@ -630,7 +659,7 @@ void check_pixels_left()
                 //pix_y, pix_x);
             }
             // помечаем структуру съеденного пикселя как пустую
-            concrete_pixel.alive = false;
+            concrete_pixel.alive = 0;
             //загружаем структуру в массив
             pixels[i] =  concrete_pixel;
 
@@ -676,7 +705,7 @@ void check_pixels_down()
                 //pix_y, pix_x);
             }
             // помечаем структуру съеденного пикселя как пустую
-            concrete_pixel.alive = false;
+            concrete_pixel.alive = 0;
             //загружаем структуру в массив
             pixels[i] =  concrete_pixel;
 
@@ -728,7 +757,7 @@ void check_pixels_up()
             }
 
             // помечаем структуру съеденного пикселя как пустую
-            concrete_pixel.alive = false;
+            concrete_pixel.alive = 0;
             //загружаем структуру в массив
             pixels[i] =  concrete_pixel;
         }
@@ -846,6 +875,7 @@ void* threadFunc(void* thread_data)
         // printf(".");
         fflush(stdout);
         show_pixels();
+        show_enemy();
         usleep(10000); // sleep for 0.01 sec
     }
 }
@@ -863,18 +893,18 @@ void* udp_socket(void* pointer)
     while (true) {
         /*судя по выводу printf в PixelArray(),
           за время "сна" udp-потока, цикл отрабатывает 6 раз*/
-        printf("::udp_socket():: before sleep\n");
+        //printf("::udp_socket():: before sleep\n");
         usleep(10000); // sleep for 0.01 sec
-        printf("::udp_socket():: after sleep\n");
+        //printf("::udp_socket():: after sleep\n");
 
         /* сериализуем данные*/
-        printf("::udp_socket():: before serialization\n");
+        //printf("::udp_socket():: before serialization\n");
         void *buffer = serialization();
-        printf("::udp_socket():: after serialization\n");
-        printf("::udp_socket():: returned pointer after serial is 0x%X\n", buffer);
+        //printf("::udp_socket():: after serialization\n");
+        //printf("::udp_socket():: returned pointer after serial is 0x%X\n", buffer);
 
         /* Выводить буфер надо от его начала а не с конца */
-        printf("::udp_socket():: serializad data:\n");
+        //printf("::udp_socket():: serializad data:\n");
         //print_buffer(buffer, 3500);
 
         socklen_t len = sizeof(servaddr);
@@ -885,11 +915,9 @@ void* udp_socket(void* pointer)
                    sizeof(servaddr));
         if(-1 == sended) {
             printf("::udp_socket():: Error: Send datagramm\n");
-            /* Временно закомментировано, чтобы избежать падения
-               в отсутствии сервера */
-            // exit(EXIT_FAILURE);
+            exit(EXIT_FAILURE);
         }
-        printf("::udp_socket():: пакет был отправлен %d bytes\n", (int)sended);
+        // printf("::udp_socket():: пакет был отправлен %d bytes\n", (int)sended);
         /* получаем данные */
         ssize_t received =
             recvfrom(sockfd, buffer, 100, MSG_WAITALL,
@@ -907,11 +935,11 @@ void* udp_socket(void* pointer)
         }
 
         /* десериализуем полученные данные ERROR HERE */
-        printf("::udp_socket():: before DEserialization\n");
-        // deserialization(buffer);
-        printf("::udp_socket():: after DEserialization\n");
+        //  printf("::udp_socket():: before DEserialization\n");
+        deserialization(buffer);
+        // printf("::udp_socket():: after DEserialization\n");
 
-        printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
+        // printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
         counter_for_while++;
     }
 }
@@ -969,15 +997,12 @@ void* serialization()
 
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
-    printf("::serialization():: buffer in beginning serial is  0x%X\n", udp_buffer);
-    /* создаем идентификатор */
-    srand(time(NULL));
-    int ident = rand() % 500;
+    // printf("::serialization():: buffer in beginning serial is  0x%X\n", udp_buffer);
 
     /* сериализуем идентификатор квадратика */
-    memcpy(udp_buffer, &ident, sizeof(int));
-    udp_buffer += sizeof(ident);
-    printf("::serialization():: buffer after serial ident is  0x%X\n", udp_buffer);
+    memcpy(udp_buffer, &identificator, sizeof(int));
+    udp_buffer += sizeof(identificator);
+    //printf("::serialization():: buffer after serial ident is  0x%X\n", udp_buffer);
     /* сериализуем квадратик - нафига, если нам
        только его координат достаточно для отрисовки?
       - за тем, что когда речь зашла об udp и
@@ -988,109 +1013,85 @@ void* serialization()
        Это уже четвертый раз */
     memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
     udp_buffer += sizeof(pixels_box);
-    printf("::serialization():: buffer after serial pixels_box is  0x%X\n", udp_buffer);
-    /* сериализуем pixels */
-    memcpy(udp_buffer, pixels, sizeof(pixels));
-    udp_buffer += sizeof(pixels);
+    //printf("::serialization():: buffer after serial pixels_box is  0x%X\n", udp_buffer);
 
-    printf("::serialization():: buffer after serial pixels is  0x%X\n", udp_buffer);
-    printf("::serialization():: pixels size is %d\n", sizeof(pixels));
+    /* сериализуем pixels вручную*/
 
-    /*НЕ ЗАБУДЬ УБРАТЬ ЭТУ СТРОКУ ПОТОМ!
-      перед тем, как раскомментить это, закомменть строку 1003*/
-    // udp_buffer += sizeof(bool);
-    //printf("pixels_enemy[0].d is %d, in bufer pixels_enemy[0].d is %d\n", pixels_enemy[0].d, *(int*)udp_buffer);
+    void *p = udp_buffer;
 
-    //print_buffer(udp_buffer, 4);
+    for (int i = 0; i <=99; i++) {
+
+        *(char*)udp_buffer = pixels[i].alive;
+        udp_buffer += sizeof(char);
+        *(int*)udp_buffer = pixels[i].c;
+        udp_buffer += sizeof(int);
+        *(int*)udp_buffer = pixels[i].d;
+        udp_buffer += sizeof(int);
+    }
+
+    //  printf("::serialization():: buffer after serial pixels is  0x%X\n", udp_buffer);
+
+    /*НЕ ЗАБУДЬ УБРАТЬ ЭТУ СТРОКУ ПОТОМ!*/
+     p += sizeof(char);
+     int pix =  *(int*)p;
+     //printf("pixels[0].c is %d, in bufer pixels[0].c is %d\n", pixels[0].c, pix);
+
 
     /*возвращаем указатель на буфер*/
     return pnt;
 }
 
-void deserialization (void *input)
+void deserialization (void * input)
 {
-    /* закрываем мьютекс здесь,
-       т.к. это критическая секция кода*/
-    if(0 != pthread_mutex_lock(&mutex)) {
-        perror("pthread_mutex_lock failed");
-        exit(EXIT_FAILURE);
-    }
-    printf("::deserialization():: mutex 0x%X залочен\n", &mutex);
+    printf("::deserialization():: mutex is %d\n", mutex);
 
     void * buffer = input;
+    /*сохраняем неизмененный указатель*/
+    void * pnt = input;
     printf("::deserialization():: pointer-buffer in beginning of deserial is %X\n", buffer);
-
     int i = 0;
-
     /*пропускаем идентификатор, он нам не нужен*/
     int ident = *(int *)buffer;
-    printf("::deserialization():: ident is %d\n", ident);
+    // printf("ident is %d\n", ident);
     buffer += sizeof(int);
     printf("::deserialization():: buffer after  deserial ident is %X\n", buffer);
-
     /*десериализуем данные врага*/
     while ( i <= 99) {
-        pixels_enemy[i].c = *(int *)buffer; // ?
+        pixels_enemy[i].c = *(int *)buffer;
         buffer += sizeof(int);
-        pixels_enemy[i].d = *(int *)buffer; // ?
+        pixels_enemy[i].d = *(int *)buffer;
         buffer += sizeof(int);
         i++;
     }
-    printf("::deserialization():: pixels_enemy[99].c is %d, main_character[99].c is %d\n",
-           pixels_enemy[99].c, pixels_box[99].c);
-    printf("::deserialization():: buffer after deserialization of pixels_enemy is %X\n",
-           buffer);
+    // printf("::deserialization():: pixels_enemy[99].c is %d, main_character[99].c is %d\n", pixels_enemy[99].c, pixels_box[99].c);
+    //printf("::deserialization():: buffer after deserialization of pixels_enemy is %X\n", buffer);
     int j = 0;
     /* десериализуем пиксели */
+    /* закрываем мьютекс здесь,
+       т.к. это критическая секция кода*/
+    pthread_mutex_lock(&mutex);
+    printf("::deserialization():: mutex в deserial залочен\n");
     while (j <=99) {
-        printf("..........\n");
-          // pixels[j].alive = *(bool *)buffer; // ?
-        buffer += sizeof(bool);
-        printf("buffer in %d iteration is %X\n", j, buffer);
-          // pixels[j].c = *(int *)buffer; // ?
+        //printf("..........\n");
+        pixels[j].alive = *(char *)buffer;
+        buffer += sizeof(char);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        pixels[j].c = *(int *)buffer;
         buffer += sizeof(int);
-        printf("buffer in %d iteration is %X\n", j, buffer);
-          // pixels[j].d = *(int *)buffer; // ?
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        pixels[j].d = *(int *)buffer;
         buffer += sizeof(int);
-        printf("buffer in %d iteration is %X\n", j, buffer);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
         j++;
     }
-    printf("::deserialization():: after all deserialization buffer is %X\n", buffer);
-
-    /* освобождаем место в памяти */
-    free(input);
-
+    //printf("::deserialization():: after all deserialization buffer is %X\n", buffer);
     /* откываем мьютекс после выхода из цикла*/
-    if(0 != pthread_mutex_unlock(&mutex)) {
-        perror("pthread_mutex_lock failed");
-        exit(EXIT_FAILURE);
-    }
-    printf("::deserialization():: mutex 0x%X разлочен\n", &mutex);
-    printf("::deserialization():: десериализация прошла успешно\n");
+    pthread_mutex_unlock(&mutex);
+    printf("::deserialization():: mutex в deserial разлочен\n");
+    /* освобождаем место в памяти */
+    free(pnt);
+    //printf("::deserialization():: десериализация прошла успешно\n");
 }
-
-/*
-void test() {
-
-/*вывод последней структуры массива до сериализации
-    main_character =  pixels_box[99];
-
-    printf("Before serialization X is %d; Y is %d\n",
-           main_character.c, main_character.d);
-    fflush(stdout);
-
-    void * buf = serialization();
-    deserialization(buf);
-
-    /*проверка последней структуры после десериализации
-
-    TEST =  test_box[99];
-
-    printf("After deserialization X is %d; Y is %d\n",
-           TEST.c, TEST.d);
-    fflush(stdout);
-}
-*/
 
 
 int main( int argc, char* args[] )
@@ -1112,15 +1113,15 @@ int main( int argc, char* args[] )
         printf( "Failed to initialize surface!\n" );
     }
 
-    if (0 != pthread_mutex_init(&mutex, NULL)) {
-        perror("Error: pthread_mutex_init failed");
-        exit(EXIT_FAILURE);
-    } else {
-        printf("mutex initialized 0x%X\n", &mutex);
-    }
+    mutex = PTHREAD_MUTEX_INITIALIZER;
 
     /* вызываем квадратик */
     SDL_LockSurface(surface);
+
+    /*так квадратик каждый раз будет появляться в разном месте*/
+    srand(time(NULL));
+    X = rand() % 500;
+
     show_box(X, Y, 0, 0, 0);
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface(gWindow);
@@ -1131,9 +1132,13 @@ int main( int argc, char* args[] )
     G = 255;
     show_pixels();
 
+    /* создаем идентификатор */
+    srand(time(NULL));
+    identificator = rand() % 500;
+
     //создаем сокет
     udp_init();
-    printf("инициализация udp прошла успешно, поток udp_socket заработал \n");
+    printf("инициализация udp прошла успешно\n");
 
     //создаем поток отрисовки
     pthread_t thread;
