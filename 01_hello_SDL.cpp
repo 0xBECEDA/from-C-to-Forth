@@ -923,16 +923,17 @@ void* udp_socket(void* pointer)
             recvfrom(sockfd, buffer, 100, MSG_WAITALL,
                      (struct sockaddr *) &servaddr,
                      (socklen_t *)&len);
-        if(-1 == received) {
-            printf("::udp_socket():: Error: Receive datagramm. Is server running?\n");
+        /* if(-1 == received) {
+            // printf("::udp_socket():: Error: Receive datagramm. Is server running?\n");
             /* закоммитила выход, поскольку сокет
                в неблокирующем режиме, и как только
-               принятый пакет отсутствует, мы вылетаем */
+               принятый пакет отсутствует, мы вылетаем
 
                //exit(EXIT_FAILURE);
         } else {
+        */
             printf("::udp_socket():: пакет был принят %d bytes\n", (int)received);
-        }
+            //}
 
         /* десериализуем полученные данные ERROR HERE */
         //  printf("::udp_socket():: before DEserialization\n");
@@ -1043,18 +1044,18 @@ void* serialization()
 
 void deserialization (void * input)
 {
-    printf("::deserialization():: mutex is %d\n", mutex);
+    //  printf("::deserialization():: mutex is %d\n", mutex);
 
     void * buffer = input;
     /*сохраняем неизмененный указатель*/
     void * pnt = input;
-    printf("::deserialization():: pointer-buffer in beginning of deserial is %X\n", buffer);
+    //printf("::deserialization():: pointer-buffer in beginning of deserial is %X\n", buffer);
     int i = 0;
     /*пропускаем идентификатор, он нам не нужен*/
     int ident = *(int *)buffer;
     // printf("ident is %d\n", ident);
     buffer += sizeof(int);
-    printf("::deserialization():: buffer after  deserial ident is %X\n", buffer);
+    //printf("::deserialization():: buffer after  deserial ident is %X\n", buffer);
     /*десериализуем данные врага*/
     while ( i <= 99) {
         pixels_enemy[i].c = *(int *)buffer;
@@ -1070,7 +1071,7 @@ void deserialization (void * input)
     /* закрываем мьютекс здесь,
        т.к. это критическая секция кода*/
     pthread_mutex_lock(&mutex);
-    printf("::deserialization():: mutex в deserial залочен\n");
+    //  printf("::deserialization():: mutex в deserial залочен\n");
     while (j <=99) {
         //printf("..........\n");
         pixels[j].alive = *(char *)buffer;
@@ -1087,7 +1088,7 @@ void deserialization (void * input)
     //printf("::deserialization():: after all deserialization buffer is %X\n", buffer);
     /* откываем мьютекс после выхода из цикла*/
     pthread_mutex_unlock(&mutex);
-    printf("::deserialization():: mutex в deserial разлочен\n");
+    // printf("::deserialization():: mutex в deserial разлочен\n");
     /* освобождаем место в памяти */
     free(pnt);
     //printf("::deserialization():: десериализация прошла успешно\n");

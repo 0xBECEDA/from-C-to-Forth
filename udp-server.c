@@ -14,7 +14,7 @@
 #include <linux/unistd.h>
 
 #define PORT     8080
-#define MAXLINE 1024
+#define MAXLINE  3000
 
 struct connection
 {
@@ -27,7 +27,7 @@ struct connection
 struct connection client;
 
 /* объявляем промежуточный буфер */
-char buffer[2000];
+char buffer[MAXLINE];
 
 /* будущий дескриптор сокета */
 int sockfd;
@@ -40,11 +40,11 @@ void* udp_socket(void* pointer)
     printf("Thread is going\n");
     void *pnt = buffer;
     int ident = *(int *)pnt;
-    /*
-    printf("ident in Thread is %d\n", ident);
+
+    //printf("ident in Thread is %d\n", ident);
     printf("client[0].ident in thread %d\n", clients[0].ident);
     printf("client[1].ident in thread %d\n", clients[1].ident);
-    */
+    printf("ident from buffer %d\n", ident);
     for (int i = 0; i <=1; i++) {
         //printf("ident is %d\n", ident);
         if (ident != clients[i].ident &&
@@ -56,14 +56,14 @@ void* udp_socket(void* pointer)
               указатель на  буфер с данными,
               длинну данных, флаги, указатель на структуру,
               содержащую данные клиента, размер структуры */
-            /*
+
             printf("ident in IF is %d\n", ident);
             printf("client[i].ident in IF %d\n", clients[i].ident);
-            */
-            sendto(sockfd, buffer, sizeof(buffer),MSG_CONFIRM,
+
+           int n =  sendto(sockfd, buffer, sizeof(buffer),MSG_CONFIRM,
                    (const struct sockaddr *) client.p,
                    sizeof(cliaddr));
-                   printf("message sent.\n");
+           printf("Num of sent bytes %d\n", n);
         }
     }
 }
@@ -101,9 +101,9 @@ void  main()
         exit(EXIT_FAILURE);
     }
 
-    /*передаем указатель на структуру с данными клиента*/
+    /*передаем указатель на массив структур с данными клиента*/
     struct sockaddr_in *pnt = dub_array;
-
+    printf("pnt in beginning is %X\n", pnt);
     //получаем пакет от клиента
 
     // в случае получения должны вернется кол-во принятых байт
@@ -119,20 +119,29 @@ void  main()
                      &len);
         /* вытаскиваем идентификатор */
         int ident_client = *(int *)buffer;
-
-        printf("in main ident_client is %d\n", ident_client);
+        //printf("Num of receved bytes %d\n", n);
+        //printf("in main ident_client is %d\n", ident_client);
         /*проверяем, не новый ди у нас клиент.
           Для этого проверяем идентификаторы клиентов и
           идентификатор из пакета*/
 
         for(int i = 0; i<=1; i++) {
-            /* если нашли новый идентификатор */
-            if (clients[i].ident != ident_client
-                && clients[i].ident == 0) {
+            /* проверяем идентификатор на совпадение */
+            int counter = 0;
+
+            /*если идентификатор совпадает*/
+            if( clients[i].ident == ident_client) {
+                /*увеличиваем счетчик и выходим*/
+                counter++;
+                break;
+            }
+               /*если структура пустая и счетчик нулевой*/
+               if( clients[i].ident == 0
+                   && counter == 0) {
                 /* то записываем данные клиента в массив */
                 clients[i].ident = ident_client;
-                printf(" in main client[i].ident %d\n",
-                       clients[i].ident);
+                //printf(" in main client[i].ident %d\n",
+                //       clients[i].ident);
                 /* зачем нужен pointer?
                  - а как я без него создам поток?
                  Последний параметр для него -
@@ -159,10 +168,9 @@ void  main()
                    клиента, которая заполнена данными типа
                    семейства адресов и т.д.*/
                 clients[i].p = pnt;
-
+                printf("pnt is %X\n", pnt);
                 //printf("clients[i].p is %X\n", clients[i].p);
                 pnt += 1;
-                //printf("pnt is %X\n", pnt);
 
                 /* можно ли обойтись переменной цикла?
                  - нет, потому что переменная цикла отражает
