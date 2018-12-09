@@ -38,35 +38,62 @@ struct sockaddr_in servaddr, cliaddr;
 void* udp_socket(void* pointer)
 {
     printf("Thread is going\n");
-    void *pnt = buffer;
-    int ident = *(int *)pnt;
+    while(1) {
+        void *pnt = buffer;
+        int ident = *(int *)pnt;
+        struct sockaddr_in dub_client;
+        //printf("ident in Thread is %d\n", ident);
+        printf("client[0].ident in thread %d\n", clients[0].ident);
+        printf("client[1].ident in thread %d\n", clients[1].ident);
+        printf("ident from buffer %d\n", ident);
+        for (int i = 0; i <=1; i++) {
+            //printf("ident is %d\n", ident);
+            if (ident != clients[i].ident &&
+                clients[i].ident != 0 ) {
+                client = clients[i];
+                dub_client = *client.p;
+                /*отправляем пакет
 
-    //printf("ident in Thread is %d\n", ident);
-    printf("client[0].ident in thread %d\n", clients[0].ident);
-    printf("client[1].ident in thread %d\n", clients[1].ident);
-    printf("ident from buffer %d\n", ident);
-    for (int i = 0; i <=1; i++) {
-        //printf("ident is %d\n", ident);
-        if (ident != clients[i].ident &&
-         clients[i].ident != 0 ) {
-            client = clients[i];
-            /*отправляем пакет
+                  парамеры: дескриптор сокета, с которого отправляем,
+                  указатель на  буфер с данными,
+                  длинну данных, флаги, указатель на структуру,
+                  содержащую данные клиента, размер структуры */
 
-              парамеры: дескриптор сокета, с которого отправляем,
-              указатель на  буфер с данными,
-              длинну данных, флаги, указатель на структуру,
-              содержащую данные клиента, размер структуры */
+                printf("ident in IF is %d\n", ident);
+                printf("client[i].ident in IF %d\n",
+                       clients[i].ident);
 
-            printf("ident in IF is %d\n", ident);
-            printf("client[i].ident in IF %d\n", clients[i].ident);
+                /*  int n =  sendto(sockfd, buffer, sizeof(buffer),
+                    MSG_CONFIRM,
+                    (const struct sockaddr *)dub_client,
+                    sizeof(cliaddr));
+                */
+                int n =  sendto(sockfd, buffer, sizeof(buffer),
+                                MSG_CONFIRM,
+                                (struct sockaddr *) &dub_client,
+                                sizeof(cliaddr));
 
-           int n =  sendto(sockfd, buffer, sizeof(buffer),MSG_CONFIRM,
-                   (const struct sockaddr *) client.p,
-                   sizeof(cliaddr));
-           printf("Num of sent bytes %d\n", n);
+                printf("Num of sent bytes %d\n", n);
+            }
         }
     }
 }
+
+void print_struct(int cnt, struct sockaddr_in *pnt) {
+
+    struct sockaddr_in dub_client;
+    int i = cnt;
+    dub_client = *( struct sockaddr_in*)pnt;
+
+    /*
+    printf("cliaddr.sin_family %s, cliadd.sin_addr.s_addr %X, cliddr.sin_port %d\n", cliaddr.sin_family,
+           cliaddr.sin_addr.s_addr, cliaddr.sin_port);
+    */
+    printf("dub_client.sin_family %s, dub_client.sin_addr.s_addr %X, dub_client.sin_port %d\n", dub_client.sin_family,
+           dub_client.sin_addr.s_addr, dub_client.sin_port);
+
+}
+
 // Driver code
 void  main()
 {
@@ -158,15 +185,19 @@ void  main()
                 /* кладем идентификатор потока в структуру */
                 clients[i].thread = udp_thread;
 
-                /* копируем данные клиента в структуру */
+                /* копируем данные структуру клиента в массив */
                 dub_array[cnt] = cliaddr;
 
-                /* что это?
+                /*печатаем содержимое структур*/
+                print_struct(cnt, pnt);
+
+                   /* что это?
                    - записываем в структуру client указатель
                    на конкретную структуру клиента типа sockaddr.
-                   Так в одной структуре хранятся идентификатор потока                   идентификатор клиента и ссылка на структуру
-                   клиента, которая заполнена данными типа
-                   семейства адресов и т.д.*/
+                   Так в одной структуре хранятся идентификатор
+                   потока идентификатор клиента и ссылка
+                   на структуру клиента, которая заполнена
+                   данными типа семейства адресов и т.д.*/
                 clients[i].p = pnt;
                 printf("pnt is %X\n", pnt);
                 //printf("clients[i].p is %X\n", clients[i].p);
@@ -175,8 +206,9 @@ void  main()
                 /* можно ли обойтись переменной цикла?
                  - нет, потому что переменная цикла отражает
                    проход по массиву вне условий, а cnt должна
-                   увеличиться только при выполнении If. В противном
-                   случае данные в dub_array могут быть перезаписаны*/
+                   увеличиться только при выполнении If.
+                   В противном случае данные в dub_array
+                   могут быть перезаписаны*/
                 cnt++;
 
                 break;
