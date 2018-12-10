@@ -79,19 +79,21 @@ void* udp_socket(void* pointer)
     }
 }
 
-void print_struct(int cnt, struct sockaddr_in *pnt) {
-
+void print_struct(int cnt) {
+/*
     struct sockaddr_in dub_client;
     int i = cnt;
     dub_client = *( struct sockaddr_in*)pnt;
-
+*/
+    void *pnt = &cliaddr;
+    printf("cliaddr.sin_family %s\n", *(int*)pnt);
+    pnt += sizeof(cliaddr.sin_family);
+    //cliadd.sin_addr.s_addr %X, cliddr.sin_port %d\n
+    //     cliaddr.sin_addr.s_addr, cliaddr.sin_port);
     /*
-    printf("cliaddr.sin_family %s, cliadd.sin_addr.s_addr %X, cliddr.sin_port %d\n", cliaddr.sin_family,
-           cliaddr.sin_addr.s_addr, cliaddr.sin_port);
-    */
     printf("dub_client.sin_family %s, dub_client.sin_addr.s_addr %X, dub_client.sin_port %d\n", dub_client.sin_family,
            dub_client.sin_addr.s_addr, dub_client.sin_port);
-
+    */
 }
 
 // Driver code
@@ -189,7 +191,7 @@ void  main()
                 dub_array[cnt] = cliaddr;
 
                 /*печатаем содержимое структур*/
-                print_struct(cnt, pnt);
+                print_struct(cnt);
 
                    /* что это?
                    - записываем в структуру client указатель
