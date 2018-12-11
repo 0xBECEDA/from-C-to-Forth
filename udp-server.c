@@ -43,9 +43,9 @@ void* udp_socket(void* pointer)
         int ident = *(int *)pnt;
         struct sockaddr_in dub_client;
         //printf("ident in Thread is %d\n", ident);
-        printf("client[0].ident in thread %d\n", clients[0].ident);
-        printf("client[1].ident in thread %d\n", clients[1].ident);
-        printf("ident from buffer %d\n", ident);
+        // printf("client[0].ident in thread %d\n", clients[0].ident);
+        //printf("client[1].ident in thread %d\n", clients[1].ident);
+        //printf("ident from buffer %d\n", ident);
         for (int i = 0; i <=1; i++) {
             //printf("ident is %d\n", ident);
             if (ident != clients[i].ident &&
@@ -86,8 +86,9 @@ void print_struct(int cnt) {
     dub_client = *( struct sockaddr_in*)pnt;
 */
     void *pnt = &cliaddr;
-    printf("cliaddr.sin_family %s\n", *(int*)pnt);
-    pnt += sizeof(cliaddr.sin_family);
+    int sin_fam = *(int*)pnt;
+    printf("cliaddr.sin_family %d\n", sin_fam);
+//   pnt += sizeof(cliaddr.sin_family);
     //cliadd.sin_addr.s_addr %X, cliddr.sin_port %d\n
     //     cliaddr.sin_addr.s_addr, cliaddr.sin_port);
     /*
