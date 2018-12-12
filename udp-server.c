@@ -34,11 +34,12 @@ int sockfd;
 
 /* sockaddr_in сервера и клиента */
 struct sockaddr_in servaddr, cliaddr;
+struct sockaddr_in dub_array[2];
 
 void* udp_socket(void* pointer)
 {
     printf("Thread is going\n");
-    while(1) {
+      while(1) {
         void *pnt = buffer;
         int ident = *(int *)pnt;
         struct sockaddr_in dub_client;
@@ -58,43 +59,57 @@ void* udp_socket(void* pointer)
                   указатель на  буфер с данными,
                   длинну данных, флаги, указатель на структуру,
                   содержащую данные клиента, размер структуры */
-
+                printf("...............\n");
                 printf("ident in IF is %d\n", ident);
                 printf("client[i].ident in IF %d\n",
-                       clients[i].ident);
+                      clients[i].ident);
 
-                /*  int n =  sendto(sockfd, buffer, sizeof(buffer),
-                    MSG_CONFIRM,
-                    (const struct sockaddr *)dub_client,
-                    sizeof(cliaddr));
-                */
+                int dub_sin_fam = dub_client.sin_family;
+                printf("dub_client.sin_family %d\n",  dub_sin_fam);
+                void *pnt = dub_client.sin_addr.s_addr;
+                printf("dub_client.sin_addr.s_addr %X\n", pnt);
+                int dub_port = dub_client.sin_port;
+                printf("dub_port.sin_family %d\n", dub_port);
+
+                fflush(stdout);
+                //printf("ident in IF is %d\n", ident);
+                //printf("client[i].ident in IF %d\n",
+                //      clients[i].ident);
+
                 int n =  sendto(sockfd, buffer, sizeof(buffer),
                                 MSG_CONFIRM,
                                 (struct sockaddr *) &dub_client,
                                 sizeof(cliaddr));
 
-                printf("Num of sent bytes %d\n", n);
+                 printf("Num of sent bytes %d\n", n);
+                 printf("...............\n");
             }
         }
     }
 }
 
 void print_struct(int cnt) {
-/*
+
     struct sockaddr_in dub_client;
     int i = cnt;
-    dub_client = *( struct sockaddr_in*)pnt;
-*/
-    void *pnt = &cliaddr;
-    int sin_fam = *(int*)pnt;
-    printf("cliaddr.sin_family %d\n", sin_fam);
-//   pnt += sizeof(cliaddr.sin_family);
-    //cliadd.sin_addr.s_addr %X, cliddr.sin_port %d\n
-    //     cliaddr.sin_addr.s_addr, cliaddr.sin_port);
-    /*
-    printf("dub_client.sin_family %s, dub_client.sin_addr.s_addr %X, dub_client.sin_port %d\n", dub_client.sin_family,
-           dub_client.sin_addr.s_addr, dub_client.sin_port);
-    */
+    dub_client = dub_array[i];
+    printf("...............\n");
+    printf("i is %d\n", i);
+    int sin_fam = cliaddr.sin_family;
+    printf("cliaddr.sin_family %d\n",  sin_fam);
+    void *p = cliaddr.sin_addr.s_addr;
+    printf("cliadd.sin_addr.s_addr %X\n", p);
+    int port = cliaddr.sin_port;
+    printf("cliaddr.sin_family %d\n", port);
+
+    int dub_sin_fam = dub_client.sin_family;
+    printf("dub_client.sin_family %d\n",  dub_sin_fam);
+    void *pnt = dub_client.sin_addr.s_addr;
+    printf("dub_client.sin_addr.s_addr %X\n", pnt);
+    int dub_port = dub_client.sin_port;
+    printf("dub_port.sin_family %d\n", dub_port);
+    printf("...............\n");
+    fflush(stdout);
 }
 
 // Driver code
@@ -107,7 +122,7 @@ void  main()
     int cnt = 0;
 
     /* создаем массив структур - зачем? */
-    struct sockaddr_in dub_array[2];
+    //   struct sockaddr_in dub_array[2];
 
     /* Создаем сокет. Должны в случае успеха
        получить его дескриптор */
@@ -170,8 +185,7 @@ void  main()
                    && counter == 0) {
                 /* то записываем данные клиента в массив */
                 clients[i].ident = ident_client;
-                //printf(" in main client[i].ident %d\n",
-                //       clients[i].ident);
+
                 /* зачем нужен pointer?
                  - а как я без него создам поток?
                  Последний параметр для него -
@@ -194,7 +208,7 @@ void  main()
                 /*печатаем содержимое структур*/
                 print_struct(cnt);
 
-                   /* что это?
+                   /*
                    - записываем в структуру client указатель
                    на конкретную структуру клиента типа sockaddr.
                    Так в одной структуре хранятся идентификатор
@@ -202,8 +216,10 @@ void  main()
                    на структуру клиента, которая заполнена
                    данными типа семейства адресов и т.д.*/
                 clients[i].p = pnt;
-                printf("pnt is %X\n", pnt);
-                //printf("clients[i].p is %X\n", clients[i].p);
+                printf("pnt of struct is %X\n", pnt);
+                printf("clients[i].p is %X\n", clients[i].p);
+                printf ("clients[i].ident is %d\n", clients[i].ident);
+                fflush(stdout);
                 pnt += 1;
 
                 /* можно ли обойтись переменной цикла?

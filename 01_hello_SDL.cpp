@@ -457,9 +457,9 @@ bool no_more_space = false;
  */
 void PixelArray ()
 {
-    printf("хочу залочить mutex в PixelArray\n");
+    // printf("хочу залочить mutex в PixelArray\n");
     pthread_mutex_lock(&mutex);
-    printf("mutex в PixelArray залочен\n");
+    //printf("mutex в PixelArray залочен\n");
     //получаем координаты
     a = rand() % 500;
     b = rand() % 500;
@@ -500,7 +500,7 @@ void PixelArray ()
         }
     }
     pthread_mutex_unlock(&mutex);
-    printf("mutex в PixelArray разлочен\n");
+    // printf("mutex в PixelArray разлочен\n");
 }
 
 /*
