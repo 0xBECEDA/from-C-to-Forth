@@ -25,7 +25,7 @@ void move_box_up( int &X, int &Y);
 void delete_box( int &X, int &Y);
 void show_box (int box_x, int box_y, int red,
                int green, int blue);
-void show_pixels();
+void show_pixels(int red, int green, int blue);
 void deserialization(void * input);
 void * serialization();
 
@@ -549,23 +549,21 @@ void show_enemy(int red, int green, int blue) {
    - pixels_enemy
 
  */
-void show_pixels()
+void show_pixels(int red, int green, int blue)
 {
     int p = 0;
     int i = 0;
     SDL_LockSurface(surface);
     for (i; i <= 99; i++) {
-
         if (pixels[i].alive == 1) {
             DrawPixel(surface, pixels[i].c,
-                      pixels[i].d, R, G, B);
+                      pixels[i].d, red, green, blue);
         }
-        //отрисовка "врага"
-
-        //DrawPixel(surface, pixels_enemy[i].c,
-        // pixels_enemy[i].d, 255, 0, 0);
-        // printf("pixels_enemy[i].c %d, pixels_enemy[i].d %d, i %d\n", pixels_enemy[i].c, pixels_enemy[i].d, i);
-
+        /* отрисовка "врага" */
+        DrawPixel(surface, pixels_enemy[i].c,
+                  pixels_enemy[i].d, 255, 0, 0);
+        printf("pixels_enemy[i].c %d, pixels_enemy[i].d %d, i %d\n",
+               pixels_enemy[i].c, pixels_enemy[i].d, i);
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -863,7 +861,7 @@ void* threadFunc(void* thread_data)
     while (true) {
         // printf(".");
         fflush(stdout);
-        show_pixels();
+        show_pixels(255, 255, 255);
         //show_enemy(255, 0, 0);
         usleep(10000); // sleep for 0.01 sec
     }
@@ -1101,7 +1099,7 @@ int main( int argc, char* args[] )
     B = 255;
     R = 255;
     G = 255;
-    show_pixels();
+    show_pixels(255, 255, 255);
 
     /* создаем идентификатор */
     srand(time(NULL));
