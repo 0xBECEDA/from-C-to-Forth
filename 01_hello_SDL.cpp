@@ -41,9 +41,9 @@ int SCREEN_HEIGHT = 520;
 int paint_mode = 0;
 
 /*  цвета */
-int R = 0;
-int G = 0;
-int B = 0;
+// int R = 0;
+// int G = 0;
+// int B = 0;
 
 /* показывает, сколько пикселей съедено */
 int numpix = 0;
@@ -819,21 +819,21 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
     case SDLK_r:
         printf("R is pressed\n");
-        R = 255;
-        G = 0;
-        B = 0;
+        // R = 255;
+        // G = 0;
+        // B = 0;
         break;
     case SDLK_b:
         printf("B is pressed\n");
-        R = 0;
-        G = 0;
-        B = 255;
+        // R = 0;
+        // G = 0;
+        // B = 255;
         break;
     case SDLK_w:
         printf("W is pressed\n");
-        R = 255;
-        G = 255;
-        B = 255;
+        // R = 255;
+        // G = 255;
+        // B = 255;
         break;
     default:
         printf("Can't find this key\n");
@@ -861,8 +861,8 @@ void* threadFunc(void* thread_data)
     while (true) {
         // printf(".");
         fflush(stdout);
-        show_pixels(255, 255, 255);
-        //show_enemy(255, 0, 0);
+        show_pixels(0, 0, 255);
+        show_enemy(0, 255, 0);
         usleep(10000); // sleep for 0.01 sec
     }
 }
@@ -1096,9 +1096,6 @@ int main( int argc, char* args[] )
     SDL_UpdateWindowSurface(gWindow);
 
     /*делаем пиксели белыми и вызываем их отрисовку*/
-    B = 255;
-    R = 255;
-    G = 255;
     show_pixels(255, 255, 255);
 
     /* создаем идентификатор */
