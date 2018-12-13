@@ -530,10 +530,10 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
     SDL_UpdateWindowSurface( gWindow );
 }
 
-void show_enemy() {
+void show_enemy(int red, int green, int blue) {
     for (int i = 0; i <=99; i++) {
         DrawPixel(surface, pixels_enemy[i].c, pixels_enemy[i].d,
-                  255, 0, 0);
+                  red, green, blue);
     }
 //    SDL_UpdateWindowSurface( gWindow );
 }
@@ -562,8 +562,8 @@ void show_pixels()
         }
         //отрисовка "врага"
 
-        /* DrawPixel(surface, pixels_enemy[i].c,
-           pixels_enemy[i].d, 255, 0, 0); */
+        //DrawPixel(surface, pixels_enemy[i].c,
+        // pixels_enemy[i].d, 255, 0, 0);
         // printf("pixels_enemy[i].c %d, pixels_enemy[i].d %d, i %d\n", pixels_enemy[i].c, pixels_enemy[i].d, i);
 
     }
@@ -764,17 +764,6 @@ void check_pixels_up()
     }
 }
 
-/*
-void paint(SDL_Event* event)
-{
-    X = event->motion.x;
-    Y = event->motion.y;
-
-    getpixel (surface, X, Y);
-    DrawPixel(surface, X, Y, R, G, B);
-    SDL_UpdateWindowSurface( gWindow );
-}
-*/
 
 /*
    Функция обработки нажатий клавиш
@@ -875,7 +864,7 @@ void* threadFunc(void* thread_data)
         // printf(".");
         fflush(stdout);
         show_pixels();
-        show_enemy();
+        //show_enemy(255, 0, 0);
         usleep(10000); // sleep for 0.01 sec
     }
 }
@@ -891,21 +880,13 @@ int counter_for_while = 1;
 void* udp_socket(void* pointer)
 {
     while (true) {
-        /*судя по выводу printf в PixelArray(),
-          за время "сна" udp-потока, цикл отрабатывает 6 раз*/
-        //printf("::udp_socket():: before sleep\n");
+
         usleep(10000); // sleep for 0.01 sec
         //printf("::udp_socket():: after sleep\n");
 
         /* сериализуем данные*/
         //printf("::udp_socket():: before serialization\n");
         void *buffer = serialization();
-        //printf("::udp_socket():: after serialization\n");
-        //printf("::udp_socket():: returned pointer after serial is 0x%X\n", buffer);
-
-        /* Выводить буфер надо от его начала а не с конца */
-        //printf("::udp_socket():: serializad data:\n");
-        //print_buffer(buffer, 3500);
 
         socklen_t len = sizeof(servaddr);
 
@@ -920,7 +901,7 @@ void* udp_socket(void* pointer)
         // printf("::udp_socket():: пакет был отправлен %d bytes\n", (int)sended);
         /* получаем данные */
         ssize_t received =
-            recvfrom(sockfd, buffer, 100, MSG_WAITALL,
+            recvfrom(sockfd, buffer, 3000, MSG_WAITALL,
                      (struct sockaddr *) &servaddr,
                      (socklen_t *)&len);
         /* if(-1 == received) {
@@ -936,9 +917,8 @@ void* udp_socket(void* pointer)
             //}
 
         /* десериализуем полученные данные ERROR HERE */
-        //  printf("::udp_socket():: before DEserialization\n");
+
         deserialization(buffer);
-        // printf("::udp_socket():: after DEserialization\n");
 
         // printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
         counter_for_while++;
@@ -990,10 +970,7 @@ pthread_t udp_init()
  */
 void* serialization()
 {
-    /* тут нужен правильный sizeof а не 3500,
-       но править не стал
-       - я выделила память с запасом, вдруг помимо массива с пикселями
-       и квадратиком добавится что-то еще*/
+    /*выделяем память под буфер*/
     void * udp_buffer = malloc(sizeof(int) + sizeof(pixels_box) + sizeof(pixels));
 
     /* сохраняем неизмененный указатель на буфер */
@@ -1004,14 +981,7 @@ void* serialization()
     memcpy(udp_buffer, &identificator, sizeof(int));
     udp_buffer += sizeof(identificator);
     //printf("::serialization():: buffer after serial ident is  0x%X\n", udp_buffer);
-    /* сериализуем квадратик - нафига, если нам
-       только его координат достаточно для отрисовки?
-      - за тем, что когда речь зашла об udp и
-       как передать квадратик, мы опять вернулись к структуре.
-       Ты сказал, что так лучше.
-       Я задолбалась то убирать структуру квадратика,
-       то возвращать.
-       Это уже четвертый раз */
+
     memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
     udp_buffer += sizeof(pixels_box);
     //printf("::serialization():: buffer after serial pixels_box is  0x%X\n", udp_buffer);
@@ -1123,7 +1093,7 @@ int main( int argc, char* args[] )
     srand(time(NULL));
     X = rand() % 500;
 
-    show_box(X, Y, 0, 0, 0);
+    show_box(X, Y, 255, 255, 255);
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface(gWindow);
 
