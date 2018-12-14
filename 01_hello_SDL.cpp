@@ -515,17 +515,13 @@ void PixelArray ()
  */
 void show_box(int box_x, int box_y, int red, int green, int blue)
 {
-    // printf ("-------------------------begin\n");
     //printf("In show_box  X is %d; Y is %d\n", X, Y);
     int cnt = 0;
     for ( int j = box_y; j<(box_y + pix_y); j++) {
         for ( int i = box_x; i<(box_x + pix_x); i++) {
-
             DrawPixel(surface, i, j, red, green, blue);
-
         }
     }
-    //SDL_UpdateWindowSurface( gWindow );
 }
 
 /*
@@ -852,8 +848,8 @@ void* threadFunc(void* thread_data)
         // printf(".");
         fflush(stdout);
         show_pixels(0, 0, 255);
-        //usleep(10000); // sleep for 0.01 sec
-        sleep(5);
+        usleep(10000); // sleep for 0.01 sec
+        //sleep(5);
     }
 }
 
@@ -909,7 +905,8 @@ void* udp_socket(void* pointer)
         deserialization(buffer);
 
         if(received != -1) {
-        show_box(X_enemy, Y_enemy, 255, 0, 0);
+            printf("{ %d,%d }", X_enemy, Y_enemy);
+            show_box(X_enemy, Y_enemy, 255, 0, 255);
         }
 
 // printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
