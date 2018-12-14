@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-//#include <stdbool.h>
 #include <signal.h>
 #include <time.h>
 #include <unistd.h>
@@ -61,6 +60,9 @@ int b = 0;
 /* координаты, для функций с квадратом */
 int X = 0;
 int Y = 0;
+
+int X_enemy = 0;
+int Y_enemy = 0;
 
 /*идентификатор игрока-клиента*/
 int identificator;
@@ -516,26 +518,14 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
     // printf ("-------------------------begin\n");
     //printf("In show_box  X is %d; Y is %d\n", X, Y);
     int cnt = 0;
-    for ( int j = box_y; j<(Y + pix_y); j++) {
-        for ( int i = box_x; i<(X + pix_x); i++) {
-            main_character = pixels_box[cnt];
-            main_character.c = i;
-            main_character.d = j;
-            pixels_box[cnt] = main_character;
-            pixels_box[cnt++];
+    for ( int j = box_y; j<(box_y + pix_y); j++) {
+        for ( int i = box_x; i<(box_x + pix_x); i++) {
+
             DrawPixel(surface, i, j, red, green, blue);
 
         }
     }
-    SDL_UpdateWindowSurface( gWindow );
-}
-
-void show_enemy(int red, int green, int blue) {
-    for (int i = 0; i <=99; i++) {
-        DrawPixel(surface, pixels_enemy[i].c, pixels_enemy[i].d,
-                  red, green, blue);
-    }
-//    SDL_UpdateWindowSurface( gWindow );
+    //SDL_UpdateWindowSurface( gWindow );
 }
 
 /*
@@ -560,10 +550,10 @@ void show_pixels(int red, int green, int blue)
                       pixels[i].d, red, green, blue);
         }
         /* отрисовка "врага" */
-        DrawPixel(surface, pixels_enemy[i].c,
-                  pixels_enemy[i].d, 255, 0, 0);
-        printf("pixels_enemy[i].c %d, pixels_enemy[i].d %d, i %d\n",
-               pixels_enemy[i].c, pixels_enemy[i].d, i);
+        //   DrawPixel(surface, pixels_enemy[i].c,
+        //        pixels_enemy[i].d, 255, 0, 0);
+        // printf("pixels_enemy[i].c %d, pixels_enemy[i].d %d, i %d\n",
+        //     pixels_enemy[i].c, pixels_enemy[i].d, i);
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -862,8 +852,8 @@ void* threadFunc(void* thread_data)
         // printf(".");
         fflush(stdout);
         show_pixels(0, 0, 255);
-        show_enemy(0, 255, 0);
-        usleep(10000); // sleep for 0.01 sec
+        //usleep(10000); // sleep for 0.01 sec
+        sleep(5);
     }
 }
 
@@ -918,7 +908,11 @@ void* udp_socket(void* pointer)
 
         deserialization(buffer);
 
-        // printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
+        if(received != -1) {
+        show_box(X_enemy, Y_enemy, 255, 0, 0);
+        }
+
+// printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
         counter_for_while++;
     }
 }
@@ -980,8 +974,10 @@ void* serialization()
     udp_buffer += sizeof(identificator);
     //printf("::serialization():: buffer after serial ident is  0x%X\n", udp_buffer);
 
-    memcpy(udp_buffer, pixels_box, sizeof(pixels_box));
-    udp_buffer += sizeof(pixels_box);
+    memcpy(udp_buffer, &X, sizeof(X));
+    udp_buffer += sizeof(X);
+    memcpy(udp_buffer, &Y, sizeof(Y));
+    udp_buffer += sizeof(Y);
     //printf("::serialization():: buffer after serial pixels_box is  0x%X\n", udp_buffer);
 
     /* сериализуем pixels вручную*/
@@ -1025,13 +1021,12 @@ void deserialization (void * input)
     buffer += sizeof(int);
     //printf("::deserialization():: buffer after  deserial ident is %X\n", buffer);
     /*десериализуем данные врага*/
-    while ( i <= 99) {
-        pixels_enemy[i].c = *(int *)buffer;
+
+        X_enemy = *(int *)buffer;
         buffer += sizeof(int);
-        pixels_enemy[i].d = *(int *)buffer;
+        Y_enemy  = *(int *)buffer;
         buffer += sizeof(int);
-        i++;
-    }
+
     // printf("::deserialization():: pixels_enemy[99].c is %d, main_character[99].c is %d\n", pixels_enemy[99].c, pixels_box[99].c);
     //printf("::deserialization():: buffer after deserialization of pixels_enemy is %X\n", buffer);
     int j = 0;
