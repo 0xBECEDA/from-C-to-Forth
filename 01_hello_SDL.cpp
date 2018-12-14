@@ -92,7 +92,7 @@ struct box main_character;
 
 /*  структура "врага" */
 struct box enemy;
-struct box pixels_enemy[100];
+//struct box pixels_enemy[100];
 
 /* дескриптор сокета и структура сервера */
 int sockfd;
@@ -525,7 +525,7 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
 
         }
     }
-    //SDL_UpdateWindowSurface( gWindow );
+    SDL_UpdateWindowSurface( gWindow );
 }
 
 /*
@@ -549,11 +549,6 @@ void show_pixels(int red, int green, int blue)
             DrawPixel(surface, pixels[i].c,
                       pixels[i].d, red, green, blue);
         }
-        /* отрисовка "врага" */
-        //   DrawPixel(surface, pixels_enemy[i].c,
-        //        pixels_enemy[i].d, 255, 0, 0);
-        // printf("pixels_enemy[i].c %d, pixels_enemy[i].d %d, i %d\n",
-        //     pixels_enemy[i].c, pixels_enemy[i].d, i);
     }
     SDL_UnlockSurface(surface);
     SDL_UpdateWindowSurface( gWindow );
@@ -852,8 +847,8 @@ void* threadFunc(void* thread_data)
         // printf(".");
         fflush(stdout);
         show_pixels(0, 0, 255);
-        //usleep(10000); // sleep for 0.01 sec
-        sleep(5);
+        usleep(10000); // sleep for 0.01 sec
+        //sleep(5);
     }
 }
 
@@ -909,7 +904,7 @@ void* udp_socket(void* pointer)
         deserialization(buffer);
 
         if(received != -1) {
-        show_box(X_enemy, Y_enemy, 255, 0, 0);
+            show_box(X_enemy, Y_enemy, 255, 0, 0);
         }
 
 // printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
