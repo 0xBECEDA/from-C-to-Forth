@@ -522,10 +522,6 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
             DrawPixel(surface, i, j, red, green, blue);
         }
     }
-<<<<<<< HEAD
-    SDL_UpdateWindowSurface( gWindow );
-=======
->>>>>>> 8c694b29c20adb361e3f343f345b3d2f976028d3
 }
 
 /*
@@ -904,12 +900,8 @@ void* udp_socket(void* pointer)
         deserialization(buffer);
 
         if(received != -1) {
-<<<<<<< HEAD
-            show_box(X_enemy, Y_enemy, 255, 0, 0);
-=======
             printf("{ %d,%d }", X_enemy, Y_enemy);
             show_box(X_enemy, Y_enemy, 255, 0, 255);
->>>>>>> 8c694b29c20adb361e3f343f345b3d2f976028d3
         }
 
 // printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
