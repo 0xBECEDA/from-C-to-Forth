@@ -860,7 +860,7 @@ void* udp_socket(void* pointer)
 {
     while (true) {
 
-        usleep(10000); // sleep for 0.01 sec
+        //usleep(10000); // sleep for 0.01 sec
         //printf("::udp_socket():: after sleep\n");
 
         /* сериализуем данные*/
@@ -870,7 +870,7 @@ void* udp_socket(void* pointer)
         socklen_t len = sizeof(servaddr);
 
         ssize_t sended =
-            sendto(sockfd, buffer, 3500, MSG_CONFIRM,
+            sendto(sockfd, buffer, 1212, MSG_CONFIRM,
                    (const struct sockaddr *) &servaddr,
                    sizeof(servaddr));
         if(-1 == sended) {
@@ -880,7 +880,7 @@ void* udp_socket(void* pointer)
         // printf("::udp_socket():: пакет был отправлен %d bytes\n", (int)sended);
         /* получаем данные */
         ssize_t received =
-            recvfrom(sockfd, buffer, 3000, MSG_WAITALL,
+            recvfrom(sockfd, buffer, 1212, MSG_WAITALL,
                      (struct sockaddr *) &servaddr,
                      (socklen_t *)&len);
         /* if(-1 == received) {
@@ -892,7 +892,7 @@ void* udp_socket(void* pointer)
                //exit(EXIT_FAILURE);
         } else {
         */
-            printf("::udp_socket():: пакет был принят %d bytes\n", (int)received);
+        //   printf("::udp_socket():: пакет был принят %d bytes\n", (int)received);
             //}
 
         /* десериализуем полученные данные ERROR HERE */
@@ -955,7 +955,10 @@ pthread_t udp_init()
 void* serialization()
 {
     /*выделяем память под буфер*/
-    void * udp_buffer = malloc(sizeof(int) + sizeof(pixels_box) + sizeof(pixels));
+    void * udp_buffer = malloc(sizeof(int) + sizeof(int) +
+                               sizeof(int) + sizeof(pixels));
+    //  printf(" Size is %d\n", sizeof(int) + sizeof(int) +
+    //     sizeof(int) + sizeof(pixels));
 
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
@@ -1012,21 +1015,19 @@ void deserialization (void * input)
     // printf("ident is %d\n", ident);
     buffer += sizeof(int);
     //printf("::deserialization():: buffer after  deserial ident is %X\n", buffer);
+
     /*десериализуем данные врага*/
-
-        X_enemy = *(int *)buffer;
-        buffer += sizeof(int);
-        Y_enemy  = *(int *)buffer;
-        buffer += sizeof(int);
-
-    // printf("::deserialization():: pixels_enemy[99].c is %d, main_character[99].c is %d\n", pixels_enemy[99].c, pixels_box[99].c);
-    //printf("::deserialization():: buffer after deserialization of pixels_enemy is %X\n", buffer);
-    int j = 0;
-    /* десериализуем пиксели */
     /* закрываем мьютекс здесь,
        т.к. это критическая секция кода*/
     pthread_mutex_lock(&mutex);
-    //  printf("::deserialization():: mutex в deserial залочен\n");
+    X_enemy = *(int *)buffer;
+    buffer += sizeof(int);
+    Y_enemy  = *(int *)buffer;
+    buffer += sizeof(int);
+    //printf("X_enemy %d Y_enemy %d\n", X_enemy, Y_enemy);
+    int j = 0;
+    /* десериализуем пиксели */
+
     while (j <=99) {
         //printf("..........\n");
         pixels[j].alive = *(char *)buffer;
@@ -1040,13 +1041,13 @@ void deserialization (void * input)
         //printf("buffer in %d iteration is %X\n", j, buffer);
         j++;
     }
-    //printf("::deserialization():: after all deserialization buffer is %X\n", buffer);
+
     /* откываем мьютекс после выхода из цикла*/
     pthread_mutex_unlock(&mutex);
-    // printf("::deserialization():: mutex в deserial разлочен\n");
+
     /* освобождаем место в памяти */
     free(pnt);
-    //printf("::deserialization():: десериализация прошла успешно\n");
+
 }
 
 

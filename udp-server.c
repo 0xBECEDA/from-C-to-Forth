@@ -14,7 +14,7 @@
 #include <linux/unistd.h>
 
 #define PORT     8080
-#define MAXLINE  3000
+#define MAXLINE  1212
 
 struct connection
 {
@@ -76,7 +76,7 @@ void* udp_socket(void* pointer)
                 //printf("client[i].ident in IF %d\n",
                 //      clients[i].ident);
 
-                int n =  sendto(sockfd, buffer, sizeof(buffer),
+                int n =  sendto(sockfd, buffer, MAXLINE,
                                 MSG_CONFIRM,
                                 (struct sockaddr *) &dub_client,
                                 sizeof(cliaddr));
