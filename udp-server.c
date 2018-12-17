@@ -21,11 +21,12 @@ struct connection
     int thread;
     int ident;
     struct sockaddr_in *p;
+    char *buf;
 } clients[2];
 
 /* зачем нужная эта переменная если есть массив выше? */
 struct connection client;
-
+char buf_0[MAXLINE];
 /* объявляем промежуточный буфер */
 char buffer[MAXLINE];
 
@@ -40,6 +41,7 @@ void* udp_socket(void* pointer)
 {
     printf("Thread is going\n");
       while(1) {
+        /*получаем идентификатор клиента*/
         void *pnt = buffer;
         int ident = *(int *)pnt;
         struct sockaddr_in dub_client;
@@ -47,8 +49,14 @@ void* udp_socket(void* pointer)
         // printf("client[0].ident in thread %d\n", clients[0].ident);
         //printf("client[1].ident in thread %d\n", clients[1].ident);
         //printf("ident from buffer %d\n", ident);
+
         for (int i = 0; i <=1; i++) {
             //printf("ident is %d\n", ident);
+
+            /*получаем указатель на личный буфер клиента*/
+            char *p = clients[i].buf;
+            /*если идентификатор в буфере и дентификатор клиента
+              разные, то */
             if (ident != clients[i].ident &&
                 clients[i].ident != 0 ) {
                 client = clients[i];
@@ -63,20 +71,20 @@ void* udp_socket(void* pointer)
                 printf("ident in IF is %d\n", ident);
                 printf("client[i].ident in IF %d\n",
                       clients[i].ident);
-
+/*
                 int dub_sin_fam = dub_client.sin_family;
                 printf("dub_client.sin_family %d\n",  dub_sin_fam);
                 void *pnt = dub_client.sin_addr.s_addr;
                 printf("dub_client.sin_addr.s_addr %X\n", pnt);
                 int dub_port = dub_client.sin_port;
                 printf("dub_port.sin_family %d\n", dub_port);
-
+*/
                 fflush(stdout);
                 //printf("ident in IF is %d\n", ident);
                 //printf("client[i].ident in IF %d\n",
                 //      clients[i].ident);
 
-                int n =  sendto(sockfd, buffer, MAXLINE,
+                int n =  sendto(sockfd, p, MAXLINE,
                                 MSG_CONFIRM,
                                 (struct sockaddr *) &dub_client,
                                 sizeof(cliaddr));
@@ -176,7 +184,10 @@ void  main()
 
             /*если идентификатор совпадает*/
             if( clients[i].ident == ident_client) {
-                /*увеличиваем счетчик и выходим*/
+                /*увеличиваем счетчик, переписываем данные и выходим*/
+                char *p = clients[i].buf;
+                memcpy(p, buffer, MAXLINE);
+
                 counter++;
                 break;
             }
@@ -185,6 +196,12 @@ void  main()
                    && counter == 0) {
                 /* то записываем данные клиента в массив */
                 clients[i].ident = ident_client;
+
+                /*выдеяем память по буфер
+                  и перезаписываем туда данные*/
+                char *p = malloc(MAXLINE);
+                memcpy(p, buffer, MAXLINE);
+                clients[i].buf = p;
 
                 /* зачем нужен pointer?
                  - а как я без него создам поток?
@@ -206,7 +223,7 @@ void  main()
                 dub_array[cnt] = cliaddr;
 
                 /*печатаем содержимое структур*/
-                print_struct(cnt);
+                //print_struct(cnt);
 
                    /*
                    - записываем в структуру client указатель
@@ -222,7 +239,7 @@ void  main()
                 fflush(stdout);
                 pnt += 1;
 
-                /* можно ли обойтись переменной цикла?
+                /* можно ли обойтись переменной цикла
                  - нет, потому что переменная цикла отражает
                    проход по массиву вне условий, а cnt должна
                    увеличиться только при выполнении If.
