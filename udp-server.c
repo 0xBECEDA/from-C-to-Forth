@@ -14,7 +14,7 @@
 #include <linux/unistd.h>
 
 #define PORT     8080
-#define MAXLINE  1212
+#define MAXLINE  1220
 
 struct connection
 {
@@ -40,7 +40,7 @@ struct sockaddr_in dub_array[2];
 void* udp_socket(void* pointer)
 {
     printf("Thread is going\n");
-      while(1) {
+    while(1) {
         /*получаем идентификатор клиента*/
         void *pnt = buffer;
         int ident = *(int *)pnt;
@@ -51,51 +51,57 @@ void* udp_socket(void* pointer)
         //printf("ident from buffer %d\n", ident);
 
         for (int i = 0; i <=1; i++) {
-            //printf("ident is %d\n", ident);
+            /*если идентификатор из буфера совпадает
+              с идентификатором  клиента*/
+            if (ident == clients[i].ident) {
+                /*то вытаскиваем его буфер и ищем, кому отправить */
+                char *p = clients[i].buf;
+                for (int i = 0; i <=1; i++) {
+                    /*если идентификаторы разные,*/
+                    if (ident != clients[i].ident &&
+                        clients[i].ident != 0 ) {
+                        /* то отправляем пакет*/
+                        client = clients[i];
+                        dub_client = *client.p;
 
-            /*получаем указатель на личный буфер клиента*/
-            char *p = clients[i].buf;
-            /*если идентификатор в буфере и дентификатор клиента
-              разные, то */
-            if (ident != clients[i].ident &&
-                clients[i].ident != 0 ) {
-                client = clients[i];
-                dub_client = *client.p;
-                /*отправляем пакет
+                        /*
+                          парамеры: дескриптор сокета,
+                          с которого отправляем,
+                          указатель на  буфер с данными,
+                          длинну данных, флаги, указатель на структуру                          содержащую данные клиента, размер структуры                                                                     */
+                        // printf("...............\n");
+                        //printf("ident in IF is %d\n", ident);
+                        //printf("client[i].ident in IF %d\n",
+                        //       clients[i].ident);
+                           /*
+                             int dub_sin_fam = dub_client.sin_family;
+                             printf("dub_client.sin_family %d\n",
+                             dub_sin_fam);
+                             void *pnt = dub_client.sin_addr.s_addr;
+                             printf("dub_client.sin_addr.s_addr %X\n",
+                                                                pnt);
+                             int dub_port = dub_client.sin_port;
+                             printf("dub_port.sin_family %d\n",
+                             dub_port);
+                           */
+                        // fflush(stdout);
+                        //printf("ident in IF is %d\n", ident);
+                        //printf("client[i].ident in IF %d\n",
+                        //      clients[i].ident);
 
-                  парамеры: дескриптор сокета, с которого отправляем,
-                  указатель на  буфер с данными,
-                  длинну данных, флаги, указатель на структуру,
-                  содержащую данные клиента, размер структуры */
-                printf("...............\n");
-                printf("ident in IF is %d\n", ident);
-                printf("client[i].ident in IF %d\n",
-                      clients[i].ident);
-/*
-                int dub_sin_fam = dub_client.sin_family;
-                printf("dub_client.sin_family %d\n",  dub_sin_fam);
-                void *pnt = dub_client.sin_addr.s_addr;
-                printf("dub_client.sin_addr.s_addr %X\n", pnt);
-                int dub_port = dub_client.sin_port;
-                printf("dub_port.sin_family %d\n", dub_port);
-*/
-                fflush(stdout);
-                //printf("ident in IF is %d\n", ident);
-                //printf("client[i].ident in IF %d\n",
-                //      clients[i].ident);
+                        int n =  sendto(sockfd, p, MAXLINE,
+                                        MSG_CONFIRM,
+                                      (struct sockaddr *) &dub_client,
+                                      sizeof(cliaddr));
 
-                int n =  sendto(sockfd, p, MAXLINE,
-                                MSG_CONFIRM,
-                                (struct sockaddr *) &dub_client,
-                                sizeof(cliaddr));
-
-                 printf("Num of sent bytes %d\n", n);
-                 printf("...............\n");
+                        //printf("Num of sent bytes %d\n", n);
+                        //printf("...............\n");
+                    }
+                }
             }
         }
     }
 }
-
 void print_struct(int cnt) {
 
     struct sockaddr_in dub_client;

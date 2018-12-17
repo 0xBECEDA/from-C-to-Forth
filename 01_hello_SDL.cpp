@@ -53,6 +53,10 @@ int RGBcolor = 0;
 int pix_y = 10;
 int pix_x = 10;
 
+/* размер сторон врага */
+int pix_y_enemy = 10;
+int pix_x_enemy = 10;
+
 /* координаты для show_pixels и структур пикселей */
 int a = 0;
 int b = 0;
@@ -524,6 +528,17 @@ void show_box(int box_x, int box_y, int red, int green, int blue)
     }
 }
 
+void show_enemy(int box_x, int box_y, int red, int green, int blue)
+{
+    //printf("In show_box  X is %d; Y is %d\n", X, Y);
+    int cnt = 0;
+    for ( int j = box_y; j<(box_y + pix_y_enemy); j++) {
+        for ( int i = box_x; i<(box_x + pix_x_enemy); i++) {
+            DrawPixel(surface, i, j, red, green, blue);
+        }
+    }
+}
+
 /*
    Отрисовка экрана
    Проходит по массиву пикселей и отрисовывает каждый из них
@@ -860,7 +875,8 @@ void* udp_socket(void* pointer)
 {
     while (true) {
 
-        //usleep(10000); // sleep for 0.01 sec
+        usleep(10000); // sleep for 0.01 sec
+        //sleep(1);
         //printf("::udp_socket():: after sleep\n");
 
         /* сериализуем данные*/
@@ -883,25 +899,23 @@ void* udp_socket(void* pointer)
             recvfrom(sockfd, buffer, 1212, MSG_WAITALL,
                      (struct sockaddr *) &servaddr,
                      (socklen_t *)&len);
-        /* if(-1 == received) {
-            // printf("::udp_socket():: Error: Receive datagramm. Is server running?\n");
-            /* закоммитила выход, поскольку сокет
-               в неблокирующем режиме, и как только
-               принятый пакет отсутствует, мы вылетаем
 
-               //exit(EXIT_FAILURE);
-        } else {
-        */
-        //   printf("::udp_socket():: пакет был принят %d bytes\n", (int)received);
-            //}
-
-        /* десериализуем полученные данные ERROR HERE */
-
-        deserialization(buffer);
+        /* если пакеты получены */
 
         if(received != -1) {
-            printf("{ %d,%d }", X_enemy, Y_enemy);
-            show_box(X_enemy, Y_enemy, 255, 0, 255);
+            /*копируем старые данные врага*/
+            int check_X = X_enemy;
+            int check_Y = Y_enemy;
+            /*десериализуем новые*/
+            deserialization(buffer);
+            /*проверяем, не изменились ли координаты*/
+            if ( check_X != X_enemy || check_Y != Y_enemy) {
+                /*если координаты изменились,
+                  то отрисовываем старые координаты фоном*/
+                show_enemy(check_X, check_Y, 0, 0, 0);
+            }
+            /*затем отрисовываем */
+            show_enemy(X_enemy, Y_enemy, 255, 0, 255);
         }
 
 // printf("::udp_socket():: цикл сериализовать-отправить-принять-десериализовать выполнен %d раз\n", counter_for_while);
@@ -955,11 +969,8 @@ pthread_t udp_init()
 void* serialization()
 {
     /*выделяем память под буфер*/
-    void * udp_buffer = malloc(sizeof(int) + sizeof(int) +
-                               sizeof(int) + sizeof(pixels));
-    //  printf(" Size is %d\n", sizeof(int) + sizeof(int) +
-    //     sizeof(int) + sizeof(pixels));
-
+    void * udp_buffer = malloc((sizeof(int) * 5) + sizeof(pixels));
+    printf(" Size is %d\n", (sizeof(int) * 5) + sizeof(pixels));
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
     // printf("::serialization():: buffer in beginning serial is  0x%X\n", udp_buffer);
@@ -969,10 +980,17 @@ void* serialization()
     udp_buffer += sizeof(identificator);
     //printf("::serialization():: buffer after serial ident is  0x%X\n", udp_buffer);
 
+    /*сериализуем координаты квадратика и его размер*/
     memcpy(udp_buffer, &X, sizeof(X));
     udp_buffer += sizeof(X);
     memcpy(udp_buffer, &Y, sizeof(Y));
     udp_buffer += sizeof(Y);
+
+    memcpy(udp_buffer, &pix_y, sizeof(pix_y));
+    udp_buffer += sizeof(pix_y);
+    memcpy(udp_buffer, &pix_x, sizeof(pix_x));
+    udp_buffer += sizeof(pix_x);
+
     //printf("::serialization():: buffer after serial pixels_box is  0x%X\n", udp_buffer);
 
     /* сериализуем pixels вручную*/
@@ -1023,6 +1041,11 @@ void deserialization (void * input)
     X_enemy = *(int *)buffer;
     buffer += sizeof(int);
     Y_enemy  = *(int *)buffer;
+    buffer += sizeof(int);
+
+    pix_y_enemy = *(int *)buffer;
+    buffer += sizeof(int);
+    pix_x_enemy = *(int *)buffer;
     buffer += sizeof(int);
     //printf("X_enemy %d Y_enemy %d\n", X_enemy, Y_enemy);
     int j = 0;
