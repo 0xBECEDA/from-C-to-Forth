@@ -70,6 +70,7 @@ int Y_enemy = 0;
 
 /*идентификатор игрока-клиента*/
 int identificator;
+
 /* объявление структуры и массива структуры для пикселей */
 struct pixel
 {
@@ -461,6 +462,7 @@ bool no_more_space = false;
    - pixels
    - no_more_space
  */
+/*
 void PixelArray ()
 {
     // printf("хочу залочить mutex в PixelArray\n");
@@ -498,7 +500,7 @@ void PixelArray ()
     }
     /* Если после окончания цикла i равен максимальному значению
        переменной цикла - значит весь массив перебрали,
-       но не нашли свободной структуры */
+       но не нашли свободной структуры
     if (i == 100) {
         if (!no_more_space) {
             printf("::::::::::::::: No space found! \n");
@@ -508,7 +510,7 @@ void PixelArray ()
     pthread_mutex_unlock(&mutex);
     // printf("mutex в PixelArray разлочен\n");
 }
-
+*/
 /*
    Отрисовка квадратика
    surface должна быть заблокирована до вызова этой функции
@@ -970,7 +972,7 @@ void* serialization()
 {
     /*выделяем память под буфер*/
     void * udp_buffer = malloc((sizeof(int) * 5) + sizeof(pixels));
-    printf(" Size is %d\n", (sizeof(int) * 5) + sizeof(pixels));
+    printf(" Size is %d\n", sizeof(int) * 5 + sizeof(pixels));
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
     // printf("::serialization():: buffer in beginning serial is  0x%X\n", udp_buffer);
@@ -993,7 +995,7 @@ void* serialization()
 
     //printf("::serialization():: buffer after serial pixels_box is  0x%X\n", udp_buffer);
 
-    /* сериализуем pixels вручную*/
+    /* сериализуем pixels вручную
 
     void *p = udp_buffer;
 
@@ -1006,14 +1008,8 @@ void* serialization()
         *(int*)udp_buffer = pixels[i].d;
         udp_buffer += sizeof(int);
     }
-
+    /*
     //  printf("::serialization():: buffer after serial pixels is  0x%X\n", udp_buffer);
-
-    /*НЕ ЗАБУДЬ УБРАТЬ ЭТУ СТРОКУ ПОТОМ!*/
-     p += sizeof(char);
-     int pix =  *(int*)p;
-     //printf("pixels[0].c is %d, in bufer pixels[0].c is %d\n", pixels[0].c, pix);
-
 
     /*возвращаем указатель на буфер*/
     return pnt;
@@ -1142,7 +1138,7 @@ int main( int argc, char* args[] )
         default:
             break;
         }
-        PixelArray();
+        //PixelArray();
 
     }
 

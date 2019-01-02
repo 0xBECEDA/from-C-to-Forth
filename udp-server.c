@@ -16,6 +16,9 @@
 #define PORT     8080
 #define MAXLINE  1220
 
+/* объявление мьютекса */
+pthread_mutex_t mutex;
+
 struct connection
 {
     int thread;
@@ -24,9 +27,18 @@ struct connection
     char *buf;
 } clients[2];
 
-/* зачем нужная эта переменная если есть массив выше? */
 struct connection client;
-char buf_0[MAXLINE];
+
+/* объявление структуры и массива структуры для пикселей */
+struct pixel
+{
+    char alive;
+    int c;
+    int d;
+} pixels[100];
+
+struct pixel concrete_pixel;
+
 /* объявляем промежуточный буфер */
 char buffer[MAXLINE];
 
@@ -36,6 +48,29 @@ int sockfd;
 /* sockaddr_in сервера и клиента */
 struct sockaddr_in servaddr, cliaddr;
 struct sockaddr_in dub_array[2];
+
+void deserialization(void * input);
+void * serialization(char * input);
+
+void * serialization(char * input)
+{
+    /* сохраняем неизмененный указатель на буфер */
+    void *pointer =  (void*)input;
+
+    /*пропускаем идентификатор, координаты квадрата и размер сторон*/
+    void *pnt =  (void*)input + (sizeof(int) * 5);
+
+        for (int i = 0; i <=99; i++) {
+
+            *(char*)pnt = pixels[i].alive;
+            pnt += sizeof(char);
+            *(int*)pnt = pixels[i].c;
+            pnt += sizeof(int);
+            *(int*)pnt = pixels[i].d;
+            pnt += sizeof(int);
+        }
+    return pointer;
+}
 
 void* udp_socket(void* pointer)
 {
@@ -49,13 +84,15 @@ void* udp_socket(void* pointer)
         // printf("client[0].ident in thread %d\n", clients[0].ident);
         //printf("client[1].ident in thread %d\n", clients[1].ident);
         //printf("ident from buffer %d\n", ident);
-
         for (int i = 0; i <=1; i++) {
             /*если идентификатор из буфера совпадает
               с идентификатором  клиента*/
             if (ident == clients[i].ident) {
-                /*то вытаскиваем его буфер и ищем, кому отправить */
+                /*то вытаскиваем его буфер*/
                 char *p = clients[i].buf;
+                /*дополняем данными пикселей*/
+                serialization(p);
+
                 for (int i = 0; i <=1; i++) {
                     /*если идентификаторы разные,*/
                     if (ident != clients[i].ident &&
@@ -102,6 +139,7 @@ void* udp_socket(void* pointer)
         }
     }
 }
+
 void print_struct(int cnt) {
 
     struct sockaddr_in dub_client;
@@ -125,8 +163,58 @@ void print_struct(int cnt) {
     printf("...............\n");
     fflush(stdout);
 }
+int a = 0;
+int b = 0;
 
-// Driver code
+void PixelArray ()
+{
+    // printf("хочу залочить mutex в PixelArray\n");
+    pthread_mutex_lock(&mutex);
+    //printf("mutex в PixelArray залочен\n");
+    //получаем координаты
+    a = rand() % 500;
+    b = rand() % 500;
+
+    // Цикл, который перебирает массив. Если находит пустое место,
+    // записывает структуру
+
+    int i; // счетчик цикла
+    for (i=0; i<=100; i++) {
+        //printf("concrete_pixel.alive is %s\n",concrete_pixel.alive);
+        //вытаскиваем структуру из массива
+        concrete_pixel = pixels[i];
+        //если alive = 0;
+        if(concrete_pixel.alive == 0)
+        {
+            // заполняем структуру
+            concrete_pixel.c = a;
+            concrete_pixel.d = b;
+            //printf("concrete_pixel.c is %d, concrete_pixel.d is %d\n",
+            //concrete_pixel.c,
+            // concrete_pixel.d);
+            concrete_pixel.alive = 1;
+            //printf("concrete_pixel.alive is %d\n",
+            //       concrete_pixel.alive);
+            //возвращаем структуру в массив
+            pixels[i] = concrete_pixel;
+            // выход
+            break;
+        }
+    }
+    /* Если после окончания цикла i равен максимальному значению
+       переменной цикла - значит весь массив перебрали,
+       но не нашли свободной структуры
+    if (i == 100) {
+        if (!no_more_space) {
+            printf("::::::::::::::: No space found! \n");
+            no_more_space = true;
+        }
+    }
+    */
+    pthread_mutex_unlock(&mutex);
+    // printf("mutex в PixelArray разлочен\n");
+}
+
 void  main()
 {
     struct sockaddr_in test[2];
@@ -172,6 +260,8 @@ void  main()
     // длинну структуры клиента
 
     while (1) {
+
+        PixelArray();
         int len = sizeof(cliaddr);
         int n = recvfrom(sockfd, buffer, MAXLINE,
                      MSG_WAITALL, ( struct sockaddr *) &cliaddr,
