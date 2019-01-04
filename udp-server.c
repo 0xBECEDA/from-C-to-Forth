@@ -49,17 +49,41 @@ int sockfd;
 struct sockaddr_in servaddr, cliaddr;
 struct sockaddr_in dub_array[2];
 
-void deserialization(void * input);
-void * serialization(char * input);
+void * serialization(char * input, int x, int y, int x_side,
+                     int y_side);
+void deserialization (void * input, int x, int y, int x_side,
+                      int y_side);
+void * counter (char * input);
 
-void * serialization(char * input)
-{
-    /* сохраняем неизмененный указатель на буфер */
-    void *pointer =  (void*)input;
+/*на входе получает адрес в памяти, в который пишет
+ - на выходе возвращает тот же адрес */
 
-    /*пропускаем идентификатор, координаты квадрата и размер сторон*/
-    void *pnt =  (void*)input + (sizeof(int) * 5);
+void * serialization(char * input, int x, int y, int x_side,
+                     int y_side) {
+        /* сохраняем неизмененный указатель на буфер */
+        char *pointer = input;
 
+        /*пропускаем идентификатор*/
+        void *pnt =  (void*)input + sizeof(int);
+
+        int c = x;
+        int d = y;
+
+        int c_side = x_side;
+        int d_side = d_side;
+
+        /*перезаписываем данные координат и сторон */
+        memcpy(pnt, &c, sizeof(c));
+        pnt += sizeof(c);
+        memcpy(pnt, &d, sizeof(d));
+        pnt += sizeof(d);
+
+        memcpy(pnt, &c_side, sizeof(c_side));
+        pnt += sizeof(c_side);
+        memcpy(pnt, &d_side, sizeof(d_side));
+        pnt += sizeof(d_side);
+
+        /*дополняем данными пикселей*/
         for (int i = 0; i <=99; i++) {
 
             *(char*)pnt = pixels[i].alive;
@@ -69,8 +93,85 @@ void * serialization(char * input)
             *(int*)pnt = pixels[i].d;
             pnt += sizeof(int);
         }
-    return pointer;
+        return pointer;
+    }
+
+int numpix = 0;
+
+/* на входе получает буфер, и параметры, которые надо заполнить
+  десериализует размер сторон квадрата и его координаты */
+void deserialization(void * input, int x, int y, int x_side,
+                     int y_side) {
+
+    void * buffer = input;
+
+    /*пропускаем идентификатор*/
+    buffer += sizeof(int);
+
+    /*десериаизуем координаты*/
+    int c = *(int *)buffer;
+    buffer += sizeof(int);
+    int d =  *(int *)buffer;
+    buffer += sizeof(int);
+
+    /*десериализуем размер сторон*/
+    int c_side = *(int *)buffer;
+    buffer += sizeof(int);
+    int d_side = *(int *)buffer;
+    buffer += sizeof(int);
 }
+
+
+/* функция должна изолированно посчитать координаты квадратов
+- принимает адрес буфера
+- возвращает адрес буфера */
+void * counter (char * input) {
+
+    int x = 0;
+    int y = 0;
+    int x_side = 0;
+    int y_side = 0;
+
+    void  * buffer = (void *)input;
+    /*сохраняем неизмененный указатель*/
+    char * p = input;
+    /*десериализуем данные*/
+    deserialization(buffer, &x, &y, &x_side, &y_side);
+
+    /*проверяем, не съели ли какой-то пиксель*/
+    for (int i= 0; i <= 100; i++) {
+        /*если пиксель находится внутри квадрата*/
+        if(pixels[i].c <= x + (x_side - 1) &&
+           pixels[i].c > x &&
+           pixels[i].d <= y + (y_side - 1) &&
+           pixels[i].d >= y) {
+            /*то мы объявляем его как съеденный*/
+            pixels[i].alive = 0;
+
+            /*увеличиваем счетчик съеденных пикселей*/
+            numpix++;
+
+            /*на каждом третьем пикселе квадрат увеличивается
+              Пора увеличить?*/
+            int result =  numpix % 3;
+            if (result == 0) {
+
+                /* горизонталь и диагональ увеличиваются на 1*/
+                x_side++;
+                y_side++;
+
+                //printf("in right pix_y is %d, pix_x is %d\n",
+                //pix_y, pix_x);
+            }
+
+        }
+    }
+    /*сериализуем обратно*/
+    char * pnt;
+
+    return pnt =  serialization(p, &x, &y, &x_side, &y_side);
+}
+
 
 void* udp_socket(void* pointer)
 {
@@ -90,8 +191,9 @@ void* udp_socket(void* pointer)
             if (ident == clients[i].ident) {
                 /*то вытаскиваем его буфер*/
                 char *p = clients[i].buf;
-                /*дополняем данными пикселей*/
-                serialization(p);
+
+                /*дополняем данными*/
+                counter(p);
 
                 for (int i = 0; i <=1; i++) {
                     /*если идентификаторы разные,*/

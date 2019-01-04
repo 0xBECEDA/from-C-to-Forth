@@ -786,7 +786,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         printf("3 is pressed\n");
         //значение в doubles равно значению ИЗ GRB
         if (X != SCREEN_WIDTH - pix_x) {
-            check_pixels_right();
+            //check_pixels_right();
             move_box_right(X,Y);
         }
         // check_pixels(X, Y);
@@ -795,7 +795,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         printf("4 is pressed\n");
         //значение в doubles равно значению ИЗ GRB
         if (X != 0) {
-            check_pixels_left();
+            //check_pixels_left();
             move_box_left(X,Y);
         }
         break;
@@ -803,7 +803,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         printf("5 is pressed\n");
         //значение в doubles равно значению ИЗ GRB
         if (Y != SCREEN_HEIGHT - pix_y) {
-            check_pixels_down();
+            //check_pixels_down();
             move_box_down(X,Y);
         }
         break;
@@ -811,7 +811,7 @@ void Handle_Keydown(SDL_Keysym* keysym)
         printf("6 is pressed\n");
         //значение в doubles равно значению ИЗ GRB
         if (Y != 0) {
-            check_pixels_up();
+            //      check_pixels_up();
             move_box_up(X,Y);
         }
         break;
