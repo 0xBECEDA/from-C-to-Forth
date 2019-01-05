@@ -62,16 +62,17 @@ void * serialization(char * input, int x, int y, int x_side,
                      int y_side) {
         /* сохраняем неизмененный указатель на буфер */
         char *pointer = input;
-
+        printf("pointer in serial %X\n", pointer);
         /*пропускаем идентификатор*/
         void *pnt =  (void*)input + sizeof(int);
-
+        printf("pnt in serial %X\n", pnt);
         int c = x;
         int d = y;
 
         int c_side = x_side;
         int d_side = d_side;
 
+        printf("in Serial int c %d, int d %d, int c_side %d, int c_side %d\n", c, d, c_side, d_side);
         /*перезаписываем данные координат и сторон */
         memcpy(pnt, &c, sizeof(c));
         pnt += sizeof(c);
@@ -104,12 +105,13 @@ void deserialization(void * input, int x, int y, int x_side,
                      int y_side) {
 
     void * buffer = input;
-
+    printf("buffer in deserial %p\n", buffer);
     /*пропускаем идентификатор*/
     buffer += sizeof(int);
 
     /*десериаизуем координаты*/
     int c = *(int *)buffer;
+    // printf("in deserial int c %d\n", c);
     buffer += sizeof(int);
     int d =  *(int *)buffer;
     buffer += sizeof(int);
@@ -119,6 +121,8 @@ void deserialization(void * input, int x, int y, int x_side,
     buffer += sizeof(int);
     int d_side = *(int *)buffer;
     buffer += sizeof(int);
+    printf("in deserial int c %d, int d %d, int c_side %d, int c_side %d\n", c, d, c_side, d_side);
+    fflush(stdout);
 }
 
 
@@ -133,10 +137,16 @@ void * counter (char * input) {
     int y_side = 0;
 
     void  * buffer = (void *)input;
+    printf("buffer in counter %p\n", buffer);
+
     /*сохраняем неизмененный указатель*/
     char * p = input;
+    printf("p in counter %p\n", p);
+
     /*десериализуем данные*/
     deserialization(buffer, &x, &y, &x_side, &y_side);
+    printf("After deserial int x %d, int y %d, int x_side %d, int y_side %d\n", x, y, x_side, y_side);
+    fflush(stdout);
 
     /*проверяем, не съели ли какой-то пиксель*/
     for (int i= 0; i <= 100; i++) {
@@ -168,8 +178,8 @@ void * counter (char * input) {
     }
     /*сериализуем обратно*/
     char * pnt;
-
     return pnt =  serialization(p, &x, &y, &x_side, &y_side);
+    printf("pnt in counter %X\n", pnt);
 }
 
 
@@ -190,10 +200,10 @@ void* udp_socket(void* pointer)
               с идентификатором  клиента*/
             if (ident == clients[i].ident) {
                 /*то вытаскиваем его буфер*/
-                char *p = clients[i].buf;
 
-                /*дополняем данными*/
-                counter(p);
+                /*ЧТО-ТО ПРОИСХОДИТ ТУТ!*/
+                char *p = clients[i].buf;
+                printf("p in UDP %X\n", p);
 
                 for (int i = 0; i <=1; i++) {
                     /*если идентификаторы разные,*/
@@ -203,6 +213,13 @@ void* udp_socket(void* pointer)
                         client = clients[i];
                         dub_client = *client.p;
 
+                        /*дополняем данными
+
+                          ЧТО-ТО ПРОИСХОДИТ ТУТ!*/
+                        //printf("p in UDP %X\n", p);
+                        printf("before counter\n");
+                        fflush(stdout);
+                        counter(p);
                         /*
                           парамеры: дескриптор сокета,
                           с которого отправляем,
