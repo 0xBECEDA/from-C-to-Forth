@@ -60,6 +60,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <time.h>
 #include <unistd.h>
 #include <linux/unistd.h>
@@ -156,7 +157,7 @@ int pix_x = 10;
 пикселей будет нужна постоянно, поэтому разумно написать для этого
 отдельную функцию.
 
-#+NAME: declaration_hero
+#+NAME: DrawPixel
 #+BEGIN_SRC cpp
 
   void DrawPixel(SDL_Surface *screen, int x, int y,
@@ -260,6 +261,7 @@ void main() {
   show_box(X, Y, 255, 255, 255);
   SDL_UnlockSurface(surface);
   SDL_UpdateWindowSurface(gWindow);
+  sleep(5);
 }
 #+END_SRC
 
@@ -267,7 +269,8 @@ void main() {
 заблокировали проверхность, чтоб пользователь не увидел всю "кухню"
 отрисовки, получили рандомно координату X для квадратика, чтоб он
 каждй раз появлялся в разном месте, вызвали его отсовку,
-разблокировали поверхность и обновили ее.
+разблокировали поверхность и обновили ее. Ну и задержимся на 5 секунд
+перед выходом, чтоб увидеть плоды своих трудов.
 
 ** Сервер
 * Сборка
@@ -276,5 +279,18 @@ C-c C-v t
 
 #+NAME: game
 #+BEGIN_SRC forth :tangle game.c :noweb tangle :exports code :padline no :comments none
-<<outer>>
+
+<<libraries>>
+
+<<declaration_SDL>>
+
+<<three_functions_SDL>>
+
+<<DrawPixel>>
+
+<<show_box>>
+
+<<main>>
+
+
 #+END_SRC
