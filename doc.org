@@ -1,0 +1,256 @@
+#+STARTUP: showall indent hidestars
+
+* Для чего?
+Я задумала написать игрушку, чтоб более-менее разобраться с сетевым
+программированием и си в частности. Плюс написание игры - это своего
+рода интерактив.Сам пишешь, сам наблюдаешь, как код видимо,
+материально меняет происходящее, сам играешь.
+* В чем суть игры?
+Игра представляет собой скоммунизденную идею игры Agario. Существует
+главный герой - квадратик. У него существует враг - такой же
+квадратик.
+Цель игры:
+съесть врага. Его задача - съесть героя. Сделать
+это возможно только став больше противника. Как стать больше?
+Ответ:
+съесть как можно больше еды, которая представляет собой рандомно
+появляющиеся пиксели. Чем больше "еды" съедено, тем больше становится игрок.
+* Как?
+Для отрисовки используется библиотека SDL.
+Игра состоит из глобальных элементов: клиент(ы) и сервер.
+На клиенте происходит инициализация библиотеки SDL, отрисовка всех визуальных
+элементов игры, мониторинг событий, типа, движения мышки, управления
+героем и т.д.
+Сервер отвечает за генерацию рандомных пикселей, подсчет съеденных
+пикселей путем сопоставления их координат с координатами героя и
+врага, увеличение сторон квадратиков и пересылку пакетов от клиента к
+клиенту, конечно.
+** Клиент
+ Итак, начнем с самого необходимого. Сначала подключим все библиотеки,
+ которые будут нам нужны.
+#+NAME: libraries
+#+BEGIN_SRC cpp
+
+#include<SDL2/SDL.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <signal.h>
+#include <time.h>
+#include <unistd.h>
+#include <linux/unistd.h>
+#include <pthread.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+
+
+#+END_SRC
+
+Прежде чем работать с SDL надо еe "включить", т.е. в нашем случае
+инициализировать.
+В игре нам точно понадобится окно, его поверхность, на которой мы и
+будем рисовать, и все функции, которые может предложить нам SDL. Зачем
+себя ограничивать, в конце концов?
+
+#+NAME: declaration_SDL
+#+BEGIN_SRC cpp
+
+SDL_Window* gWindow = NULL;
+SDL_Surface* surface = NULL;
+SDL_Event event;
+SDL_Keysym keysym;
+int SCREEN_WIDTH = 480;
+int SCREEN_HEIGHT = 520;
+
+bool init();
+bool create();
+bool surface_create();
+
+<<declaration_hero>>
+#+END_SRC
+
+Итак мы сказали, у нас будет указатель на окно, указатель на
+поверхность, объект "event", объект "keysym", а размер нашего будущего
+окна будет 480 х 520. Так же нам нужны 3 функции. Init(); "включит"
+нам все функции SDL, create(); создаст окно, а surface_create();
+создаст поверхность в этом окне.
+
+#+NAME: three_functions_SDL
+#+BEGIN_SRC cpp
+
+bool init()
+{
+if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
+        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+        return false;
+    }
+    return true;
+}
+
+bool create()
+{
+    if ( !(gWindow =
+           SDL_CreateWindow("SDL Tutorial",
+                            SDL_WINDOWPOS_UNDEFINED,
+                            SDL_WINDOWPOS_UNDEFINED,
+                            SCREEN_WIDTH,
+                            SCREEN_HEIGHT,
+                            SDL_WINDOW_SHOWN)) ) {
+        printf( "SDL_CreateWindow() failed! SDL_Error: %s\n", SDL_GetError() );
+        return false;
+    }
+    return true;
+}
+
+bool surface_create ()
+{
+    if ( !(surface = SDL_GetWindowSurface(gWindow)) ) {
+        printf ("Didn't create surface! SDL_Error: %s\n", SDL_GetError());
+        return false;
+    }
+    return true;
+}
+
+#+END_SRC
+Все три функции должны вернуть true или напечатать сообщение о
+возникшей ошибке.
+
+Начало положено. Теперь можно попробовать вывести главного героя на
+экран. У него есть координаты X и Y, а так же размер его сторон.
+#+NAME: declaration_hero
+#+BEGIN_SRC cpp
+
+int X = 0;
+int Y = 0;
+
+int pix_y = 10;
+int pix_x = 10;
+
+#+END_SRC
+А еще он состоит из пикселей, которые надо отрисовать. Отрисовка
+пикселей будет нужна постоянно, поэтому разумно написать для этого
+отдельную функцию.
+
+#+NAME: declaration_hero
+#+BEGIN_SRC cpp
+
+  void DrawPixel(SDL_Surface *screen, int x, int y,
+                 Uint8 R, Uint8 G, Uint8 B)
+  {
+      Uint32 color = SDL_MapRGB(surface->format, R, G, B);
+      int bpp =  surface->format->BytesPerPixel;
+      Uint32 ppr = surface->pitch/bpp;
+
+      switch (bpp)
+      {
+      case 1:
+      {
+
+          Uint8 *p = (Uint8 *)surface->pixels + (y * ppr + x )* bpp;
+          *p = color;
+      }
+      break;
+      case 2:
+      {
+          Uint16 *p = (Uint16 *)surface->pixels + (y * ppr + x );
+          *p = color;
+      }
+      break;
+      case 3:
+      {
+          Uint8 *p = (Uint8 *)surface->pixels +
+              y*surface->pitch + x * 3;
+          if(SDL_BYTEORDER == SDL_LIL_ENDIAN)
+          {
+              p[0] = color;
+              p[1] = color >> 8;
+              p[2] = color >> 16;
+          } else {
+              p[2] = color;
+              p[1] = color >> 8;
+              p[0] = color >> 16;
+          }
+      }
+      break;
+      case 4:
+      {
+          Uint32 *p = (Uint32 *)surface->pixels + (y * ppr + x );
+                 *p = color;
+      }
+      break;
+      }
+  }
+
+#+END_SRC
+DrawPixel принимает в качетве параметра адрес поверхности, на которой
+предстоит рисовать, и координаты пикселя и составляющие его цвета.
+Затем она проверят, сколько бит приходится на пиксель и в зависимости
+от этого отрисовывает его тем или иным способом.
+
+Теперь мы можем написать функцию, которая будет нам рисовать
+квадратик, чтоб не передавать каждый пиксель в Draw_Pixel вручную.
+
+#+NAME: show_box
+#+BEGIN_SRC cpp
+
+void show_box(int box_x, int box_y, int red, int green, int blue)
+{
+    int cnt = 0;
+    for ( int j = box_y; j<(box_y + pix_y); j++) {
+        for ( int i = box_x; i<(box_x + pix_x); i++) {
+            DrawPixel(surface, i, j, red, green, blue);
+        }
+    }
+}
+
+#+END_SRC
+
+Функция принимает координаты квадратика, размер его сторон и
+составляющие цвета. Затем вызывает Draw_Pixel в двух циклах, чтоб
+получился квадратик.
+
+Теперь самое время это все собрать.
+
+#+NAME: main
+#+BEGIN_SRC cpp
+void main() {
+  if( !init() ) {
+
+      printf( "Failed to initialize SDL!\n" );
+  }
+  if( !create() ) {
+
+      printf( "Failed to initialize window!\n" );
+  }
+
+  if( !surface_create() ) {
+
+      printf( "Failed to initialize surface!\n" );
+  }
+
+  SDL_LockSurface(surface);
+  srand(time(NULL));
+  X = rand() % 500;
+
+  show_box(X, Y, 255, 255, 255);
+  SDL_UnlockSurface(surface);
+  SDL_UpdateWindowSurface(gWindow);
+}
+#+END_SRC
+
+Мы проинициализировали SDL, создали окно и поверхность, затем
+заблокировали проверхность, чтоб пользователь не увидел всю "кухню"
+отрисовки, получили рандомно координату X для квадратика, чтоб он
+каждй раз появлялся в разном месте, вызвали его отсовку,
+разблокировали поверхность и обновили ее.
+
+** Сервер
+* Сборка
+
+C-c C-v t
+
+#+NAME: game
+#+BEGIN_SRC forth :tangle game.c :noweb tangle :exports code :padline no :comments none
+<<outer>>
+#+END_SRC
