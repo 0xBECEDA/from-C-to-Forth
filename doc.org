@@ -40,20 +40,42 @@
 - массив структур игроков
 
 #+NAME: srv_game
-#+BEGIN_SRC forth :tangle game_server.cpp :noweb tangle :exports code :padline no :comments none
+#+BEGIN_SRC forth :tangle game_server.c :noweb tangle :exports code :padline no :comments none
+
   <<srv_libs>>
   <<field_constants>>
   <<srv_constants>>
   <<srv_globals>>
   <<srv_pixel_array>>
-
+  <<thread>>
   <<srv_main>>
+
+#+END_SRC
+
+*** Подключаемые библиотеки
+
+#+NAME: srv_libs
+#+BEGIN_SRC cpp
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <errno.h>
+#include <linux/unistd.h>
+
 #+END_SRC
 
 *** Размер поля
 
-Размер поля - это константы, которые должны быть общими для клиентов и сервера. Но раз
-уж мы начинаем с сервера, то объявим их тут:
+Размер поля - это константы, которые должны быть общими для клиентов и
+сервера. Но раз уж мы начинаем с сервера, то объявим их тут:
 
 #+NAME: field_constants
 #+BEGIN_SRC cpp
@@ -88,7 +110,7 @@
       char alive;
       int c;
       int d;
-  } pixels[MAX_PIXELS]
+  } pixels[MAX_PIXELS];
 #+END_SRC
 
 Теперь можно сгенерировать еду для игроков.
@@ -101,11 +123,10 @@
 
 #+NAME: pixel_array_loop
 #+BEGIN_SRC cpp
-  for (i=0; i<=(MAX_PIXELS-1); i++) {
+  for (i=0; i<MAX_PIXELS; i++) {
       if (0 == pixels[i].alive) {
           /*сгенерируем пиксели */
           <<generate_new_pixel>>
-
       }
   }
 #+END_SRC
@@ -116,14 +137,17 @@
 
 #+NAME: generate_new_pixel
 #+BEGIN_SRC cpp
+
+int a;
+int b;
   generate_new_pixel:
 
-  a = rand() % MAX_SIZE_X;
-  b = rand() % MAX_SIZE_Y;
+   a = rand() % MAX_SIZE_X;
+   b = rand() % MAX_SIZE_Y;
 
-      if ((a == pixels[i].c) && (b == pixels[i].d)) {
-          goto generate_new_pixel;
-      }
+  if ((a == pixels[i].c) && (b == pixels[i].d)) {
+      goto generate_new_pixel;
+  }
 
   pixels[i].c = a;
   pixels[i].d = b;
@@ -136,12 +160,11 @@
 #+BEGIN_SRC cpp
 
   /* процедура генерации одного нового пикселя еды */
-  int PixelArray (struct * pixels[])
+  int PixelArray (void *p_pixels)
   {
       /* счетчик цикла, объявляется вне цикла, чтобы проанализировать пройден ли весь массив */
-      int i;
-
-      <<pixel_array_loop>>
+       int i;
+       <<pixel_array_loop>>
 
       /* Если после окончания цикла i равен максимальному значению
          переменной цикла - значит весь массив перебрали,
@@ -187,13 +210,13 @@
   } clients[MAX_CLIENTS];
 #+END_SRC
 
-*** TODO Сервер подключений
+*** Сервер подключений
 
 Теперь, когда есть куда поместить клиентов, можно написать код,
 который будет принимать подключения. Сервер и клиенты будут общаться по UDP.
 
 Мне понадобится:
-- Счетчик в массиве структур клиентов
+- Счетчик в массиве структур клиентов, чтобы он не переполнялся
 - Процедура записи нового клиента в массив клиентов
 - Сокет, который будет слушать сервер
 - Процедуры сериализации и десериализации принимаемых пакетов
@@ -220,7 +243,7 @@
   /* регистрация нового клиента */
   int set_new_client (struct connection client)
   {
-      if ( new_client_idx >= MAX_CLIENTS) {
+      if ( new_client_idx >= MAX_CLIENTS ) {
           return 0; // error
       } else {
           clients[new_client_idx] = client;
@@ -278,7 +301,8 @@
   /* sockaddr_in клиента */
   struct sockaddr_in cliaddr;
 #+END_SRC
-И массив структура типа sockaddr_in, чтоб хранить в нем данные
+
+И массив структур типа sockaddr_in, чтоб хранить в нем данные
 структур cliaddr, чтоб иметь возможность обращаться к двум разным
 клиентам в любой момент времени, поскольку структура cliaddr
 перезаписывается автоматически, как только приходит пакет от
@@ -286,14 +310,28 @@
 
 #+NAME: srv_globals
 #+BEGIN_SRC cpp
-/*массив для хранения данных структур cliaddr*/
-struct sockaddr_in dub_array[2];
+
+  /*массив для хранения данных структур cliaddr*/
+  struct sockaddr_in dub_array[2];
+#+END_SRC
+
+Инициализируем счетчик-индекс для dub_array. Он понадобится нам в
+будущем для записи в свободную ячейку массива
+
+#+NAME: dub_array_cnt
+#+BEGIN_SRC cpp
+
+ int cnt = 0;
+
 #+END_SRC
 
 Создаем сокет и связываем его с портом:
 
 #+NAME: init_server_socket
 #+BEGIN_SRC cpp
+
+<<dub_array_cnt>>
+
   /* Создаем сокет. Должны в случае успеха получить его дескриптор */
   int sockfd;
   if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -321,8 +359,10 @@ struct sockaddr_in dub_array[2];
 #+NAME: srv_loop
 #+BEGIN_SRC cpp
   while (1) {
-      /* Создаем новый пиксель еды если есть возможность */
+      /* Создаем новые пиксели еды если есть возможность */
+      void * pixels = &pixels;
       PixelArray(&pixels);
+
       /* Читаем датаграмму */
       int len = sizeof(cliaddr);
       int n = recvfrom(sockfd, buffer, MAXLINE,
@@ -342,28 +382,32 @@ struct sockaddr_in dub_array[2];
 
 #+NAME: srv_main
 #+BEGIN_SRC cpp
-  void  main()
+  int  main()
   {
       <<init_server_socket>>
       <<srv_loop>>
+
   }
 #+END_SRC
 
 Теперь приступим к обработке датаграммы:
-1. Сначала мы вытащим идетификатор из буфера, чтобы проверить, был ли этот клиент.
+1. Сначала мы вытащим идентификатор из буфера, чтобы проверить, был ли этот клиент.
 
 #+NAME: ident_parse
 #+BEGIN_SRC cpp
 
-/* вытаскиваем идентификатор */
+  /* вытаскиваем идентификатор */
   int ident_client = *(int *)buffer;
 #+END_SRC
 
-2. Затем мы напишем мы проверим, был ли у нас клиент. Для этого мы
-сравним идентификатор клиента в каждой структуре и воспользуемся
-переменной counter, чтоб быть уверенными, что существование клиента
-не пройдет незамеченным.
-Если был:
+2. Затем мы проверим, был ли у нас клиент. Для этого мы сравним
+   идентификатор клиента в каждой структуре с идентификатором из
+   пакета и создадим переменную-счетчик, которая будет увеличиваться
+   каждый раз, если идентификатор из массива структур и идентификатор
+   из буфера совпал. Это является нашей страховкой от записи данных
+   одного и того же клиента в массив структур дважды.
+
+Если был клиент :
 - получаем указатель на область памяти, куда будем копировать данные
   из пакета клиента
 - копируем данные по указателю
@@ -381,26 +425,25 @@ struct sockaddr_in dub_array[2];
       if( clients[i].ident == ident_client) {
           char *point = clients[i].buf;
           //printf("char *p, если ident совпал  %X\n", point);
-          memcpy(pnt, buffer, MAXLINE);
+          memcpy(point, buffer, MAXLINE);
           clients[i].buf = point;
           counter++;
           break;
-     }
+      }
 
-<<check_client_2>>
-}
+      <<check_client_2>>
+  }
 #+END_SRC
 
 Если клиент новый:
 - записываем идентификатор из пакета
 - выделяем память под буфер
 - перезаписываем туда данные
-- копируем указатель на буфер в поле clients.buf
+- копируем указатель на буфер
 - создаем поток
-- кладем идентификатор потока в сlients.thread
+- кладем идентификатор потока
 - копируем данные структуры cliaddr в массив dub_array
-- копируем указатель на текущий элемент массива dub_array в поле
-  clients.p
+- копируем указатель на текущий элемент массива dub_array
 - увеличиваем этот указатель на размер его типа
 - сдивгаем индекс массива dub_array, чтоб писать в него данные
   структур cliaddr при необходимости дальше
@@ -427,40 +470,35 @@ struct sockaddr_in dub_array[2];
 #+NAME: check_client_2
 #+BEGIN_SRC cpp
 
- /*если структура пустая и счетчик нулевой*/
-      if( clients[i].ident == 0
-          && counter == 0) {
+  /*если структура пустая и счетчик нулевой*/
+  if( ( clients[i].ident == 0) && (counter == 0) ) {
 
-          /* то записываем данные клиента в массив */
-          clients[i].ident = ident_client;
+      /* то записываем данные клиента в массив */
+      clients[i].ident = ident_client;
 
-          /*выдеяем память по буфер
-            и перезаписываем туда данные*/
+      /* выделяем память по буфер и перезаписываем туда данные */
+      char *p = malloc(MAXLINE);
+      memcpy(p, buffer, MAXLINE);
+      clients[i].buf = p;
 
-          char *p = malloc(MAXLINE);
-          memcpy(p, buffer, MAXLINE);
-          clients[i].buf = p;
+      <<create_thread>>
 
-         <<create_thread>>
+      /* кладем идентификатор потока в структуру */
+      clients[i].thread = udp_thread;
 
+      /* копируем данные структуру клиента в массив */
+      dub_array[cnt] = cliaddr;
 
-          /* кладем идентификатор потока в структуру */
-          clients[i].thread = udp_thread;
+      clients[i].p = pnt;
+      printf("pnt of struct is %X\n", pnt);
+      printf("clients[i].p is %X\n", clients[i].p);
+      printf ("clients[i].ident is %d\n", clients[i].ident);
+      fflush(stdout);
 
-          /* копируем данные структуру клиента в массив */
-          dub_array[cnt] = cliaddr;
-
-          clients[i].p = pnt;
-          printf("pnt of struct is %X\n", pnt);
-          printf("clients[i].p is %X\n", clients[i].p);
-          printf ("clients[i].ident is %d\n", clients[i].ident);
-          fflush(stdout);
-
-          pnt += 1;
-          cnt++;
-          break;
-}
-
+      pnt += 1;
+      cnt++;
+      break;
+  }
 #+END_SRC
 
 Здесь будет привычное создание потока
@@ -479,6 +517,7 @@ struct sockaddr_in dub_array[2];
 
 #+END_SRC
 
+
 Таким образом парсинг датаграммы будет выглядеть следующим образом:
 
 #+NAME: datagramm_parse
@@ -487,6 +526,20 @@ struct sockaddr_in dub_array[2];
   <<ident_parse>>
 
   <<check_client_1>>
+
+#+END_SRC
+
+*** TODO Фукнция потока
+
+Каждому клиенту будет соответствовать свой поток.
+
+#+NAME: thread
+#+BEGIN_SRC cpp
+
+void* udp_socket(void* pointer)
+{
+
+}
 
 #+END_SRC
 
