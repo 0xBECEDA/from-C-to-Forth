@@ -38,6 +38,51 @@ int pix_x = 10;
 
 
 
+/* объявление мьютекса */
+pthread_mutex_t mutex;
+
+
+
+/*идентификатор игрока-клиента*/
+int identificator;
+
+
+
+
+int X_enemy = 0;
+int Y_enemy = 0;
+
+/* размер сторон врага */
+int pix_y_enemy = 10;
+int pix_x_enemy = 10;
+
+
+
+void* serialization();
+
+void deserialization (void * input);
+
+
+
+
+int sockfd;
+struct sockaddr_in servaddr;
+
+
+
+
+/* максимальное кол-во пикселей еды на поле */
+#define MAX_PIXELS 100
+
+struct pixel
+{
+    char alive = 0;
+    int c;
+    int d;
+} pixels[100];
+
+
+
 bool init()
 {
 if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
@@ -122,14 +167,17 @@ void DrawPixel(SDL_Surface *screen, int x, int y,
 
 
 
-void show_box(int box_x, int box_y, int red, int green, int blue)
+void show_box(int box_x, int box_y, int side_a, int side_b,
+              int red, int green, int blue)
 {
+    int side_x = side_a;
 
+    int side_y = side_b;
     SDL_LockSurface(surface);
 
     int cnt = 0;
-    for ( int j = box_y; j<(box_y + pix_y); j++) {
-        for ( int i = box_x; i<(box_x + pix_x); i++) {
+    for ( int j = box_y; j<(box_y + side_y); j++) {
+        for ( int i = box_x; i<(box_x + side_x); i++) {
             DrawPixel(surface, i, j, red, green, blue);
         }
     }
@@ -147,43 +195,218 @@ void move_box( int &X, int &Y, int event)
 
     if ( event_type == 3) {
 
-        show_box(X, Y, 0, 0, 0);
+        show_box(X, Y, pix_x, pix_y, 0, 0, 0);
 
         X++;
 
-        // отрисовываю с новыми координатами
-        show_box(X, Y, 255, 255, 255);
+
+        show_box(X, Y, pix_x, pix_y, 255, 255, 255);
+
     }
 
     if ( event_type == 4) {
 
-        show_box(X, Y, 0, 0, 0);
+        show_box(X, Y, pix_x, pix_y, 0, 0, 0);
 
         X--;
 
-        // отрисовываю с новыми координатами
-        show_box(X, Y, 255, 255, 255);
-    }
+
+        show_box(X, Y, pix_x, pix_y, 255, 255, 255);
+
+      }
 
     if ( event_type == 5) {
 
-        show_box(X, Y, 0, 0, 0);
+
+        show_box(X, Y, pix_x, pix_y, 0, 0, 0);
 
         Y++;
 
-        // отрисовываю с новыми координатами
-        show_box(X, Y, 255, 255, 255);
+        show_box(X, Y, pix_x, pix_y, 255, 255, 255);
+
     }
 
     if ( event_type == 6) {
 
-        show_box(X, Y, 0, 0, 0);
+        show_box(X, Y, pix_x, pix_y, 0, 0, 0);
 
         Y--;
 
         // отрисовываю с новыми координатами
-        show_box(X, Y, 255, 255, 255);
+
+        show_box(X, Y, pix_x, pix_y, 255, 255, 255);
+
     }
+
+}
+
+
+
+void* udp_socket(void* pointer)
+{
+    while (true) {
+
+        usleep(10000); // sleep for 0.01 sec
+
+        /* сериализуем данные*/
+
+        void *buffer = serialization();
+
+        socklen_t len = sizeof(servaddr);
+
+        ssize_t sended =
+            sendto(sockfd, buffer, 1212, MSG_CONFIRM,
+                   (const struct sockaddr *) &servaddr,
+                   sizeof(servaddr));
+        if(-1 == sended) {
+            printf("::udp_socket():: Error: Send datagramm\n");
+            exit(EXIT_FAILURE);
+        }
+
+        /* получаем данные */
+        ssize_t received =
+            recvfrom(sockfd, buffer, 1212, MSG_WAITALL,
+                     (struct sockaddr *) &servaddr,
+                     (socklen_t *)&len);
+
+        /* если пакеты получены */
+
+        if(received != -1)
+        {
+            /*копируем старые данные врага*/
+            int check_X = X_enemy;
+            int check_Y = Y_enemy;
+
+            /*десериализуем новые*/
+            deserialization(buffer);
+            /*проверяем, не изменились ли координаты*/
+            if ( check_X != X_enemy || check_Y != Y_enemy) {
+                /*если координаты изменились,
+                  то отрисовываем старые координаты фоном*/
+                show_box(check_X, check_Y, pix_x_enemy, pix_y_enemy, 0, 0, 0);
+            }
+            /*затем отрисовываем */
+            show_box(X_enemy, Y_enemy, pix_x_enemy, pix_y_enemy, 255, 0, 0);
+        }
+
+    }
+
+}
+
+
+
+
+pthread_t udp_init()
+{
+    // Создаем сокет.
+    // Должны в случае успеха получить его дескриптор
+    // в глобальную переменную sockfd
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+    // Переводим сокет в неблокирующий режим
+    fcntl(sockfd, F_SETFL, O_NONBLOCK);
+    // заполняем данные о сервере
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(8080);
+    servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    /*создаем новый поток*/
+    
+    /* создаем новый поток */
+    pthread_t udp_thread;
+    
+    void *(*thread_func)(void *) = udp_socket;
+    
+    if( 0 != pthread_create(&udp_thread, NULL, thread_func, NULL) ) {
+        perror("thread_create failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    
+
+    return udp_thread;
+}
+
+
+
+void* serialization()
+{
+    /*выделяем память под буфер*/
+    void * udp_buffer = malloc((sizeof(int) * 5) + sizeof(pixels));
+    printf(" Size is %d\n", sizeof(int) * 5 + sizeof(pixels));
+    /* сохраняем неизмененный указатель на буфер */
+    void *pnt = udp_buffer;
+
+    /* сериализуем идентификатор квадратика */
+    memcpy(udp_buffer, &identificator, sizeof(int));
+    udp_buffer += sizeof(identificator);
+
+    /*сериализуем координаты квадратика и его размер*/
+    memcpy(udp_buffer, &X, sizeof(X));
+    udp_buffer += sizeof(X);
+    memcpy(udp_buffer, &Y, sizeof(Y));
+    udp_buffer += sizeof(Y);
+
+    memcpy(udp_buffer, &pix_y, sizeof(pix_y));
+    udp_buffer += sizeof(pix_y);
+    memcpy(udp_buffer, &pix_x, sizeof(pix_x));
+    udp_buffer += sizeof(pix_x);
+
+    return pnt;
+}
+
+
+
+void deserialization (void * input)
+{
+    void * buffer = input;
+    /*сохраняем неизмененный указатель*/
+    void * pnt = input;
+    int i = 0;
+
+    /*пропускаем идентификатор, он нам не нужен*/
+    int ident = *(int *)buffer;
+    // printf("ident is %d\n", ident);
+    buffer += sizeof(int);
+
+    /*десериализуем данные врага*/
+    /* закрываем мьютекс здесь,
+       т.к. это критическая секция кода*/
+    pthread_mutex_lock(&mutex);
+    X_enemy = *(int *)buffer;
+    buffer += sizeof(int);
+    Y_enemy  = *(int *)buffer;
+    buffer += sizeof(int);
+
+    pix_y_enemy = *(int *)buffer;
+    buffer += sizeof(int);
+    pix_x_enemy = *(int *)buffer;
+    buffer += sizeof(int);
+    //printf("X_enemy %d Y_enemy %d\n", X_enemy, Y_enemy);
+    int j = 0;
+    /* десериализуем пиксели */
+
+    while (j <=99) {
+        //printf("..........\n");
+        pixels[j].alive = *(char *)buffer;
+        buffer += sizeof(char);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        pixels[j].c = *(int *)buffer;
+        buffer += sizeof(int);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        pixels[j].d = *(int *)buffer;
+        buffer += sizeof(int);
+        //printf("buffer in %d iteration is %X\n", j, buffer);
+        j++;
+    }
+
+    /* откываем мьютекс после выхода из цикла*/
+    pthread_mutex_unlock(&mutex);
+
+    /* освобождаем место в памяти */
+    free(pnt);
 
 }
 
@@ -229,44 +452,55 @@ void Handle_Keydown(SDL_Keysym* keysym)
     }
 }
 
- int main() {
-   if( !init() ) {
- 
-       printf( "Failed to initialize SDL!\n" );
-   }
-   if( !create() ) {
- 
-       printf( "Failed to initialize window!\n" );
-   }
- 
-   if( !surface_create() ) {
- 
-       printf( "Failed to initialize surface!\n" );
-   }
- 
-   SDL_LockSurface(surface);
-   srand(time(NULL));
-   X = rand() % 500;
- 
-   show_box(X, Y, 255, 255, 255);
-   SDL_UnlockSurface(surface);
-   SDL_UpdateWindowSurface(gWindow);
- 
-   
-     while (256 != event.type) {
-         SDL_WaitEventTimeout(& event, 100);
-         switch (event.type) {
-         case SDL_MOUSEMOTION:
-             break;
-         case SDL_KEYDOWN:
-             Handle_Keydown(&event.key.keysym);
-             break;
-         case SDL_WINDOWEVENT:
-             break;
-         default:
-             break;
-         }
-   }
-   
- 
- }
+int main() {
+    if( !init() ) {
+
+        printf( "Failed to initialize SDL!\n" );
+    }
+    if( !create() ) {
+
+        printf( "Failed to initialize window!\n" );
+    }
+
+    if( !surface_create() ) {
+
+        printf( "Failed to initialize surface!\n" );
+    }
+
+    SDL_LockSurface(surface);
+    srand(time(NULL));
+    X = rand() % 500;
+
+    show_box(X, Y, pix_x, pix_y, 255, 255, 255);
+    SDL_UnlockSurface(surface);
+    SDL_UpdateWindowSurface(gWindow);
+
+   /* создаем идентификатор */
+    srand(time(NULL));
+    identificator = rand() % 500;
+
+    /* создаем мьютекс */
+    mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    /* создаем сокет */
+    udp_init();
+    printf("инициализация udp прошла успешно\n");
+
+    
+      while (256 != event.type) {
+          SDL_WaitEventTimeout(& event, 100);
+          switch (event.type) {
+          case SDL_MOUSEMOTION:
+              break;
+          case SDL_KEYDOWN:
+              Handle_Keydown(&event.key.keysym);
+              break;
+          case SDL_WINDOWEVENT:
+              break;
+          default:
+              break;
+          }
+    }
+    
+
+}
