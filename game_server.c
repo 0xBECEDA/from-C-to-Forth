@@ -129,6 +129,8 @@ void deserialization(void * input, int x, int y, int x_side,
     buffer += sizeof(int);
     y_side = *(int *)buffer;
     buffer += sizeof(int);
+    printf("IN DEserial x %d, y %d, x_side %d, y_side %d\n",
+           x, y, x_side, y_side);
 
 }
 
@@ -168,7 +170,7 @@ void * serialization(char * input, int x, int y, int x_side,
 
 
 void * counter (char * input) {
-
+    sleep(5);
     int x = 0;
     int y = 0;
     int x_side = 0;
@@ -180,7 +182,8 @@ void * counter (char * input) {
 
     /*десериализуем данные*/
     deserialization(buffer, &x, &y, &x_side, &y_side);
-
+    printf("after DEserial x %d, y %d, x_side %d, y_side %d\n",
+           x, y, x_side, y_side);
 
     for (int i= 0; i <= 99; i++) {
             /*если пиксель находится внутри квадрата*/
@@ -190,7 +193,8 @@ void * counter (char * input) {
                pixels[i].d >= y) {
                 /*то мы объявляем его как съеденный*/
                 pixels[i].alive = 0;
-
+                printf("pixels[%d].c %d, pixels[%d].d %d\n",
+                       i, pixels[i].c, i,  pixels[i].d);
                 /*увеличиваем счетчик съеденных пикселей*/
                 numpix++;
 
@@ -224,7 +228,7 @@ void* udp_socket(void* pointer)
         /* получаем идентификатор клиента */
         void *pnt = buffer;
         int ident = *(int *)pnt;
-
+        char *p;
         /*заводим структуру, чтоб загрузить в нее сохраненные из cliaddr данные*/
         struct sockaddr_in dub_client;
 
@@ -238,39 +242,35 @@ void* udp_socket(void* pointer)
 
             if (ident == clients[i].ident) {
 
-                 /* то получаем указатель на его буфер */
-                  char *p = clients[i].buf;
+                /* то получаем указатель на его буфер */
+                p = clients[i].buf;
 
-                  /* и ищем не совпадающий идентификатор */
-                for (int i = 0; i <=1; i++) {
-                    /* если идентификаторы разные */
-                    if (ident != clients[i].ident &&
-                        clients[i].ident != 0 ) {
+                /* и ищем не совпадающий идентификатор */
+                //      for (int i = 0; i <=1; i++) {
+                /* если идентификаторы разные */
+                /*          if (ident != clients[i].ident &&
+                            clients[i].ident != 0 ) {
 
-                        /* то загружаем сохранненные из структуры cliaddr данные */
-                        client = clients[i];
-                        dub_client = *client.p;
+                            /* то загружаем сохранненные из структуры cliaddr данные */
+                /*                client = clients[i];
+                                  dub_client = *client.p;
 
-                        /*дополняем буфер данными*/
-                        counter(p);
+                                  /*дополняем буфер данными*/
+                char *bufer_pnt = counter(p);
 
-                        /* отправляем пакет */
-                        int n =  sendto(sockfd, p, MAXLINE,
-                                        MSG_CONFIRM,
-                                        (struct sockaddr *) &dub_client,
-                                        sizeof(cliaddr));
-                    }
-                }
+                /* отправляем пакет */
+                /*           int n =  sendto(sockfd, p, MAXLINE,
+                             MSG_CONFIRM,
+                             (struct sockaddr *) &dub_client,
+                             sizeof(cliaddr));
+                */
             }
         }
+        //  }
+        // }
     }
 }
 
-void* test_thread(void* pointer)
-
-{
-    printf("It works\n");
-}
 int  main()
 {
 
@@ -354,11 +354,8 @@ int  main()
                  pthread_t udp_thread;
 
                  /* создаем поток */
-                 //pthread_create(&udp_thread, NULL,
-                 //             udp_socket, pointer);
-
                  pthread_create(&udp_thread, NULL,
-                                test_thread, pointer);
+                                udp_socket, pointer);
 
 
                 /* кладем идентификатор потока в структуру */
