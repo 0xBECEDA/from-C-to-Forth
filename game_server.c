@@ -81,18 +81,18 @@ int PixelArray (void *p_pixels)
      for (i=0; i<MAX_PIXELS; i++) {
          if (0 == pixels[i].alive) {
              /*сгенерируем пиксели */
-             
+
              int a;
              int b;
                generate_new_pixel:
-             
+
                 a = rand() % MAX_SIZE_X;
                 b = rand() % MAX_SIZE_Y;
-             
+
                if ((a == pixels[i].c) && (b == pixels[i].d)) {
                    goto generate_new_pixel;
                }
-             
+
                pixels[i].c = a;
                pixels[i].d = b;
                pixels[i].alive = 1;
@@ -181,7 +181,7 @@ void * counter (char * input) {
     /*десериализуем данные*/
     deserialization(buffer, &x, &y, &x_side, &y_side);
 
-    
+
     for (int i= 0; i <= 99; i++) {
             /*если пиксель находится внутри квадрата*/
             if(pixels[i].c <= x + (x_side - 1) &&
@@ -190,23 +190,23 @@ void * counter (char * input) {
                pixels[i].d >= y) {
                 /*то мы объявляем его как съеденный*/
                 pixels[i].alive = 0;
-    
+
                 /*увеличиваем счетчик съеденных пикселей*/
                 numpix++;
-    
+
                 /*на каждом третьем пикселе квадрат увеличивается
                   Пора увеличить?*/
                 int result =  numpix % 3;
                 if (result == 0) {
-    
+
                     /* горизонталь и диагональ увеличиваются на 1*/
                     x_side++;
                     y_side++;
-    
+
                 }
             }
         }
-    
+
 
     /*сериализуем обратно*/
     char * pnt;
@@ -266,54 +266,65 @@ void* udp_socket(void* pointer)
     }
 }
 
+void* test_thread(void* pointer)
+
+{
+    printf("It works\n");
+}
 int  main()
 {
-    
-    
+
+
     int cnt = 0;
-    
-    
+
+
       /* Создаем сокет. Должны в случае успеха получить его дескриптор */
-    
+
       if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
           perror("socket creation failed");
           exit(EXIT_FAILURE);
       }
-    
+
       /* заполняем данные о сервере */
       servaddr.sin_family = AF_INET;
       servaddr.sin_addr.s_addr = INADDR_ANY;
       servaddr.sin_port = htons(PORT);
-    
+
+
+      memset(dub_array, 0, sizeof(dub_array));
+      memset(clients, 0, sizeof(clients));
+
+
       /* привязываем сокет к адресу */
       if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
           perror("bind failed");
           exit(EXIT_FAILURE);
       }
+
     while (1) {
         /* Создаем новые пиксели еды если есть возможность */
         void * pixels = &pixels;
         PixelArray(&pixels);
-    
+
         /* Читаем датаграмму */
         int len = sizeof(cliaddr);
         int n = recvfrom(sockfd, buffer, MAXLINE,
                          MSG_WAITALL, ( struct sockaddr *) &cliaddr,
                          &len);
-    
+
         /* передаем указатель на массив c данными структур cliaddr */
         struct sockaddr_in *pnt = dub_array;
-    
+
         /* Разбираем датаграмму и пересылаем изменения остальным клиентам */
-        
-        
+
+
         /* вытаскиваем идентификатор */
         int ident_client = *(int *)buffer;
-        
-        
+
+
         for(int i = 0; i<=1; i++) {
             int counter = 0;
-        
+
             /*если идентификатор совпадает*/
             if( clients[i].ident == ident_client) {
                 char *point = clients[i].buf;
@@ -323,48 +334,51 @@ int  main()
                 counter++;
                 break;
             }
-        
-            
+
+
             /*если структура пустая и счетчик нулевой*/
             if( ( clients[i].ident == 0) && (counter == 0) ) {
-            
+
                 /* то записываем данные клиента в массив */
                 clients[i].ident = ident_client;
-            
+
                 /* выделяем память по буфер и перезаписываем туда данные */
                 char *p = malloc(MAXLINE);
                 memcpy(p, buffer, MAXLINE);
                 clients[i].buf = p;
-            
-                
+
+
                 void* pointer = NULL;
-                
+
                  /* переменная для хранения идентификатора потока */
                  pthread_t udp_thread;
-                
+
                  /* создаем поток */
+                 //pthread_create(&udp_thread, NULL,
+                 //             udp_socket, pointer);
+
                  pthread_create(&udp_thread, NULL,
-                                udp_socket, pointer);
-                
-            
+                                test_thread, pointer);
+
+
                 /* кладем идентификатор потока в структуру */
                 clients[i].thread = udp_thread;
-            
+
                 /* копируем данные структуру клиента в массив */
                 dub_array[cnt] = cliaddr;
-            
+
                 clients[i].p = pnt;
                 printf("pnt of struct is %X\n", pnt);
                 printf("clients[i].p is %X\n", clients[i].p);
                 printf ("clients[i].ident is %d\n", clients[i].ident);
                 fflush(stdout);
-            
+
                 pnt += 1;
                 cnt++;
                 break;
             }
         }
-        
+
     }
 
 }

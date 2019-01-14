@@ -360,11 +360,25 @@ int sockfd;
   servaddr.sin_addr.s_addr = INADDR_ANY;
   servaddr.sin_port = htons(PORT);
 
+  <<memset>>
+
   /* привязываем сокет к адресу */
   if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
       perror("bind failed");
       exit(EXIT_FAILURE);
   }
+
+#+END_SRC
+
+Заполним наши массивы нулями, чтоб в них не оказалось всякого мусора,
+из-за чего последствия могут быть непредсказуемыми.
+
+#+NAME: memset
+#+BEGIN_SRC cpp
+
+    memset(dub_array, 0, sizeof(dub_array));
+    memset(clients, 0, sizeof(clients));
+
 #+END_SRC
 
 Окей, сокет создан и готов принимать UDP-датаграммы. Теперь мы можем написать
