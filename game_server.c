@@ -159,16 +159,6 @@ void * serialization(char * input, int x, int y, int x_side,
         memcpy(pnt, &y_side, sizeof(y_side));
         pnt += sizeof(y_side);
 
-        /*дополняем данными пикселей*/
-        for (int i = 0; i <=99; i++) {
-
-            *(char*)pnt = pixels[i].alive;
-            pnt += sizeof(char);
-            *(char*)pnt = pixels[i].c;
-            pnt += sizeof(char);
-            *(char*)pnt = pixels[i].d;
-            pnt += sizeof(char);
-        }
         return pointer;
     }
 
@@ -192,31 +182,31 @@ void * counter (char * input) {
     printf("after DEserial x %d, y %d, x_side %d, y_side %d\n",
            x, y, x_side, y_side);
 
-//    for (int i= 0; i <= 99; i++) {
-            /*если пиксель находится внутри квадрата*/
-    //          if(pixels[i].c <= x + (x_side - 1) &&
-    //           pixels[i].c > x &&
-    //           pixels[i].d <= y + (y_side - 1) &&
-    //         pixels[i].d >= y) {
-                /*то мы объявляем его как съеденный*/
-    //          pixels[i].alive = 0;
-    //          printf("pixels[%d].c %d, pixels[%d].d %d\n",
-    //                     i, pixels[i].c, i,  pixels[i].d);
-                /*увеличиваем счетчик съеденных пикселей*/
-//          numpix++;
+    for (int i= 0; i <= 99; i++) {
+        /*если пиксель находится внутри квадрата*/
+        if(pixels[i].c <= x + (x_side - 1) &&
+           pixels[i].c > x &&
+           pixels[i].d <= y + (y_side - 1) &&
+           pixels[i].d >= y) {
+            /*то мы объявляем его как съеденный*/
+            pixels[i].alive = 0;
+            printf("pixels[%d].c %d, pixels[%d].d %d\n",
+                   i, pixels[i].c, i,  pixels[i].d);
+            /*увеличиваем счетчик съеденных пикселей*/
+            numpix++;
 
-                /*на каждом третьем пикселе квадрат увеличивается
-                  Пора увеличить?*/
-//              int result =  numpix % 3;
-//              if (result == 0) {
+            /*на каждом третьем пикселе квадрат увеличивается
+              Пора увеличить?*/
+            int result =  numpix % 3;
+            if (result == 0) {
 
-                    /* горизонталь и диагональ увеличиваются на 1*/
-//                  x_side++;
-//                  y_side++;
+                /* горизонталь и диагональ увеличиваются на 1*/
+                x_side++;
+                y_side++;
 
-//              }
-//          }
-//      }
+            }
+        }
+    }
 
 
     /*сериализуем обратно*/
@@ -226,62 +216,62 @@ void * counter (char * input) {
 }
 
 
-void* udp_socket(void* pointer)
+/* void* udp_socket(void* pointer) */
 
-{
-    printf("Thread is going\n");
-    while(1) {
+/* { */
+/*     printf("Thread is going\n"); */
+/*     while(1) { */
 
-        /* получаем идентификатор клиента */
-        void *pnt = buffer;
-        int ident = *(int *)pnt;
-        char *p;
-        /*заводим структуру, чтоб загрузить в нее сохраненные из cliaddr данные*/
-        struct sockaddr_in dub_client;
+/*         /\* получаем идентификатор клиента *\/ */
+/*         void *pnt = buffer; */
+/*         int ident = *(int *)pnt; */
+/*         char *p; */
+/*         /\*заводим структуру, чтоб загрузить в нее сохраненные из cliaddr данные*\/ */
+/*         struct sockaddr_in dub_client; */
 
-        /*заводим структуру, чтоб позже скопировать в нее данные клиента*/
-        struct connection client;
+/*         /\*заводим структуру, чтоб позже скопировать в нее данные клиента*\/ */
+/*         struct connection client; */
 
-        for (int i = 0; i <=1; i++) {
+/*         for (int i = 0; i <=1; i++) { */
 
-            /* если идентификатор из буфера совпадает
-               с идентификатором  клиента */
+/*             /\* если идентификатор из буфера совпадает */
+/*                с идентификатором  клиента *\/ */
 
-            if (ident == clients[i].ident) {
+/*             if (ident == clients[i].ident) { */
 
-                /* то получаем указатель на его буфер */
-                p = clients[i].buf;
+/*                 /\* то получаем указатель на его буфер *\/ */
+/*                 p = clients[i].buf; */
 
-//                printf("p in thread %X\n", p);
-                fflush(stdout);
+/* //                printf("p in thread %X\n", p); */
+/*                 fflush(stdout); */
 
-                /* и ищем не совпадающий идентификатор */
-                for (int i = 0; i <=1; i++) {
-                    /* если идентификаторы разные */
-                    if (ident != clients[i].ident &&
-                        clients[i].ident != 0 ) {
+/*                 /\* и ищем не совпадающий идентификатор *\/ */
+/*                 for (int i = 0; i <=1; i++) { */
+/*                     /\* если идентификаторы разные *\/ */
+/*                     if (ident != clients[i].ident && */
+/*                         clients[i].ident != 0 ) { */
 
-                        /* то загружаем сохранненные из структуры cliaddr данные */
-                        client = clients[i];
-                        dub_client = *client.p;
+/*                         /\* то загружаем сохранненные из структуры cliaddr данные *\/ */
+/*                         client = clients[i]; */
+/*                         dub_client = *client.p; */
 
-                        //                      printf("p in thread's final IF %X\n", p);
-                        fflush(stdout);
-                        /*дополняем буфер данными*/
-                        char *bufer_pnt = counter(p);
+/*                         //                      printf("p in thread's final IF %X\n", p); */
+/*                         fflush(stdout); */
+/*                         /\*дополняем буфер данными*\/ */
+/*                         char *bufer_pnt = counter(p); */
 
-                        /* отправляем пакет */
-                        /*           int n =  sendto(sockfd, p, MAXLINE,
-                                     MSG_CONFIRM,
-                                     (struct sockaddr *) &dub_client,
-                                     sizeof(cliaddr));
-                        */
-                    }
-                }
-            }
-        }
-    }
-}
+/*                         /\* отправляем пакет *\/ */
+/*                         /\*           int n =  sendto(sockfd, p, MAXLINE, */
+/*                                      MSG_CONFIRM, */
+/*                                      (struct sockaddr *) &dub_client, */
+/*                                      sizeof(cliaddr)); */
+/*                         *\/ */
+/*                     } */
+/*                 } */
+/*             } */
+/*         } */
+/*     } */
+/* } */
 
 int  main()
 {
@@ -290,104 +280,187 @@ int  main()
     int cnt = 0;
 
 
-      /* Создаем сокет. Должны в случае успеха получить его дескриптор */
+    /* Создаем сокет. Должны в случае успеха получить его дескриптор */
 
-      if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-          perror("socket creation failed");
-          exit(EXIT_FAILURE);
-      }
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
 
-      /* заполняем данные о сервере */
-      servaddr.sin_family = AF_INET;
-      servaddr.sin_addr.s_addr = INADDR_ANY;
-      servaddr.sin_port = htons(PORT);
-
-
-      memset(dub_array, 0, sizeof(dub_array));
-      memset(clients, 0, sizeof(clients));
+    /* заполняем данные о сервере */
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT);
 
 
-      /* привязываем сокет к адресу */
-      if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
-          perror("bind failed");
-          exit(EXIT_FAILURE);
-      }
+    memset(dub_array, 0, sizeof(dub_array));
+    memset(clients, 0, sizeof(clients));
+
+
+    /* привязываем сокет к адресу */
+    if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
 
     while (1) {
+
         /* Создаем новые пиксели еды если есть возможность */
         void * pixels = &pixels;
         PixelArray(&pixels);
 
-        /* Читаем датаграмму */
-        int len = sizeof(cliaddr);
-        int n = recvfrom(sockfd, buffer, MAXLINE,
-                         MSG_WAITALL, ( struct sockaddr *) &cliaddr,
-                         &len);
-
-        /* передаем указатель на массив c данными структур cliaddr */
+        /* передаем указатель на массив c
+           данными структур cliaddr */
         struct sockaddr_in *pnt = dub_array;
 
-        /* Разбираем датаграмму и пересылаем изменения остальным клиентам */
+        int recv_start = 0;
+        int recv_end = 0;
+
+        while(1) {
+
+            recv_start = clock();
+            /* Читаем датаграмму */
+            int len = sizeof(cliaddr);
+            int n = recvfrom(sockfd, buffer, MAXLINE,
+                             MSG_WAITALL, ( struct sockaddr *) &cliaddr,
+                             &len);
+
+            /* Разбираем датаграмму и
+               пересылаем изменения остальным клиентам */
 
 
-        /* вытаскиваем идентификатор */
-        int ident_client = *(int *)buffer;
+            /* вытаскиваем идентификатор */
+            int ident_client = *(int *)buffer;
 
 
-        for(int i = 0; i<=1; i++) {
-            int counter = 0;
+            for(int i = 0; i<=1; i++) {
+                int counter = 0;
 
-            /*если идентификатор совпадает*/
-            if( clients[i].ident == ident_client) {
-                char *point = clients[i].buf;
-                //printf("char *p, если ident совпал  %X\n", point);
-                memcpy(point, buffer, MAXLINE);
-                clients[i].buf = point;
-                counter++;
-                break;
+                /*если идентификатор совпадает*/
+                if( clients[i].ident == ident_client) {
+                    char *point = clients[i].buf;
+                    //printf("char *p, если ident совпал  %X\n",
+                    //point);
+
+                    memcpy(point, buffer, MAXLINE);
+                    clients[i].buf = point;
+                    //printf(" OLD clients[%d].buf is %X\n", i,
+                    //     clients[i].buf);
+                    counter++;
+                    break;
+                }
+
+
+                /*если структура пустая и счетчик нулевой*/
+                if( ( clients[i].ident == 0) && (counter == 0) ) {
+
+                    /* то записываем данные клиента в массив */
+                    clients[i].ident = ident_client;
+
+                    /* выделяем память по буфер и перезаписываем
+                       туда данные */
+                    char *p = malloc(MAXLINE);
+                    memcpy(p, buffer, MAXLINE);
+                    clients[i].buf = p;
+                    // printf(" clients[%d].buf is %X\n", i,
+                    //       clients[i].buf);
+                    fflush(stdout);
+
+                    /* копируем данные структуру клиента
+                       в массив */
+                    dub_array[cnt] = cliaddr;
+
+                    clients[i].p = pnt;
+                    printf("pnt of struct is %X\n", pnt);
+                    printf("clients[i].p is %X\n", clients[i].p);
+                    printf ("clients[i].ident is %d\n",
+                            clients[i].ident);
+                    fflush(stdout);
+
+                    pnt += 1;
+                    cnt++;
+                    break;
+                }
             }
 
-
-            /*если структура пустая и счетчик нулевой*/
-            if( ( clients[i].ident == 0) && (counter == 0) ) {
-
-                /* то записываем данные клиента в массив */
-                clients[i].ident = ident_client;
-
-                /* выделяем память по буфер и перезаписываем туда данные */
-                char *p = malloc(MAXLINE);
-                memcpy(p, buffer, MAXLINE);
-                clients[i].buf = p;
-
-
-                void* pointer = NULL;
-
-                 /* переменная для хранения идентификатора потока */
-                 pthread_t udp_thread;
-
-                 /* создаем поток */
-                 pthread_create(&udp_thread, NULL,
-                                udp_socket, pointer);
-
-
-                /* кладем идентификатор потока в структуру */
-                clients[i].thread = udp_thread;
-
-                /* копируем данные структуру клиента в массив */
-                dub_array[cnt] = cliaddr;
-
-                clients[i].p = pnt;
-                printf("pnt of struct is %X\n", pnt);
-                printf("clients[i].p is %X\n", clients[i].p);
-                printf ("clients[i].ident is %d\n", clients[i].ident);
-                fflush(stdout);
-
-                pnt += 1;
-                cnt++;
+            recv_end = clock() - recv_start;
+            if ( recv_end >= 1 ) {
                 break;
+            }
+            int send_start = 0;
+            int send_end = 0;
+
+            /*отправляем*/
+            while(1) {
+                send_start = clock();
+
+                char *p;
+
+                for(int i = 0; i < 2; i++) {
+
+                    p = clients[i].buf;
+
+                    /* проверяем, не стоит ли квадрат на
+                       одном из пикселей */
+                    char *bufer_pnt = counter(p);
+                    clients[i].buf = bufer_pnt;
+                }
+
+                /* записываем в буфер каждого клиента
+                   актуальное состояние пикселей*/
+
+                for(int i = 0; i < 2; i++) {
+
+                    p = clients[i].buf;
+                    void *pnt = (void*)p;
+                    void *double_pnt = (void*)p;
+
+                    /* пропускаем идентификатор, координаты
+                       квадрата и размер его сторон*/
+                    pnt += sizeof(int) * 5;
+
+                    /*дополняем данными пикселей */
+                    for (int j = 0; j <=99; j++) {
+
+                        *(char*)pnt = pixels[j].alive;
+                        pnt += sizeof(char);
+                        *(int*)pnt = pixels[j].c;
+                        pnt += sizeof(int);
+                        *(int*)pnt = pixels[j].d;
+                        pnt += sizeof(int);
+
+                    }
+
+                }
+                /* если прошла секунда или больше */
+                send_end = clock() - send_start;
+                if ( send_end >= 1 ) {
+                    /* выходим из цикла и отправляем*/
+                    break;
+                }
+
+            }
+            struct sockaddr_in dub_client;
+
+            /*заводим структуру, чтоб позже скопировать
+              в нее данные клиента*/
+            struct connection client;
+
+            char *p;
+
+
+            /* отправляем */
+            for(int i = 0; i < 2; i++) {
+                client = clients[i];
+
+                dub_client = *client.p;
+
+                p = clients[i].buf;
+                int n =  sendto(sockfd, p, MAXLINE,
+                                MSG_CONFIRM,
+                                (struct sockaddr *) &dub_client,
+                                sizeof(cliaddr));
             }
         }
-
     }
-
 }
