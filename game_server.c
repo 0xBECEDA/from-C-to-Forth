@@ -260,11 +260,10 @@ int  main()
 
         printf("recv_and_send\n");
         /* Создаем новые пиксели еды если есть возможность */
-//        void * pixels = &pixels;
+
         PixelArray(&pixels);
 
-        struct pixel *pix = &pixels;
-        /* передаем указатель на массив c
+           /* передаем указатель на массив c
            данными структур cliaddr */
         struct sockaddr_in *pnt = dub_array;
 
