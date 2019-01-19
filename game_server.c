@@ -276,10 +276,6 @@ void * counter (char * input) {
 int  main()
 {
 
-
-    int cnt = 0;
-
-
     /* Создаем сокет. Должны в случае успеха получить его дескриптор */
 
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -301,7 +297,16 @@ int  main()
     if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
         perror("bind failed");
         exit(EXIT_FAILURE);
+
+        /* вызываем функцию, которая будет принимать и отправлять пакеты*/
+        recv_and_send();
     }
+
+}
+
+/* Принимает и отправляет пакеты */
+
+void recv_and_send() {
 
     while (1) {
 
@@ -313,12 +318,18 @@ int  main()
            данными структур cliaddr */
         struct sockaddr_in *pnt = dub_array;
 
+        /* переменные для отсчета времени */
         int recv_start = 0;
         int recv_end = 0;
+
+        /* индекс для dub_array*/
+        int cnt = 0;
+
 
         while(1) {
 
             recv_start = clock();
+
             /* Читаем датаграмму */
             int len = sizeof(cliaddr);
             int n = recvfrom(sockfd, buffer, MAXLINE,
@@ -408,7 +419,7 @@ int  main()
 
                 /* записываем в буфер каждого клиента
                    актуальное состояние пикселей*/
-
+                struct pixel concrete_pixel;
                 for(int i = 0; i < 2; i++) {
 
                     p = clients[i].buf;
@@ -417,21 +428,24 @@ int  main()
 
                     /* пропускаем идентификатор, координаты
                        квадрата и размер его сторон*/
+
                     pnt += sizeof(int) * 5;
 
                     /*дополняем данными пикселей */
                     for (int j = 0; j <=99; j++) {
 
-                        *(char*)pnt = pixels[j].alive;
+                        concrete_pixel = pixels[j];
+                        *(char*)pnt = concrete_pixel.alive;
                         pnt += sizeof(char);
-                        *(int*)pnt = pixels[j].c;
+                        *(int*)pnt = concrete_pixel.c;
                         pnt += sizeof(int);
-                        *(int*)pnt = pixels[j].d;
+                        *(int*)pnt = concrete_pixel.d;
                         pnt += sizeof(int);
-
+                        pixels[j] =  concrete_pixel;
                     }
 
                 }
+
                 /* если прошла секунда или больше */
                 send_end = clock() - send_start;
                 if ( send_end >= 1 ) {
