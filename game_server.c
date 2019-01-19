@@ -74,7 +74,7 @@ int numpix = 0;
 
 
 /* процедура генерации одного нового пикселя еды */
-int PixelArray (void *p_pixels)
+int PixelArray (struct pixel *p_pixels)
 {
     /* счетчик цикла, объявляется вне цикла, чтобы проанализировать пройден ли весь массив */
      int i;
@@ -116,7 +116,7 @@ void deserialization(void * input, int x, int y, int x_side,
     printf("buffer in Deserial %X\n", buffer);
     /*пропускаем идентификатор*/
     buffer += sizeof(int);
-
+    printf("buffer after sizeof in Deserial %X\n", buffer);
     /*десериаизуем координаты*/
     x = *(int *)buffer;
 //    printf("in deserial int x %d\n", x);
@@ -178,7 +178,7 @@ void * counter (char * input) {
     char *p = input;
 
     /*десериализуем данные*/
-    deserialization(buffer, x, y, x_side, y_side);
+    deserialization(buffer, &x, &y, &x_side, &y_side);
     printf("after DEserial x %d, y %d, x_side %d, y_side %d\n",
            x, y, x_side, y_side);
 
@@ -215,73 +215,21 @@ void * counter (char * input) {
 
 }
 
-
-/* void* udp_socket(void* pointer) */
-
-/* { */
-/*     printf("Thread is going\n"); */
-/*     while(1) { */
-
-/*         /\* получаем идентификатор клиента *\/ */
-/*         void *pnt = buffer; */
-/*         int ident = *(int *)pnt; */
-/*         char *p; */
-/*         /\*заводим структуру, чтоб загрузить в нее сохраненные из cliaddr данные*\/ */
-/*         struct sockaddr_in dub_client; */
-
-/*         /\*заводим структуру, чтоб позже скопировать в нее данные клиента*\/ */
-/*         struct connection client; */
-
-/*         for (int i = 0; i <=1; i++) { */
-
-/*             /\* если идентификатор из буфера совпадает */
-/*                с идентификатором  клиента *\/ */
-
-/*             if (ident == clients[i].ident) { */
-
-/*                 /\* то получаем указатель на его буфер *\/ */
-/*                 p = clients[i].buf; */
-
-/* //                printf("p in thread %X\n", p); */
-/*                 fflush(stdout); */
-
-/*                 /\* и ищем не совпадающий идентификатор *\/ */
-/*                 for (int i = 0; i <=1; i++) { */
-/*                     /\* если идентификаторы разные *\/ */
-/*                     if (ident != clients[i].ident && */
-/*                         clients[i].ident != 0 ) { */
-
-/*                         /\* то загружаем сохранненные из структуры cliaddr данные *\/ */
-/*                         client = clients[i]; */
-/*                         dub_client = *client.p; */
-
-/*                         //                      printf("p in thread's final IF %X\n", p); */
-/*                         fflush(stdout); */
-/*                         /\*дополняем буфер данными*\/ */
-/*                         char *bufer_pnt = counter(p); */
-
-/*                         /\* отправляем пакет *\/ */
-/*                         /\*           int n =  sendto(sockfd, p, MAXLINE, */
-/*                                      MSG_CONFIRM, */
-/*                                      (struct sockaddr *) &dub_client, */
-/*                                      sizeof(cliaddr)); */
-/*                         *\/ */
-/*                     } */
-/*                 } */
-/*             } */
-/*         } */
-/*     } */
-/* } */
-
 int  main()
 {
 
+    printf("main\n");
+    fflush(stdout);
     /* Создаем сокет. Должны в случае успеха получить его дескриптор */
+
 
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
+
+    printf("sock created\n");
+    fflush(stdout);
 
     /* заполняем данные о сервере */
     servaddr.sin_family = AF_INET;
@@ -292,43 +240,46 @@ int  main()
     memset(dub_array, 0, sizeof(dub_array));
     memset(clients, 0, sizeof(clients));
 
-
+    printf(" before bind\n");
+    fflush(stdout);
     /* привязываем сокет к адресу */
     if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
         perror("bind failed");
         exit(EXIT_FAILURE);
 
         /* вызываем функцию, которая будет принимать и отправлять пакеты*/
-        recv_and_send();
+        printf("call recv_and_send\n");
+        fflush(stdout);
+        //recv_and_send();
     }
 
-}
+    /* Принимаем и отправляем пакеты */
 
-/* Принимает и отправляет пакеты */
-
-void recv_and_send() {
 
     while (1) {
 
+        printf("recv_and_send\n");
         /* Создаем новые пиксели еды если есть возможность */
-        void * pixels = &pixels;
+//        void * pixels = &pixels;
         PixelArray(&pixels);
 
+        struct pixel *pix = &pixels;
         /* передаем указатель на массив c
            данными структур cliaddr */
         struct sockaddr_in *pnt = dub_array;
 
         /* переменные для отсчета времени */
-        int recv_start = 0;
-        int recv_end = 0;
+        time_t recv_start = 0;
+        time_t recv_end = 0;
 
         /* индекс для dub_array*/
         int cnt = 0;
 
-
+    recv_data:
         while(1) {
 
-            recv_start = clock();
+//            printf("in recv-part\n");
+            recv_start = time(NULL);
 
             /* Читаем датаграмму */
             int len = sizeof(cliaddr);
@@ -355,8 +306,7 @@ void recv_and_send() {
 
                     memcpy(point, buffer, MAXLINE);
                     clients[i].buf = point;
-                    //printf(" OLD clients[%d].buf is %X\n", i,
-                    //     clients[i].buf);
+
                     counter++;
                     break;
                 }
@@ -373,8 +323,9 @@ void recv_and_send() {
                     char *p = malloc(MAXLINE);
                     memcpy(p, buffer, MAXLINE);
                     clients[i].buf = p;
-                    // printf(" clients[%d].buf is %X\n", i,
-                    //       clients[i].buf);
+
+                    printf(" clients[%d].buf is %X\n", i,
+                           clients[i].buf);
                     fflush(stdout);
 
                     /* копируем данные структуру клиента
@@ -382,10 +333,12 @@ void recv_and_send() {
                     dub_array[cnt] = cliaddr;
 
                     clients[i].p = pnt;
-                    printf("pnt of struct is %X\n", pnt);
-                    printf("clients[i].p is %X\n", clients[i].p);
-                    printf ("clients[i].ident is %d\n",
-                            clients[i].ident);
+
+                    // printf("clients[%d].p is %X\n",
+                    //       i, clients[i].p);
+
+                    printf ("clients[%d].ident is %d\n",
+                            i, clients[i].ident);
                     fflush(stdout);
 
                     pnt += 1;
@@ -394,16 +347,23 @@ void recv_and_send() {
                 }
             }
 
-            recv_end = clock() - recv_start;
-            if ( recv_end >= 1 ) {
+            recv_end = time(NULL);
+            int time_recv = difftime(recv_end, recv_start);
+            if ( time_recv >= 1 ) {
+                printf("time %d\n", time_recv);
+                fflush(stdout);
                 break;
             }
-            int send_start = 0;
-            int send_end = 0;
+        }
+
+            printf("after recv\n");
+            time_t send_start = 0;
+            time_t send_end = 0;
 
             /*отправляем*/
             while(1) {
-                send_start = clock();
+
+                send_start = time(NULL);
 
                 char *p;
 
@@ -423,6 +383,7 @@ void recv_and_send() {
                 for(int i = 0; i < 2; i++) {
 
                     p = clients[i].buf;
+
                     void *pnt = (void*)p;
                     void *double_pnt = (void*)p;
 
@@ -447,9 +408,11 @@ void recv_and_send() {
                 }
 
                 /* если прошла секунда или больше */
-                send_end = clock() - send_start;
+                send_end = time(NULL);
+                int time_send = difftime(send_end, send_start);
                 if ( send_end >= 1 ) {
                     /* выходим из цикла и отправляем*/
+                    printf("time_send %d\n", time_send);
                     break;
                 }
 
@@ -477,4 +440,3 @@ void recv_and_send() {
             }
         }
     }
-}
