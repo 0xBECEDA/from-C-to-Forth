@@ -241,6 +241,32 @@ void move_box( int &X, int &Y, int event)
 }
 
 
+/* функция отрисовки пикселей */
+void show_pixels(int red, int green, int blue)
+{
+    int p = 0;
+    int i = 0;
+    SDL_LockSurface(surface);
+    for (i; i <= 99; i++) {
+        if (pixels[i].alive == 1) {
+            DrawPixel(surface, pixels[i].c,
+                      pixels[i].d, red, green, blue);
+        }
+    }
+    SDL_UnlockSurface(surface);
+    SDL_UpdateWindowSurface( gWindow );
+}
+
+void* pixels_thread(void* thread_data)
+{
+    while (1) {
+        // printf(".");
+        fflush(stdout);
+        show_pixels(0, 0, 255);
+        usleep(10000);
+    }
+}
+
 
 void* udp_socket(void* pointer)
 {
@@ -270,15 +296,31 @@ void* udp_socket(void* pointer)
                      (socklen_t *)&len);
 
         /* если пакеты получены */
+        int firs_recv = 0;
+        if(received != -1 && firs_recv == 0) {
+
+            //создаем поток отрисовки пиекселей-еды
+            pthread_t thread;
+
+            if( 0 != pthread_create
+                (&thread, NULL, pixels_thread, NULL) ) {
+                perror("thread create failed in main()");
+            }
+        }
+
 
         if(received != -1)
         {
+
             /*копируем старые данные врага*/
             int check_X = X_enemy;
             int check_Y = Y_enemy;
 
             /*десериализуем новые*/
             deserialization(buffer);
+
+            printf("X_enemy %d, Y_enemy %d, X %d, Y %d\n",
+                   X_enemy, Y_enemy, X, Y);
             /*проверяем, не изменились ли координаты*/
             if ( check_X != X_enemy || check_Y != Y_enemy) {
                 /*если координаты изменились,
@@ -313,18 +355,18 @@ pthread_t udp_init()
     servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
     /*создаем новый поток*/
-    
+
     /* создаем новый поток */
     pthread_t udp_thread;
-    
+
     void *(*thread_func)(void *) = udp_socket;
-    
+
     if( 0 != pthread_create(&udp_thread, NULL, thread_func, NULL) ) {
         perror("thread_create failed");
         exit(EXIT_FAILURE);
     }
-    
-    
+
+
 
     return udp_thread;
 }
@@ -335,7 +377,7 @@ void* serialization()
 {
     /*выделяем память под буфер*/
     void * udp_buffer = malloc((sizeof(int) * 5) + sizeof(pixels));
-    printf(" Size is %d\n", sizeof(int) * 5 + sizeof(pixels));
+    //printf(" Size is %d\n", sizeof(int) * 5 + sizeof(pixels));
     /* сохраняем неизмененный указатель на буфер */
     void *pnt = udp_buffer;
 
@@ -380,10 +422,14 @@ void deserialization (void * input)
     Y_enemy  = *(int *)buffer;
     buffer += sizeof(int);
 
+    printf("десериализация координат\n");
+
     pix_y_enemy = *(int *)buffer;
     buffer += sizeof(int);
     pix_x_enemy = *(int *)buffer;
     buffer += sizeof(int);
+
+    printf("десериализация размера сторон\n");
     //printf("X_enemy %d Y_enemy %d\n", X_enemy, Y_enemy);
     int j = 0;
     /* десериализуем пиксели */
@@ -402,6 +448,7 @@ void deserialization (void * input)
         j++;
     }
 
+    printf("десериализация пикселей\n");
     /* откываем мьютекс после выхода из цикла*/
     pthread_mutex_unlock(&mutex);
 
@@ -409,7 +456,6 @@ void deserialization (void * input)
     free(pnt);
 
 }
-
 
 
 void Handle_Keydown(SDL_Keysym* keysym)
@@ -486,7 +532,7 @@ int main() {
     udp_init();
     printf("инициализация udp прошла успешно\n");
 
-    
+
       while (256 != event.type) {
           SDL_WaitEventTimeout(& event, 100);
           switch (event.type) {
@@ -501,6 +547,6 @@ int main() {
               break;
           }
     }
-    
+
 
 }
