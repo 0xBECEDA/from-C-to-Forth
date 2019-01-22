@@ -296,17 +296,17 @@ void* udp_socket(void* pointer)
                      (socklen_t *)&len);
 
         /* если пакеты получены */
-        int firs_recv = 0;
-        if(received != -1 && firs_recv == 0) {
+        // int firs_recv = 0;
+        // if(received != -1 && firs_recv == 0) {
 
-            //создаем поток отрисовки пиекселей-еды
-            pthread_t thread;
+        //     //создаем поток отрисовки пиекселей-еды
+        //     pthread_t thread;
 
-            if( 0 != pthread_create
-                (&thread, NULL, pixels_thread, NULL) ) {
-                perror("thread create failed in main()");
-            }
-        }
+        //     if( 0 != pthread_create
+        //         (&thread, NULL, pixels_thread, NULL) ) {
+        //         perror("thread create failed in main()");
+        //     }
+        // }
 
 
         if(received != -1)
@@ -318,6 +318,8 @@ void* udp_socket(void* pointer)
 
             /*десериализуем новые*/
             deserialization(buffer);
+
+            show_pixels(0, 0, 255);
 
             printf("X_enemy %d, Y_enemy %d, X %d, Y %d\n",
                    X_enemy, Y_enemy, X, Y);
@@ -422,14 +424,14 @@ void deserialization (void * input)
     Y_enemy  = *(int *)buffer;
     buffer += sizeof(int);
 
-    printf("десериализация координат\n");
+//    printf("десериализация координат\n");
 
     pix_y_enemy = *(int *)buffer;
     buffer += sizeof(int);
     pix_x_enemy = *(int *)buffer;
     buffer += sizeof(int);
 
-    printf("десериализация размера сторон\n");
+    //  printf("десериализация размера сторон\n");
     //printf("X_enemy %d Y_enemy %d\n", X_enemy, Y_enemy);
     int j = 0;
     /* десериализуем пиксели */
@@ -448,7 +450,7 @@ void deserialization (void * input)
         j++;
     }
 
-    printf("десериализация пикселей\n");
+    // printf("десериализация пикселей\n");
     /* откываем мьютекс после выхода из цикла*/
     pthread_mutex_unlock(&mutex);
 
@@ -464,14 +466,13 @@ void Handle_Keydown(SDL_Keysym* keysym)
     switch(keysym->sym) {
 
     case SDLK_3:
-        printf("3 is pressed\n");
+
         if (X != SCREEN_WIDTH - pix_x) {
             move_box(X,Y,3);
         }
         break;
 
     case SDLK_4:
-        printf("4 is pressed\n");
 
         if (X != 0) {
             move_box(X,Y,4);
@@ -479,21 +480,21 @@ void Handle_Keydown(SDL_Keysym* keysym)
         break;
 
     case SDLK_5:
-        printf("5 is pressed\n");
+
         if (Y != SCREEN_HEIGHT - pix_y) {
             move_box(X,Y,5);
         }
         break;
 
     case SDLK_6:
-        printf("6 is pressed\n");
+
         if (Y != 0) {
             move_box(X,Y,6);
         }
         break;
 
     default:
-        printf("Can't find this key\n");
+
         break;
     }
 }

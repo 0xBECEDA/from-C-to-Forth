@@ -127,8 +127,8 @@ void * serialization(char * input, int x, int y, int x_side,
         void *pnt =  (void*)input + sizeof(int);
         //      printf("pnt in serial %X\n", pnt);
 
-        printf("in Serial x %d, y %d, x_side %d, y_side %d\n",
-               x, y, x_side, y_side);
+        // printf("in Serial x %d, y %d, x_side %d, y_side %d\n",
+        //       x, y, x_side, y_side);
 
         /*перезаписываем данные координат и сторон */
         memcpy(pnt, &x, sizeof(x));
@@ -154,7 +154,7 @@ void * counter (char * input) {
 
     void  * buffer = (void *)input;
 
-    printf("buffer in counter %X\n", buffer);
+    //printf("buffer in counter %X\n", buffer);
 
     char *p = input;
 
@@ -171,8 +171,8 @@ void * counter (char * input) {
     buffer += sizeof(int);
     y_side = deserialization(buffer);
 
-    printf("after DEserial x %d, y %d, x_side %d, y_side %d\n",
-           x, y, x_side, y_side);
+    //printf("after DEserial x %d, y %d, x_side %d, y_side %d\n",
+    //       x, y, x_side, y_side);
 
     for (int i= 0; i <= 99; i++) {
         /*если пиксель находится внутри квадрата*/
@@ -182,8 +182,8 @@ void * counter (char * input) {
            pixels[i].d >= y) {
             /*то мы объявляем его как съеденный*/
             pixels[i].alive = 0;
-            printf("pixels[%d].c %d, pixels[%d].d %d\n",
-                   i, pixels[i].c, i,  pixels[i].d);
+            //printf("pixels[%d].c %d, pixels[%d].d %d\n",
+            //       i, pixels[i].c, i,  pixels[i].d);
             /*увеличиваем счетчик съеденных пикселей*/
             numpix++;
 
@@ -204,15 +204,14 @@ void * counter (char * input) {
     /*сериализуем обратно*/
     char * pnt;
     return pnt =  serialization(p, x, y, x_side, y_side);
-    printf("pnt in counter after all %X\n", pnt);
+    //printf("pnt in counter after all %X\n", pnt);
 }
 
 int  main()
 {
 
-    printf("main\n");
-    fflush(stdout);
-    /* Создаем сокет. Должны в случае успеха получить его дескриптор */
+    /* Создаем сокет.
+       Должны в случае успеха получить его дескриптор */
 
 
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -245,7 +244,7 @@ int  main()
 
     while (1) {
 
-        printf("recv_and_send\n");
+        //printf("recv_and_send\n");
         /* Создаем новые пиксели еды если есть возможность */
 
         PixelArray(&pixels);
@@ -283,14 +282,20 @@ int  main()
             for(int i = 0; i<=1; i++) {
                 int counter = 0;
 
+                char *point;
                 /*если идентификатор совпадает*/
                 if( clients[i].ident == ident_client) {
-                    char *point = clients[i].buf;
-                    //printf("char *p, если ident совпал  %X\n",
-                    //point);
+
+                    point = clients[i].buf;
+
+                    printf(" совпал clients[%d].ident is %d\n", i,
+                           clients[i].ident);
 
                     memcpy(point, buffer, MAXLINE);
                     clients[i].buf = point;
+
+                    printf(" совпал clients[%d].buf is %X\n", i,
+                           clients[i].buf);
 
                     counter++;
                     break;
@@ -305,14 +310,16 @@ int  main()
 
                     /* выделяем память по буфер и перезаписываем
                        туда данные */
-                    char *p = malloc(MAXLINE);
-                    memcpy(p, buffer, MAXLINE);
-                    clients[i].buf = p;
+                    char * new_pointer = malloc(MAXLINE);
+                    memcpy(new_pointer, buffer, MAXLINE);
+                    clients[i].buf = new_pointer;
 
-                    printf(" clients[%d].buf is %X\n", i,
+                    printf(" не совпал clients[%d].buf is %X\n", i,
                            clients[i].buf);
                     fflush(stdout);
 
+                    printf("не совпал clients[%d].ident is %d\n",
+                           i, clients[i].ident);
                     /* копируем данные структуру клиента
                        в массив */
                     dub_array[cnt] = cliaddr;
@@ -321,11 +328,11 @@ int  main()
 
                     // printf("clients[%d].p is %X\n",
                     //       i, clients[i].p);
-
+                    /*
                     printf ("clients[%d].ident is %d\n",
                             i, clients[i].ident);
                     fflush(stdout);
-
+                    */
                     pnt += 1;
                     cnt++;
                     break;
@@ -335,17 +342,17 @@ int  main()
             recv_end = time(NULL);
             int time_recv = difftime(recv_end, recv_start);
             if ( time_recv >= 1 ) {
-                printf("time %d\n", time_recv);
-                fflush(stdout);
+                //printf("time %d\n", time_recv);
+                //fflush(stdout);
                 break;
             }
         }
 
-        printf("after recv\n");
+        //printf("after recv\n");
         time_t send_start = 0;
         time_t send_end = 0;
 
-        /*отправляем*/
+        /* отправляем */
         while(1) {
 
             send_start = time(NULL);
@@ -361,8 +368,8 @@ int  main()
                    одном из пикселей */
                 char *bufer_pnt = counter(p);
                 clients[i].buf = bufer_pnt;
-                printf(" clients[%d].buf after all %X\n",
-                       i,  clients[i].buf);
+                //printf(" clients[%d].buf after all %X\n",
+                //     i,  clients[i].buf);
             }
 
             /* записываем в буфер каждого клиента
@@ -393,12 +400,13 @@ int  main()
 
                 }
 
+                clients[i].buf = (char*)double_pnt;
             }
 
             /* если прошла секунда или больше */
             send_end = time(NULL);
             int time_send = difftime(send_end, send_start);
-            if ( send_end >= 1 ) {
+            if (  time_send >= 1 ) {
                 /* выходим из цикла while и отправляем*/
                 printf("time_send %d\n", time_send);
                 break;
@@ -424,10 +432,14 @@ int  main()
 
             if ( identificator_client == clients[i].ident) {
                 final_pointer = clients[i].buf;
+                //printf("clients[%d}.ident'from' %d\n",
+                //       i, clients[i].ident);
             }
 
             if ( identificator_client != clients[i].ident) {
                 client = clients[i];
+                //printf("clients[%d}.ident 'to' %d\n",
+                //       i, clients[i].ident);
 
                 dub_client = *client.p;
 
