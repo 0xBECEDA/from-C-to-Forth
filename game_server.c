@@ -207,6 +207,131 @@ void * counter (char * input) {
     //printf("pnt in counter after all %X\n", pnt);
 }
 
+
+void* send_data_thread(void* pointer) {
+
+    printf("поток отправки");
+    fflush(stdout);
+
+    //printf("after recv\n");
+    time_t send_start = 0;
+    time_t send_end = 0;
+
+    /* отправляем */
+    while(1) {
+
+        usleep(10000);
+        send_start = time(NULL);
+
+        char *p;
+
+        /* обсчет */
+        for(int i = 0; i < 2; i++) {
+
+            p = clients[i].buf;
+
+            /* проверяем, не стоит ли квадрат на
+               одном из пикселей */
+            char *bufer_pnt = counter(p);
+            clients[i].buf = bufer_pnt;
+
+            /*
+              printf(" clients[%d].buf, clients.ident %d
+              after all %X\n",
+              i, clients[i].ident, clients[i].buf);
+            */
+        }
+
+        /* записываем в буфер каждого клиента
+           актуальное состояние пикселей*/
+
+        for(int i = 0; i < 2; i++) {
+
+            p = clients[i].buf;
+
+            void *pnt = (void*)p;
+            char *double_pnt = p;
+
+            /* пропускаем идентификатор, координаты
+               квадрата и размер его сторон*/
+
+            pnt += sizeof(int) * 5;
+
+            /*дополняем данными пикселей */
+            for (int j = 0; j <=99; j++) {
+
+
+                *(char*)pnt =  pixels[j].alive;
+                pnt += sizeof(char);
+                *(int*)pnt =  pixels[j].c;
+                pnt += sizeof(int);
+                *(int*)pnt =  pixels[j].d;
+                pnt += sizeof(int);
+
+            }
+
+            clients[i].buf = double_pnt;
+        }
+
+        /* если прошла секунда или больше
+           send_end = time(NULL);
+           int time_send = difftime(send_end, send_start);
+           if (  time_send >= 1 ) {
+           /* выходим из цикла while и отправляем
+           printf("time_send %d\n", time_send);
+           break;
+           }
+        */
+
+
+        struct sockaddr_in dub_client;
+
+        /*заводим структуру, чтоб позже скопировать
+          в нее данные клиента*/
+        struct connection client;
+
+        char *final_pointer;
+
+        /* отправляем */
+
+        /* вытаскиваем идентификатор */
+        int identificator_client;
+
+        /* */
+        int i = 0;
+        while (i <= 1) {
+
+            identificator_client = clients[i].ident;
+            final_pointer = clients[i].buf;
+            //printf("clients[%d}.ident'from' %d\n",
+            //       i, clients[i].ident);
+
+            for(int a = 0; a <= 1; a++) {
+                if ( identificator_client != clients[a].ident) {
+                    client = clients[a];
+                    //printf("clients[%d}.ident 'to' %d\n",
+                    //       i, clients[i].ident);
+
+                    dub_client = *client.p;
+
+                    printf("отправка final_pointer is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
+                           final_pointer, a,
+                           clients[a].ident,  a, clients[a].p);
+
+                    fflush(stdout);
+
+
+                    int n =  sendto(sockfd, final_pointer,
+                                    MAXLINE,
+                                    MSG_CONFIRM, (struct sockaddr *) &dub_client,
+                                    sizeof(cliaddr));
+                    i++;
+                }
+            }
+        }
+    }
+}
+
 int  main()
 {
 
@@ -260,11 +385,9 @@ int  main()
         /* индекс для dub_array*/
         int cnt = 0;
 
-    recv_data:
         while(1) {
 
-            recv_start = time(NULL);
-
+            usleep(10000);
             /* Читаем датаграмму */
             int len = sizeof(cliaddr);
             int n = recvfrom(sockfd, buffer, MAXLINE,
@@ -283,20 +406,23 @@ int  main()
                 int counter = 0;
 
                 char *point;
-                /*если идентификатор совпадает*/
+
+                /* если идентификатор совпадает */
                 if( clients[i].ident == ident_client) {
 
                     point = clients[i].buf;
 
-                    printf(" совпал clients[%d].ident is %d\n", i,
-                           clients[i].ident);
-
+                    /*
+                      printf(" совпал clients[%d].ident is %d\n", i,
+                      clients[i].ident);
+                    */
                     memcpy(point, buffer, MAXLINE);
                     clients[i].buf = point;
 
-                    printf(" совпал clients[%d].buf is %X\n", i,
-                           clients[i].buf);
-
+                    /*
+                      printf(" совпал clients[%d].buf is %X\n", i,
+                      clients[i].buf);
+                    */
                     counter++;
                     break;
                 }
@@ -310,27 +436,21 @@ int  main()
 
                     /* выделяем память по буфер и перезаписываем
                        туда данные */
+
                     char * new_pointer = malloc(MAXLINE);
                     memcpy(new_pointer, buffer, MAXLINE);
                     clients[i].buf = new_pointer;
 
-                    printf(" не совпал clients[%d].buf is %X\n", i,
-                           clients[i].buf);
-                    fflush(stdout);
-
-                    printf("не совпал clients[%d].ident is %d\n",
-                           i, clients[i].ident);
                     /* копируем данные структуру клиента
                        в массив */
                     dub_array[cnt] = cliaddr;
 
                     clients[i].p = pnt;
 
-                    // printf("clients[%d].p is %X\n",
-                    //       i, clients[i].p);
-                    /*
-                    printf ("clients[%d].ident is %d\n",
-                            i, clients[i].ident);
+                    /*printf("новый клиент clients[%d].buf is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
+                           i, clients[i].buf, i,
+                           clients[i].ident,  i, clients[i].p);
+
                     fflush(stdout);
                     */
                     pnt += 1;
@@ -339,115 +459,13 @@ int  main()
                 }
             }
 
-            recv_end = time(NULL);
-            int time_recv = difftime(recv_end, recv_start);
-            if ( time_recv >= 1 ) {
-                //printf("time %d\n", time_recv);
-                //fflush(stdout);
-                break;
-            }
-        }
-
-        //printf("after recv\n");
-        time_t send_start = 0;
-        time_t send_end = 0;
-
-        /* отправляем */
-        while(1) {
-
-            send_start = time(NULL);
-
-            char *p;
-
-            /* обсчет */
-            for(int i = 0; i < 2; i++) {
-
-                p = clients[i].buf;
-
-                /* проверяем, не стоит ли квадрат на
-                   одном из пикселей */
-                char *bufer_pnt = counter(p);
-                clients[i].buf = bufer_pnt;
-                //printf(" clients[%d].buf after all %X\n",
-                //     i,  clients[i].buf);
-            }
-
-            /* записываем в буфер каждого клиента
-               актуальное состояние пикселей*/
-
-            for(int i = 0; i < 2; i++) {
-
-                p = clients[i].buf;
-
-                void *pnt = (void*)p;
-                void *double_pnt = (void*)p;
-
-                /* пропускаем идентификатор, координаты
-                   квадрата и размер его сторон*/
-
-                pnt += sizeof(int) * 5;
-
-                /*дополняем данными пикселей */
-                for (int j = 0; j <=99; j++) {
-
-
-                    *(char*)pnt =  pixels[j].alive;
-                    pnt += sizeof(char);
-                    *(int*)pnt =  pixels[j].c;
-                    pnt += sizeof(int);
-                    *(int*)pnt =  pixels[j].d;
-                    pnt += sizeof(int);
-
-                }
-
-                clients[i].buf = (char*)double_pnt;
-            }
-
-            /* если прошла секунда или больше */
-            send_end = time(NULL);
-            int time_send = difftime(send_end, send_start);
-            if (  time_send >= 1 ) {
-                /* выходим из цикла while и отправляем*/
-                printf("time_send %d\n", time_send);
-                break;
-            }
-
-        }
-
-        struct sockaddr_in dub_client;
-
-        /*заводим структуру, чтоб позже скопировать
-          в нее данные клиента*/
-        struct connection client;
-
-        char *final_pointer;
-
-
-        /* отправляем */
-
-        /* вытаскиваем идентификатор */
-        int identificator_client = *(int *)buffer;
-
-        for(int i = 0; i < 2; i++) {
-
-            if ( identificator_client == clients[i].ident) {
-                final_pointer = clients[i].buf;
-                //printf("clients[%d}.ident'from' %d\n",
-                //       i, clients[i].ident);
-            }
-
-            if ( identificator_client != clients[i].ident) {
-                client = clients[i];
-                //printf("clients[%d}.ident 'to' %d\n",
-                //       i, clients[i].ident);
-
-                dub_client = *client.p;
-
-
-                int n =  sendto(sockfd, final_pointer, MAXLINE,
-                                MSG_CONFIRM,
-                                (struct sockaddr *) &dub_client,
-                                sizeof(cliaddr));
+            /* если массив клиентов заполнен,*/
+            if (cnt >= 2) {
+                pthread_t udp_thread;
+                void *pointer = NULL;
+                /* создаем поток отправки*/
+                pthread_create(&udp_thread, NULL,
+                               send_data_thread, pointer);
             }
         }
     }
