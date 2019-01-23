@@ -30,6 +30,7 @@
 /* максимальный размер датаграммы */
 #define MAXLINE  1220
 
+
 /* объявление структуры и массива пикселей */
 struct pixel {
     char alive;
@@ -61,7 +62,7 @@ struct sockaddr_in cliaddr;
 
 int sockfd;
 
-
+int amount_of_clients = 0;
 /*массив для хранения данных структур cliaddr*/
 struct sockaddr_in dub_array[2];
 
@@ -213,6 +214,9 @@ void* send_data_thread(void* pointer) {
     printf("поток отправки");
     fflush(stdout);
 
+    if(amount_of_clients < 2) {
+        sleep(3);
+    }
     //printf("after recv\n");
     time_t send_start = 0;
     time_t send_end = 0;
@@ -335,8 +339,8 @@ void* send_data_thread(void* pointer) {
 int  main()
 {
 
-    /* Создаем сокет.
-       Должны в случае успеха получить его дескриптор */
+/* Создаем сокет.
+   Должны в случае успеха получить его дескриптор */
 
 
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -347,7 +351,7 @@ int  main()
     printf("sock created\n");
     fflush(stdout);
 
-    /* заполняем данные о сервере */
+/* заполняем данные о сервере */
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = INADDR_ANY;
     servaddr.sin_port = htons(PORT);
@@ -358,47 +362,54 @@ int  main()
 
     printf(" before bind\n");
     fflush(stdout);
-    /* привязываем сокет к адресу */
+/* привязываем сокет к адресу */
     if ( bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 ) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
 
-    /* Принимаем и отправляем пакеты */
+/* создаем поток отправки*/
 
+    pthread_t udp_thread;
+
+    void *pointer = NULL;
+
+/* создаем поток отправки*/
+    pthread_create(&udp_thread, NULL,
+                   send_data_thread, pointer);
 
     while (1) {
 
-        //printf("recv_and_send\n");
-        /* Создаем новые пиксели еды если есть возможность */
+//printf("recv_and_send\n");
+/* Создаем новые пиксели еды если есть возможность */
 
         PixelArray(&pixels);
 
-        /* передаем указатель на массив c
-           данными структур cliaddr */
+/* передаем указатель на массив c
+   данными структур cliaddr */
         struct sockaddr_in *pnt = dub_array;
 
-        /* переменные для отсчета времени */
+/* переменные для отсчета времени */
         time_t recv_start = 0;
         time_t recv_end = 0;
 
-        /* индекс для dub_array*/
+/* индекс для dub_array*/
         int cnt = 0;
 
         while(1) {
 
             usleep(10000);
-            /* Читаем датаграмму */
+/* Читаем датаграмму */
             int len = sizeof(cliaddr);
             int n = recvfrom(sockfd, buffer, MAXLINE,
                              MSG_WAITALL, ( struct sockaddr *) &cliaddr,
                              &len);
 
-            /* Разбираем датаграмму и
-               пересылаем изменения остальным клиентам */
+/* Разбираем датаграмму и
+   пересылаем изменения остальным клиентам */
 
 
-            /* вытаскиваем идентификатор */
+/* вытаскиваем идентификатор */
             int ident_client = *(int *)buffer;
 
 
@@ -407,65 +418,57 @@ int  main()
 
                 char *point;
 
-                /* если идентификатор совпадает */
+/* если идентификатор совпадает */
                 if( clients[i].ident == ident_client) {
 
                     point = clients[i].buf;
 
-                    /*
-                      printf(" совпал clients[%d].ident is %d\n", i,
-                      clients[i].ident);
-                    */
+/*
+  printf(" совпал clients[%d].ident is %d\n", i,
+  clients[i].ident);
+*/
                     memcpy(point, buffer, MAXLINE);
                     clients[i].buf = point;
 
-                    /*
-                      printf(" совпал clients[%d].buf is %X\n", i,
-                      clients[i].buf);
-                    */
+/*
+  printf(" совпал clients[%d].buf is %X\n", i,
+  clients[i].buf);
+*/
                     counter++;
                     break;
                 }
 
 
-                /*если структура пустая и счетчик нулевой*/
+/*если структура пустая и счетчик нулевой*/
                 if( ( clients[i].ident == 0) && (counter == 0) ) {
 
-                    /* то записываем данные клиента в массив */
+/* то записываем данные клиента в массив */
                     clients[i].ident = ident_client;
 
-                    /* выделяем память по буфер и перезаписываем
-                       туда данные */
+/* выделяем память по буфер и перезаписываем
+   туда данные */
 
                     char * new_pointer = malloc(MAXLINE);
                     memcpy(new_pointer, buffer, MAXLINE);
                     clients[i].buf = new_pointer;
 
-                    /* копируем данные структуру клиента
-                       в массив */
+/* копируем данные структуру клиента
+   в массив */
                     dub_array[cnt] = cliaddr;
 
                     clients[i].p = pnt;
 
-                    /*printf("новый клиент clients[%d].buf is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
-                           i, clients[i].buf, i,
-                           clients[i].ident,  i, clients[i].p);
+/*printf("новый клиент clients[%d].buf is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
+  i, clients[i].buf, i,
+  clients[i].ident,  i, clients[i].p);
 
-                    fflush(stdout);
-                    */
+  fflush(stdout);
+*/
                     pnt += 1;
                     cnt++;
+                    amount_of_clients++;
                     break;
                 }
-            }
-
-            /* если массив клиентов заполнен,*/
-            if (cnt >= 2) {
-                pthread_t udp_thread;
-                void *pointer = NULL;
-                /* создаем поток отправки*/
-                pthread_create(&udp_thread, NULL,
-                               send_data_thread, pointer);
             }
         }
     }
