@@ -64,7 +64,7 @@ void* send_data_thread(void* pointer) {
     /* отправляем */
     while(1) {
 
-        usleep(10000);
+//        usleep(10000);
 
         int identificator_client;
 
@@ -82,9 +82,9 @@ void* send_data_thread(void* pointer) {
                     dub_client = *client.p;
 
 
-                    printf("отправка final_pointer is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
-                           final_pointer, a,
-                           clients[a].ident,  a, clients[a].p);
+//                    printf("отправка final_pointer is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
+                    //                         final_pointer, a,
+                    //     clients[a].ident,  a, clients[a].p);
 
                     int len = sizeof(cliaddr);
                     int num =  sendto(sockfd, final_pointer,
@@ -147,7 +147,7 @@ int  main() {
 
     while(1) {
 
-        usleep(10000);
+        //usleep(10000);
 
         /* Читаем датаграмму */
         int len = sizeof(cliaddr);
@@ -155,54 +155,56 @@ int  main() {
                          MSG_WAITALL, ( struct sockaddr *) &cliaddr,
                          &len);
 
-        int ident_client = *(int *)buffer;
+        if (n != -1) {
+            int ident_client = *(int *)buffer;
 
 
-        for(int i = 0; i<=1; i++) {
+            for(int i = 0; i<=1; i++) {
 
-            int counter = 0;
+                int counter = 0;
 
-            char *point;
+                char *point;
 
-            /* если идентификатор совпадает */
-            if( clients[i].ident == ident_client) {
+                /* если идентификатор совпадает */
+                if( clients[i].ident == ident_client) {
 
-                point = clients[i].buf;
+                    point = clients[i].buf;
 
-                memcpy(point, buffer, MAXLINE);
-                clients[i].buf = point;
-                counter++;
-                break;
-            }
+                    memcpy(point, buffer, MAXLINE);
+                    clients[i].buf = point;
+                    counter++;
+                    break;
+                }
 
 
-            /* если структура пустая и счетчик нулевой */
-            if( ( clients[i].ident == 0) && (counter == 0) ) {
+                /* если структура пустая и счетчик нулевой */
+                if( ( clients[i].ident == 0) && (counter == 0) ) {
 
-                /* то записываем данные клиента в массив */
-                clients[i].ident = ident_client;
+                    /* то записываем данные клиента в массив */
+                    clients[i].ident = ident_client;
 
-                /* выделяем память по буфер и перезаписываем
-                   туда данные */
+                    /* выделяем память по буфер и перезаписываем
+                       туда данные */
 
-                char * new_pointer = malloc(MAXLINE);
-                memcpy(new_pointer, buffer, MAXLINE);
-                clients[i].buf = new_pointer;
+                    char * new_pointer = malloc(MAXLINE);
+                    memcpy(new_pointer, buffer, MAXLINE);
+                    clients[i].buf = new_pointer;
 
-                /* копируем данные структуру клиента
-                   в массив */
-                dub_array[cnt] = cliaddr;
+                    /* копируем данные структуру клиента
+                       в массив */
+                    dub_array[cnt] = cliaddr;
 
-                clients[i].p = pnt;
+                    clients[i].p = pnt;
 
-                 printf("новый клиент clients[%d].buf is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
-                   i, clients[i].buf, i,
-                   clients[i].ident,  i, clients[i].p);
+                    //printf("новый клиент clients[%d].buf is %X, clients[%d].ident is %d, clients[%d].p is %X\n",
+                    // i, clients[i].buf, i,
+                    //   clients[i].ident,  i, clients[i].p);
 
-                pnt += 1;
-                cnt++;
-                amount_of_clients++;
-                break;
+                    pnt += 1;
+                    cnt++;
+                    amount_of_clients++;
+                    break;
+                }
             }
         }
     }

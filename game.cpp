@@ -268,11 +268,14 @@ void* pixels_thread(void* thread_data)
 }
 
 
+
 void* udp_socket(void* pointer)
 {
+    int firs_recv = 0;
+
     while (true) {
 
-        usleep(10000); // sleep for 0.01 sec
+        //usleep(10000); // sleep for 0.01 sec
 
         /* сериализуем данные*/
 
@@ -295,8 +298,8 @@ void* udp_socket(void* pointer)
                      (struct sockaddr *) &servaddr,
                      (socklen_t *)&len);
 
-        /* если пакеты получены */
-        // int firs_recv = 0;
+        // /* после получения первого пакета */
+
         // if(received != -1 && firs_recv == 0) {
 
         //     //создаем поток отрисовки пиекселей-еды
@@ -306,10 +309,12 @@ void* udp_socket(void* pointer)
         //         (&thread, NULL, pixels_thread, NULL) ) {
         //         perror("thread create failed in main()");
         //     }
+        //     firs_recv++;
         // }
 
+        // /* если пакеты получены*/
 
-        if(received != -1)
+        if (received != -1)
         {
 
             /*копируем старые данные врага*/
@@ -319,7 +324,7 @@ void* udp_socket(void* pointer)
             /*десериализуем новые*/
             deserialization(buffer);
 
-            show_pixels(0, 0, 255);
+            //show_pixels(0, 0, 255);
 
             printf("X_enemy %d, Y_enemy %d, X %d, Y %d\n",
                    X_enemy, Y_enemy, X, Y);
@@ -327,15 +332,17 @@ void* udp_socket(void* pointer)
             if ( check_X != X_enemy || check_Y != Y_enemy) {
                 /*если координаты изменились,
                   то отрисовываем старые координаты фоном*/
-                show_box(check_X, check_Y, pix_x_enemy, pix_y_enemy, 0, 0, 0);
+                show_box(check_X, check_Y,
+                         pix_x_enemy, pix_y_enemy, 0, 0, 0);
             }
+
             /*затем отрисовываем */
-            show_box(X_enemy, Y_enemy, pix_x_enemy, pix_y_enemy, 255, 0, 0);
+            show_box(X_enemy, Y_enemy,
+                     pix_x_enemy, pix_y_enemy, 255, 0, 0);
         }
-
     }
-
 }
+
 
 
 
@@ -367,8 +374,6 @@ pthread_t udp_init()
         perror("thread_create failed");
         exit(EXIT_FAILURE);
     }
-
-
 
     return udp_thread;
 }
@@ -436,19 +441,19 @@ void deserialization (void * input)
     int j = 0;
     /* десериализуем пиксели */
 
-    while (j <=99) {
-        //printf("..........\n");
-        pixels[j].alive = *(char *)buffer;
-        buffer += sizeof(char);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        pixels[j].c = *(int *)buffer;
-        buffer += sizeof(int);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        pixels[j].d = *(int *)buffer;
-        buffer += sizeof(int);
-        //printf("buffer in %d iteration is %X\n", j, buffer);
-        j++;
-    }
+    // while (j <=99) {
+    //     //printf("..........\n");
+    //     pixels[j].alive = *(char *)buffer;
+    //     buffer += sizeof(char);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     pixels[j].c = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     pixels[j].d = *(int *)buffer;
+    //     buffer += sizeof(int);
+    //     //printf("buffer in %d iteration is %X\n", j, buffer);
+    //     j++;
+    // }
 
     // printf("десериализация пикселей\n");
     /* откываем мьютекс после выхода из цикла*/
