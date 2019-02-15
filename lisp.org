@@ -1,107 +1,198 @@
+#+STARTUP: showall indent hidestars
+
+* Chapter 2
+
+** Fourth element of list
+
 С помощью car и cdr определите функцию, возвращающую 4ый элемент
 списка.
 
-(defun forth (lst)
-   (car(cdr(cdr(cdr lst)))))
+#+BEGIN_SRC lisp
+  (defun forth (lst)
+     (car(cdr(cdr(cdr lst)))))
+#+END_SRC
+
+[COMMENT:gmm] Пробелы облегчают понимание:
+
+#+BEGIN_SRC lisp
+  (defun forth (lst)
+     (car (cdr (cdr (cdr lst)))))
+#+END_SRC
+
+** Bigger elt
 
 Определите функцию, принимающую два аргумента и возвращающую
 наибольший.
 
-(defun bigger (x y)
-   (if (> x y)
-    x
-    y))
+#+BEGIN_SRC lisp
+  (defun bigger (x y)
+    (if (> x y)
+        x
+        y))
+#+END_SRC
+
+** What is X
 
 Что может быть на месте X в следующих выражениях?
->(car (x (cdr ’(a (b c) d))))
-B
 
-> (x 13 (/ 1 0))
-13
-
-> (x #’list 1 nil)
-(1)
+#+BEGIN_SRC lisp
+  (car (X (cdr '(a (b c) d))))
+  => B
+#+END_SRC
 
 Ответ:
-(car (car (cdr '(a (b c) d))))
 
-(or 13 (/ 1 0))
+#+BEGIN_SRC lisp
+  (car (car (cdr '(a (b c) d))))
+#+END_SRC
 
-(car(funcall #'list 1 nil))
+
+
+#+BEGIN_SRC lisp
+  (x 13 (/ 1 0))
+  => 13
+#+END_SRC
+
+Ответ:
+
+#+BEGIN_SRC lisp
+  (or 13 (/ 1 0))
+#+END_SRC
+
+
+#+BEGIN_SRC lisp
+  (x #'list 1 nil)
+  =>(1)
+#+END_SRC
+
+Ответ:
+
+#+BEGIN_SRC lisp
+  (car (funcall #'list 1 nil))
+#+END_SRC
+
+[COMMENT:gmm] - Только без ведущего CAR
+
+** Check list
 
 Определите функцию, проверяющую, является ли списком хотя бы один
 аргумент в списке.
 
-(defun checker(lst)
-   (and t (listp (car lst))))
+[COMMENT:gmm] - Ты спрашивала, как писать тесты - вот тебе пример. Он кстати
+показывает, что второй тест не проходит :)
+
+#+BEGIN_SRC lisp
+  (defun checker(lst)
+    (and t (listp (car lst))))
+
+  (assert (equal nil (checker (list 1 2 3))))
+
+  (assert (equal t (checker '(1 (2 3) 4))))
+#+END_SRC
+
+** Dot print
 
 Напишите итеративную и рекурсивную версию функции, которая:
-а) печатает количество точек, равное заданному положительному целому
-    числу
-б) возвращает количество символов "а" в заданном списке
 
-а)
-К сожалению, точку вывести не удалось.
-Вместо нее печатается слово "dot".
+*** печатает количество точек, равное заданному положительному целому числу
+
+К сожалению, точку вывести не удалось. Вместо нее печатается слово "dot".
+
+[COMMENT:gmm] - я поправил, обрати внимание на опциональный аргумент в рекурсивной
+версии.
 
 Итеративная версия:
-(defun point (num)
-   (do ((i num ( - i 1)))
-       (( = i 0) 'done)
-(format t "~a ~&" 'dot)))
+
+#+BEGIN_SRC lisp
+  (defun point (num)
+    (do ((i num ( - i 1)))
+        ((= i 0) 'done)
+      (format t "."))
+    (format t "~%"))
+
+  (point 3)
+#+END_SRC
 
 Рекурсивная версия:
-(defun point (num)
-    (format t "~a ~&" 'dot)
+
+#+BEGIN_SRC lisp
+  (defun point (num &optional (new t))
+    (when new
+      (format t "~%"))
+    (format t ".")
     (if (> num 1)
-        (point ( - num 1))
+        (point ( - num 1) nil)
         nil))
-б)
+
+  (point 3)
+#+END_SRC
+
+*** возвращает количество символов "а" в заданном списке
 
 Итерация:
 
-(defun counter (lst obj num count)
+#+BEGIN_SRC lisp
+  (defun counter (lst obj num count)
     (let (lst2))
     (setf lst2 lst)
-  (do ((i num (- i 1)))
-      ((= i 0) count)
-   (and (eql(car lst2) obj) (setf count(+ count 1)))
- (setf lst2 (cdr lst2))))
+    (do ((i num (- i 1)))
+        ((= i 0) count)
+      (and (eql(car lst2) obj) (setf count(+ count 1)))
+      (setf lst2 (cdr lst2))))
+
+  (counter '(a b c a) 'a 4 0)
+#+END_SRC
 
 Рекурсия:
-(defun counter (lst obj num count)
-    (and (eql (car lst) obj) (setf count(+ count 1)))
-     (setf num (- num 1))
-(if (> num 0)
-(counter(cdr lst) obj num count)
-(format t "~a ~&" count)))
+
+#+BEGIN_SRC lisp
+  (defun counter (lst obj num count)
+    (and (eql (car lst) obj)
+         (setf count (+ count 1)))
+    (setf num (- num 1))
+    (if (> num 0)
+        (counter (cdr lst) obj num count)
+        (format t "~a ~&" count)))
+
+  (counter '(a b c a) 'a 4 0)
+#+END_SRC
 
 Обе функции принимают списки из любого количества элементов. Нужно
 только задать количество элементов аргументом num. Count в обоих
 случаях - увеличивающийся счетчик, должен быть равен нулю на старте.
+
 Пример вызова: (counter '(a b c) 'a 3 0)
 
+[COMMENT:gmm] - а как сделать так, чтобы не задавать кол-во аргументов ~num~?
+
+
+** Summing list without nil
 
 Дано: написать функцию, суммирующую все элементы списка кроме nil.
 "Некто" написал 2 функции, ни одна из которых не работает. Объяснить
 причину и предложить своб версию.
 
 а)
+#+BEGIN_SRC lisp
 
 (defun summit (lst)
 (remove nil lst)
 (apply #’+ lst))
+#+END_SRC
 
 Проблема в том, что remove не удаляет элемент из списка, а формирует
 новый список без указанного элемента. Поэтому nil как был в lst, так и
 остался.
 
 
-б) (defun summit (lst)
+б)
+#+BEGIN_SRC lisp
+ (defun summit (lst)
 (let ((x (car lst)))
 (if (null x)
 (summit (cdr lst))
 (+ x (summit (cdr lst))))))
+#+END_SRC
 
 Здесь сразу несколько проблем. Null проверяет, является ли элемент
 пустым списком. Лучше бы заменить его на not. Далее меня смущает
@@ -111,7 +202,10 @@ B
 это не число. Соответственно, получаем ошибку.
 
 Корректная версия:
+
+#+BEGIN_SRC lisp
 (defun summit (lst)
    (let(lst2))
    (setf lst2 (remove nil lst))
  (apply #' + lst2))
+#+END_SRC
