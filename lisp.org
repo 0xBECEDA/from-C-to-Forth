@@ -228,29 +228,32 @@
 + Сравниваем длины списка "до" и "после" remove. (length, >)
 + Записываем результат в переменную. (setf)
 + Создаем точечную пару "элемент.количество повторений".
-+ Сортируем (sort)
+- объединяем в список (не получается)
++ Сортируем (sort) (пока что не написано)
 
 #+BEGIN_SRC lisp
 
   (defun occur (lst)
-    (let (lst2))
-    (setf lst2 lst)
-    (compr (lst2)))
+    (let ((lst2))
+      (setf lst2 lst)
+      (compr lst2)))
 
 
   (defun compr (lst)
-    (let (lst3))
-    (setf lst3 lst)
-    (setf lst (remove (car lst) lst))
-    (let (len))
-    (setf len (- (length lst3) (length lst)))
-    (list (n-elts (car lst3) len))
-    (if (null lst)
-        'done
-        (compr lst)))
-
-  (defun n-elts (elt n)
-    (list n elt))
+    (let ((lst3))
+      (setf lst3 lst)
+      (setf lst (remove (car lst) lst))
+      (let ((len))
+        (setf len (- (length lst3) (length lst)))
+        (let ((new_lst))
+          (setf new_lst (cons len (car lst3)))
+          (format t " new list ~a ~& " new_lst)
+          (let ((final_lst))
+            (setf final_lst (append new_lst final_lst))
+            (format t " final_lst ~a ~& " final_lst)
+            (if (null lst)
+                final_lst
+                (compr lst)))))))
 
 
 #+END_SRC
