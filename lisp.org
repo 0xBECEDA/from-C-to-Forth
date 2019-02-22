@@ -211,6 +211,25 @@
 #+END_SRC
 
 * Chapter 3
+
+** cons
+Представте следующие списки в виде ячеек:
+(я представила алгоритмы их создания)
+1. (a b (c d))
+(list 'a 'b '(c d))
+(list 'a 'b (list 'c 'd))
+
+2. (a (b (c (d))))
+(list 'a (list 'b (list 'c (list 'd))))
+
+3. (((a b) c) d)
+(list '(a b) 'c 'd)
+(list (list 'a 'b) 'c 'd)
+
+4. (a (b . c) . d)
+(list 'a (cons (cons 'b 'c) 'd))
+
+
 ** Occurrences
 
 Напишите функцию, определяющую количество повторений (с
