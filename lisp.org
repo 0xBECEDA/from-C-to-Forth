@@ -224,36 +224,58 @@
 каждый раз при рекурсивном вызове compr (позже будет проверка,
 является ли аргумент списком).
 
-+ Убираем элементы. (remove) и переопределяем список.
-+ Сравниваем длины списка "до" и "после" remove. (length, >)
-+ Записываем результат в переменную. (setf)
++ Убираем элементы (remove) и переопределяем список.
++ Сравниваем длины списка "до" и "после" remove.
++ Записываем результат в переменную.
 + Создаем точечную пару "элемент.количество повторений".
-- объединяем в список (не получается)
-+ Сортируем (sort) (пока что не написано)
+- объединяем в список
++ Сортируем (не получается)
 
 #+BEGIN_SRC lisp
 
   (defun occur (lst)
     (let ((lst2))
       (setf lst2 lst)
-      (compr lst2)))
+          (let ((final_lst))
+      (compr lst2 final_lst))))
 
 
-  (defun compr (lst)
+  (defun compr (lst final_lst)
     (let ((lst3))
       (setf lst3 lst)
       (setf lst (remove (car lst) lst))
       (let ((len))
         (setf len (- (length lst3) (length lst)))
         (let ((new_lst))
-          (setf new_lst (cons len (car lst3)))
+          (setf new_lst (cons (car lst3) len))
           (format t " new list ~a ~& " new_lst)
-          (let ((final_lst))
-            (setf final_lst (append new_lst final_lst))
+            (setf final_lst (cons new_lst final_lst))
             (format t " final_lst ~a ~& " final_lst)
             (if (null lst)
-                final_lst
-                (compr lst)))))))
+                (new_order final_lst)
+                (compr lst final_lst))))))
+
+(defun new_order (lst)
+(let ((new_lst))
+    (do ((i 4 (- i 1)))
+        ((= i 0) (my_sort new_lst) )
+(setf new_lst (cons (car lst) new_lst))
+(setf lst (remove (car lst) lst)))))
+
+(defun my_sort (lst)
+(let ((first_elm))
+(setf first_elm (car lst))
+(remove (car lst) lst)
+(let ((final_lst))
+(do ((i 3 (- i 1)))
+        ((= i 0) final_lst )
+(if ( < (cdr first_elm) (cdr (car lst)))
+'this_branch_will_never_work
+(setf final_lst (cons (car lst) final_lst)))
+(setf lst (cdr lst))))))
+
+
+
 
 
 #+END_SRC
