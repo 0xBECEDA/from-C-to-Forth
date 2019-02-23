@@ -229,6 +229,60 @@
 4. (a (b . c) . d)
 (list 'a (cons (cons 'b 'c) 'd))
 
+** new_union
+
+Напишите свой вариант функции union, который сохраняет
+порядок следования элементов согласно исходным спискам:
+
+> (new-union ’(a b c) ’(b a d))
+(A B C D)
+
+Встроенный union объединяет неповторяющиеся элементы в двух
+списках и при этом меняет их порядок.
+
+- добавить элементы, которых еще нет
+- сформировать список, не трогая порядок в исходном.
+
+- new-union принимает 2 аргмента: 2 списка
+- берем (car lst2) и сравниваем со всем списком (adjoin)
+- добавляем элемент в список
+- повторяем до тех пор, пока элементы во втором списке
+не кончатся (рекурсия?)
+- сортируем новый список
+проблема во внешнем виде списка,
+если использовать list, выглядит:
+(A (B (C D)))
+если использовать cons, выглядит:
+(A B C . D)
+если использовать list или cons в зависимости от условия,
+выдает ошибку " D не последовательность "
+
+#+BEGIN_SRC lisp
+
+  (defun new_union (lst1 lst2)
+    (setf lst1 (adjoin (car lst2) lst1))
+    (setf lst2 (remove (car lst2) lst2))
+    (if (null lst2)
+        (new_union_sort lst1)
+        (new_union lst1 lst2)))
+
+  (defun new_union_sort (lst1)
+    (let ((new_lst))
+      (setf new_lst (car lst1))
+      (setf lst1 (remove (car lst1) lst1))
+      (let ((help_lst))
+        (do ((i (length lst1) (- i 1)))
+            ((= i 0) (new_union_sort_second new_lst help_lst))
+          (setf help_lst (cons (car lst1) help_lst))
+          (setf lst1 (cdr lst1))))))
+
+  (defun new_union_sort_second (new_lst help_lst)
+    (do ((i (length help_lst) (- i 1)))
+        ((= i 0) new_lst)
+          (setf new_lst (list (car help_lst) new_lst))
+      (setf help_lst (cdr help_lst))))
+
+#+END_SRC
 
 ** Occurrences
 
