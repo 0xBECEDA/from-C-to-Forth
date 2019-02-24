@@ -419,3 +419,29 @@ Member должен найти элемент в списке и вернуть 
       (mapcar #' + lst indx_lst)))
 
 #+END_SRC
+
+Рекурсивная версия:
+
+#+BEGIN_SRC lisp
+  (defun rec_pos+ (lst)
+    (let ((indx))
+      (setf indx 0)
+      (let ((new_lst))
+        (rec lst indx new_lst))))
+
+  (defun rec (lst indx new_lst)
+    (setf new_lst (cons (+ indx (car lst)) new_lst))
+    (setf indx (+ indx 1))
+    (setf lst (cdr lst))
+    (if (> (length lst) 0)
+        (rec lst indx new_lst)
+        (rec_pos_sort new_lst)))
+
+  (defun rec_pos_sort (lst)
+    (let ((final_lst))
+      (do ((i (length lst) (- i 1)))
+          ((= i 0) final_lst)
+        (setf final_lst (cons (car lst) final_lst))
+        (setf lst (cdr lst)))))
+
+#+END_SRC
