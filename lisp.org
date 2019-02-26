@@ -244,43 +244,24 @@
 - сформировать список, не трогая порядок в исходном.
 
 - new-union принимает 2 аргмента: 2 списка
-- берем (car lst2) и сравниваем со всем списком (adjoin)
+- берем (car lst2) и сравниваем со всем списком
 - добавляем элемент в список
 - повторяем до тех пор, пока элементы во втором списке
-не кончатся (рекурсия?)
-- сортируем новый список
-проблема во внешнем виде списка,
-если использовать list, выглядит:
-(A (B (C D)))
-если использовать cons, выглядит:
-(A B C . D)
-если использовать list или cons в зависимости от условия,
-выдает ошибку " D не последовательность "
+не кончатся
 
 #+BEGIN_SRC lisp
 
   (defun new_union (lst1 lst2)
-    (setf lst1 (adjoin (car lst2) lst1))
-    (setf lst2 (remove (car lst2) lst2))
-    (if (null lst2)
-        (new_union_sort lst1)
-        (new_union lst1 lst2)))
-
-  (defun new_union_sort (lst1)
     (let ((new_lst))
-      (setf new_lst (car lst1))
-      (setf lst1 (remove (car lst1) lst1))
-      (let ((help_lst))
-        (do ((i (length lst1) (- i 1)))
-            ((= i 0) (new_union_sort_second new_lst help_lst))
-          (setf help_lst (cons (car lst1) help_lst))
-          (setf lst1 (cdr lst1))))))
+      (let ((double_lst))
+        (setf double_lst lst1)
+        (do ((i (length lst2) (- i 1)))
+            ((= i 0) (append double_lst new_lst))
+          (if (not (member (car lst2) lst1))
+              (setf new_lst ( append new_lst (list(car lst2))))
+              nil)
+          (setf lst2 (cdr lst2))))))
 
-  (defun new_union_sort_second (new_lst help_lst)
-    (do ((i (length help_lst) (- i 1)))
-        ((= i 0) new_lst)
-          (setf new_lst (cons (car help_lst) new_lst))
-      (setf help_lst (cdr help_lst))))
 
 #+END_SRC
 
@@ -302,15 +283,15 @@
 + Записываем результат в переменную.
 + Создаем точечную пару "элемент.количество повторений".
 - объединяем в список
-+ Сортируем (не получается)
++ Сортируем
 
 #+BEGIN_SRC lisp
 
   (defun occur (lst)
     (let ((lst2))
       (setf lst2 lst)
-          (let ((final_lst))
-      (compr lst2 final_lst))))
+      (let ((final_lst))
+        (compr lst2 final_lst))))
 
 
   (defun compr (lst final_lst)
@@ -321,34 +302,29 @@
         (setf len (- (length lst3) (length lst)))
         (let ((new_lst))
           (setf new_lst (cons (car lst3) len))
-          (format t " new list ~a ~& " new_lst)
-            (setf final_lst (cons new_lst final_lst))
-            (format t " final_lst ~a ~& " final_lst)
-            (if (null lst)
-                (new_order final_lst)
-                (compr lst final_lst))))))
+          (setf final_lst (cons new_lst final_lst))
+          (if (null lst)
+              (new_order final_lst)
+              (compr lst final_lst))))))
 
-(defun new_order (lst)
-(let ((new_lst))
-    (do ((i 4 (- i 1)))
-        ((= i 0) (my_sort new_lst) )
-(setf new_lst (cons (car lst) new_lst))
-(setf lst (remove (car lst) lst)))))
+  (defun new_order (lst)
+    (let ((new_lst))
+      (do ((i 4 (- i 1)))
+          ((= i 0) (my_sort new_lst ))
+        (setf new_lst (cons (car lst) new_lst))
+        (setf lst (cdr lst)))))
 
-(defun my_sort (lst)
-(let ((first_elm))
-(setf first_elm (car lst))
-(remove (car lst) lst)
-(let ((final_lst))
-(do ((i 3 (- i 1)))
-        ((= i 0) final_lst )
-(if ( < (cdr first_elm) (cdr (car lst)))
-'this_branch_will_never_work
-(setf final_lst (cons (car lst) final_lst)))
-(setf lst (cdr lst))))))
-
-
-
+  (defun my_sort (lst)
+    (let ((first_elm))
+      (let ((final_lst))
+        (setf first_elm (car lst))
+        (setf lst (cdr lst))
+        (do ((i 3 (- i 1)))
+            ((= i 0) (cons first_elm final_lst ))
+          (if ( < (cdr first_elm) (cdr (car lst)))
+              nil
+              (setf final_lst (cons (car lst) final_lst)))
+          (setf lst (cdr lst))))))
 
 
 #+END_SRC
