@@ -450,7 +450,7 @@ NIL
 из аксиомы, что car указывает на остаток списка, а cdr - на его
 начало.
 
-Прричем тут car и сdr?!
+Причем тут car и сdr?!
 
 #+BEGIN_SRC lisp
 
@@ -472,7 +472,7 @@ CONS:
 
 #+END_SRC
 
-** меньше ячеек
+** my_compress
 Измените программу на рисунке 3.6 (стр. книги 54) так, чтоб она
 создавала меньшее количество ячеек.
 Подсказка: используйте точечные пары.
@@ -483,6 +483,9 @@ CONS:
 - записываем разность в len
 - формируем точечную пару из текущего элемента и len
 - заносим пару в список
+
+Фактически это то же самое, что я делаю в задании "occurrences".
+Только без сортировки списка.
 
 #+BEGIN_SRC lisp
 
@@ -496,11 +499,11 @@ CONS:
       (setf lst (remove (car lst) lst))
       (let ((len))
         (setf len (- (length lst2) (length lst)))
-        (setf final_lst
-              (list final_lst (cons (car lst2) len)))
-        (if (null lst)
-            final_lst
-            (my_compr lst final_lst)))))
-
+        (let ((new_lst))
+          (setf new_lst (cons (car lst2) len))
+          (setf final_lst (cons new_lst final_lst))
+          (if (null lst)
+              final_lst
+              (my_compr lst final_lst))))))
 
 #+END_SRC
