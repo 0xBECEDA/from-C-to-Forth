@@ -421,3 +421,86 @@ Member должен найти элемент в списке и вернуть 
         (setf lst (cdr lst)))))
 
 #+END_SRC
+
+
+** show dots
+Определите функцию, печатающую заданный список в точечной
+нотации:
+
+(showdots ’(a b c))
+(A . (B . (C . NIL)))
+NIL
+
+- невозможно объединить "с" и nil в точечную пару.
+
+#+BEGIN_SRC lisp
+(defun showdots (lst)
+(let (( new_lst))
+(setf new_lst nil)
+(do ((i (length lst) (- i 1)))
+          ((= i 0) new_lst)
+(setf new_lst (cons (car(last lst)) new_lst))
+(format t "~a ~& " new_lst)
+(setf lst (remove (car(last lst)) lst ))
+(format t "~a ~& " lst))))
+#+END_SRC
+
+** new car and cdr
+Определить cons, length и member без ключей, для списков, исходя
+из аксиомы, что car указывает на остаток списка, а cdr - на его
+начало.
+
+Прричем тут car и сdr?!
+
+#+BEGIN_SRC lisp
+
+(defun my_cdr (lst)
+(nth 0 lst))
+
+#+END_SRC
+
+#+BEGIN_SRC lisp
+
+(defun my_car (lst)
+(cdr lst))
+
+#+END_SRC
+
+CONS:
+
+#+BEGIN_SRC lisp
+
+#+END_SRC
+
+** меньше ячеек
+Измените программу на рисунке 3.6 (стр. книги 54) так, чтоб она
+создавала меньшее количество ячеек.
+Подсказка: используйте точечные пары.
+
+- дублиурем исходный список
+- берем первый элемент и удаляем его из всего списка (remove)
+- сравниваем длины списка-дубля и текущего списка
+- записываем разность в len
+- формируем точечную пару из текущего элемента и len
+- заносим пару в список
+
+#+BEGIN_SRC lisp
+
+  (defun my_compress (lst)
+    (let ((final_lst))
+      (my_compr lst final_lst)))
+
+  (defun my_compr (lst final_lst)
+    (let ((lst2))
+      (setf lst2 lst)
+      (setf lst (remove (car lst) lst))
+      (let ((len))
+        (setf len (- (length lst2) (length lst)))
+        (setf final_lst
+              (list final_lst (cons (car lst2) len)))
+        (if (null lst)
+            final_lst
+            (my_compr lst final_lst)))))
+
+
+#+END_SRC
