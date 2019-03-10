@@ -1,5 +1,6 @@
 #+STARTUP: showall indent hidestars
 
+
 * Chapter 2
 
 ** Fourth element of list
@@ -424,6 +425,7 @@ Member должен найти элемент в списке и вернуть 
 
 
 ** show dots
+
 Определите функцию, печатающую заданный список в точечной
 нотации:
 
@@ -434,15 +436,13 @@ NIL
 - невозможно объединить "с" и nil в точечную пару.
 
 #+BEGIN_SRC lisp
-(defun showdots (lst)
-(let (( new_lst))
-(setf new_lst nil)
-(do ((i (length lst) (- i 1)))
-          ((= i 0) new_lst)
-(setf new_lst (cons (car(last lst)) new_lst))
-(format t "~a ~& " new_lst)
-(setf lst (remove (car(last lst)) lst ))
-(format t "~a ~& " lst))))
+  (defun showdots (lst)
+    (if (null lst)
+        "NIL"
+        (format nil "(~A . ~A)"
+                (car lst)
+                (showdots (cdr lst)))))
+
 #+END_SRC
 
 ** new car and cdr
@@ -450,13 +450,28 @@ NIL
 из аксиомы, что car указывает на остаток списка, а cdr - на его
 начало.
 
-Причем тут car и сdr?!
-
 #+BEGIN_SRC lisp
+  (defun my-cons (a b)
+    (cons a b))
 
-(defun my_cdr (lst)
-(nth 0 lst))
+  (assert (equal (cons 'a 'b) (my-cons 'a 'b)))
 
+  (defun my-length (lst)
+    (if (null lst)
+        0
+        (+ 1 (my-length (cdr lst)))))
+
+  (assert (equal 3 (my-length '(a b c))))
+
+  (defun my-member (elt lst)
+    (if (equal elt (car lst))
+        lst
+        (if (null lst)
+            nil
+            (my-member elt (cdr lst)))))
+
+  (assert (equal '(a b) (my-member 'a '(c d a b))))
+  (assert (equal nil (my-member 'a '(c d b))))
 #+END_SRC
 
 #+BEGIN_SRC lisp
@@ -468,8 +483,10 @@ NIL
 
 CONS:
 
-#+BEGIN_SRC lisp
+#+BEGIN_SRC c
 
+
+  # define TRUE FALSE
 #+END_SRC
 
 ** my_compress
@@ -505,5 +522,139 @@ CONS:
           (if (null lst)
               final_lst
               (my_compr lst final_lst))))))
+
+#+END_SRC
+** long path
+
+Напишите программу, которая ищет самый длинный путь в сети,
+не содержащий повторений. Подсказка: можно использовать циклы.
+
+Дана сеть: '((a b c) (b c) (c d))
+
+Итак, самый длинный путь - это путь, при котором проходится каждый
+узел до искомого. То есть, если мне нужен узел "d",
+то вместо того, чтоб идти "a -> c -> d", я пойду
+"a -> b -> c -> d".
+
+Предположим, мы используем (рекурсию). Проходим по каждому узлу
+сети, пока не встретим искомый. Пройденные узлы сохраняем в путь.
+Если узел уже встречался, значит, не включаем его в путь.
+
+Функция принимает 3 параметра: начальную конечную точку и сеть.
+Здесь мы создаем пустой список, чтоб хранить наш путь
+и оборачиваем начальную точку в список. Затем вызываем фунцию bfs.
+
+#+BEGIN_SRC lisp
+
+(defun longest-path (start end net)
+(let ((final_path))
+(bfs end (list (list start)) net final_path)))
+
+#+END_SRC
+
+Здесь мы будем искать нашу конечную точку и сохранять все
+пройденные узлы в final_lst, при условии, что они не повторяются.
+
+#+BEGIN_SRC lisp
+
+  (defun bfs (end queue net final_lst)
+    (format t " BFS end ~a queue ~a  net ~a ~&" end queue net)
+    (if (null queue)
+        nil
+        (let ((path (car queue)))
+          (let ((node (car path)))
+            (format t " BFS path ~a ~& " path)
+            (if (eql node end)
+                (reverse final_lst)
+                (format t " final_lst ~a ~&"
+            (check-list node final_lst)))
+            (bfs end
+                 (append (cdr queue)
+                         (new-paths path node net))
+                 net final_lst)))))
+
+#+END_SRC
+
+#+BEGIN_SRC lisp
+
+(defun check-list (node final_lst)
+ (format t " CHECK_LIST node ~a final_lst ~a ~& " node final_lst)
+(let ((local_lst))
+(setf local_lst final_lst)
+(if (not(member node final_lst))
+(setf local_lst (cons node final_lst))
+nil)
+(format t "local_lst check ~a ~&" local_lst ))
+
+#+END_SRC
+
+#+BEGIN_SRC lisp
+
+  (defun new-paths (path node net)
+(format t "NEW-PATHS path ~a node ~a net ~a ~&" path node net)
+    (mapcar #'(lambda (n)
+                (cons n path))
+              (cdr (assoc node net))))
+
+#+END_SRC
+
+* chapter 4
+
+**  turn array
+
+Определите функцию, поворачивающую квадратный массив
+(массив с размерност­ми (n n)) на 90 градусов по часовой стрелке.
+
+
+Итак, функция принимает квадратный двухмерный массив.
+При этом мы не знаем, будет это квадрат 2x2 или 100x100. Значит, нам
+нужно выяснить сначала размер размерностей.
+
+Для этого понадобится array-dimensions с нашим массивом в качестве
+аргумента. Array-demensions вернет список целых чисел, представляющих
+все размерности массива. Эти значения станут счетчиками для наших
+циклов.
+
+В циклах мы будет проходить по массиву и копировать его значения в
+другой массив, пересчитывая координаты. ВОт второй массив мы и
+вернем.
+
+Внешний цикл отвечает за проход по горизонтали и перезапуск
+внутреннего цикла, который отвечает за проход по вертикали. Это
+обеспечит проход по новому массиву.
+
+Вопрос! как получить координаты элементов старого массива?
+
+- возможный вариант: пройти по старому массиву, создать список из его
+  элементов, и уже из него переносить элементы в новый массив
+
+Запуск:
+
+(turn_arr (make-array '(2 2) :initial-contents '((a b) (c d))))
+
+#+BEGIN_SRC lisp
+
+  (defun turn_arr (array)
+    (let ((lst_dim (array-dimensions array)))
+      (let ((new_arr (make-array lst_dim :initial-element nil)))
+        (let ((arr_lst))
+          (do ((hor 0 (+ hor 1)))
+              ((<= hor (nth 0 lst_dim))
+               (format t "~a ~& "(setf arr_lst (reverse arr_lst))))
+            (do ((ver 0 (+ ver 1)))
+                ((<= ver (nth 0 lst_dim)) arr_lst)
+              (setf arr_lst (cons (aref array hor ver) arr_lst))
+              (format t "~a ~&" arr_lst)))))))
+
+#+END_SRC
+
+#+BEGIN_SRC lisp
+
+
+(do ((ver (nth 0 lst_dim) (- hor 1)))
+          ((= hor 0) new_arr)
+ (do ((hor (0) (+ ver 1)))
+          ((<= ver (nth 0 lst_dim)) new_arr)))
+
 
 #+END_SRC
