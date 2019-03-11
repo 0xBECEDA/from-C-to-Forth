@@ -637,24 +637,45 @@ nil)
   (defun turn_arr (array)
     (let ((lst_dim (array-dimensions array)))
       (let ((new_arr (make-array lst_dim :initial-element nil)))
+        (format t "new _arr ~a ~&" new_arr)
         (let ((arr_lst))
           (do ((hor 0 (+ hor 1)))
-              ((<= hor (nth 0 lst_dim))
-               (format t "~a ~& "(setf arr_lst (reverse arr_lst))))
+              ((>= hor (nth 0 lst_dim)))
             (do ((ver 0 (+ ver 1)))
-                ((<= ver (nth 0 lst_dim)) arr_lst)
-              (setf arr_lst (cons (aref array hor ver) arr_lst))
-              (format t "~a ~&" arr_lst)))))))
+                ((>= ver (nth 0 lst_dim)) arr_lst)
+              (setf arr_lst (cons (aref array hor ver) arr_lst))))
+          (setf arr_lst (reverse arr_lst))
+          (format t "~a ~&" arr_lst)
+          (let ((indx 0))
+            (do ((ver (- (nth 0 lst_dim) 1) (- ver 1)))
+                ((< ver 0) new_arr)
+              (format t " ver ~a ~& " ver)
+              (do ((hor 0 (+ hor 1)))
+                  ((>= hor (nth 0 lst_dim)))
+                (format t "new_arr ~a ~&" new_arr)
+                (setf (aref new_arr hor ver) (nth indx arr_lst))
+                (format t "~a | ~a | ~a ~& " indx (nth indx arr_lst) hor)
+                (setf indx (+ indx 1))
+                (format t "new_arr ~a ~&" new_arr)
+                )))))))
 
+
+
+
+      (assert (equal '(a b c d)
+                     (turn_arr (make-array '(2 2) :initial-contents '((a b) (c d))))))
 #+END_SRC
 
 #+BEGIN_SRC lisp
 
+  (do ((i 0 (+ i 1))
+       (j 5 (- j 1)))
+      ((= i 5) nil)
+    (format t " i ~a ~&" i)
+    (format t "j ~a ~&" j))
 
-(do ((ver (nth 0 lst_dim) (- hor 1)))
-          ((= hor 0) new_arr)
- (do ((hor (0) (+ ver 1)))
-          ((<= ver (nth 0 lst_dim)) new_arr)))
+    (do ((i (length lst) (- i 1)))
+          ((= i 0) final_lst)
 
 
 #+END_SRC
