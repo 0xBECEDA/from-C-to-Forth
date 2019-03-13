@@ -660,22 +660,52 @@ nil)
                 )))))))
 
 
-
-
-      (assert (equal '(a b c d)
-                     (turn_arr (make-array '(2 2) :initial-contents '((a b) (c d))))))
+  (assert (equal '(a b c d)
+                 (turn_arr (make-array '(2 2) :initial-contents '((a b) (c d))))))
 #+END_SRC
+
+** new copy-list and reverse
+
+Copy-list
+
+Написать свой copy-list и reverse для списков с помощью reduce.
+Сначала я превращаю обычный список в список списков
+'(a b c) -> ((A) (B) (C)), а затем использую append, чтоб скопировать
+список, придав ему изначальный вид.
+
+Проблема в том, что данный метод не работает для ассоциативных
+списков. Список вида '((1. 2) (3. 4)) становится ((1 2) (3 4)),
+а список вида '((1 . 2) . 3) вызывает ошибку
+" 3 не является последовательностью ".
+
+Запускать как (my_copy_list '(a b c))
 
 #+BEGIN_SRC lisp
 
-  (do ((i 0 (+ i 1))
-       (j 5 (- j 1)))
-      ((= i 5) nil)
-    (format t " i ~a ~&" i)
-    (format t "j ~a ~&" j))
+  (defun my_copy_list (lst)
+    (let ((new_lst))
+      (do ((i (length lst)  (- i 1)))
+          ((= i 0) new_lst)
+        (setf new_lst (cons (list (car lst)) new_lst))
+        (setf lst (cdr lst)))
+      (setf new_lst (reverse new_lst))
+        (reduce #'(lambda (a b)
+                     (append a b))
+                     new_lst)))
 
-    (do ((i (length lst) (- i 1)))
-          ((= i 0) final_lst)
+#+END_SRC
 
+
+#+BEGIN_SRC lisp
+
+  (defun my_reverse (lst)
+    (let ((new_lst))
+      (do ((i (length lst)  (- i 1)))
+          ((= i 0) new_lst)
+        (setf new_lst (cons (list (car lst)) new_lst))
+        (setf lst (cdr lst)))
+      (reduce #'(lambda (a b)
+                  (append a b))
+              new_lst)))
 
 #+END_SRC
