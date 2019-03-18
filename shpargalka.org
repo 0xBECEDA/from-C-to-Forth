@@ -365,6 +365,42 @@ elt записываем объект (видимо, остальные поля
 
 #+END_SRC
 
+Запускать надо все вместе:
+
+#+BEGIN_SRC lisp
+
+  (defstruct (node (:print-function
+                    (lambda (n s d)
+                      (format s "#<~A>" (node-elt n)))))
+    elt (l nil) (r nil))
+
+  (defun bst-insert (obj bst <)
+    (if (null bst)
+        (make-node :elt obj)
+        (let ((elt (node-elt bst)))
+          (format t "~a ~&" node-elt)
+        (if (eql obj elt)
+            bst
+            (if (funcall < obj elt)
+                (make-node
+                 :elt elt
+                 :l (bst-insert obj (node-l bst) <)
+                 (format t " left true ~a ~&" l)
+                 :r (node-r bst)
+                 (format t " right true ~a ~&" r))
+                 (make-node
+                  :elt elt
+                  :r (bst-insert obj (node-r bst) <)
+                  (format t "right false ~a ~&" r)
+                  :l (node-l bst)
+                  (format t "left false ~a ~&" l)))))))
+
+  (let ((nums))
+    (dolist (x '(5 8 4 2 1 9 6 7 3))
+      (setf nums (bst-insert x nums #' <))))
+
+#+END_SRC
+
 Bst-find ищет элемент в дереве и если находит,
 то возвращает его поддерево. В противном случае возвращается nil.
 
