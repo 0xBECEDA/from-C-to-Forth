@@ -371,34 +371,55 @@ elt записываем объект (видимо, остальные поля
 
   (defstruct (node (:print-function
                     (lambda (n s d)
-                      (format s "#<~A>" (node-elt n)))))
+                      (format s "#<NODE:~A{~A|~A}>"
+                              (node-elt n)
+                              (node-r n)
+                              (node-l n)
+                              ))))
     elt (l nil) (r nil))
 
-  (defun bst-insert (obj bst <)
+  (make-node :elt "aaa" :l 123 :r 234)
+
+
+  (defun bst-insert (obj bst sortfun)
     (if (null bst)
-        (make-node :elt obj)
+        (make-node :elt obj :r nil :l nil)
+        ;; else
         (let ((elt (node-elt bst)))
-          (format t "~a ~&" node-elt)
-        (if (eql obj elt)
-            bst
-            (if (funcall < obj elt)
-                (make-node
-                 :elt elt
-                 :l (bst-insert obj (node-l bst) <)
-                 (format t " left true ~a ~&" l)
-                 :r (node-r bst)
-                 (format t " right true ~a ~&" r))
-                 (make-node
-                  :elt elt
-                  :r (bst-insert obj (node-r bst) <)
-                  (format t "right false ~a ~&" r)
-                  :l (node-l bst)
-                  (format t "left false ~a ~&" l)))))))
+          (format t "~a ~&" elt)
+          (if (eql obj elt)
+              bst
+              (if (funcall sortfun obj elt)
+                  (progn
+                    (format t "<")
+                    (format t " left true ~a ~&" (node-l bst))
+                    (format t " right true ~a ~&" (node-r bst))
+                    (make-node
+                     :elt elt
+                     :l (bst-insert obj (node-l bst) sortfun)
+                     :r (node-r bst)))
+                  ;; else
+                  (format t ">")
+                  ;; (make-node
+                  ;;  :elt elt
+                  ;;  :r (bst-insert obj (node-r bst) sortfun)
+                  ;;  (format t "right false ~a ~&" (node-r bst))
+                  ;;  :l (node-l bst)
+                  ;;  (format t "left false ~a ~&" (node-l bst)))
+                  ))
+          )))
 
-  (let ((nums))
-    (dolist (x '(5 8 4 2 1 9 6 7 3))
-      (setf nums (bst-insert x nums #' <))))
+  ;; (let ((nums))
+  ;;   (dolist (x '(5 8 4 2 1 9 6 7 3))
+  ;;     (setf nums (bst-insert x nums #'<))))
 
+
+  (let ((var1 nil))
+    (let ((var2 (bst-insert 1 var1 #'<)))
+      (bst-insert 2 var2 #'<)))
+
+  C-c ' ;; open code
+  C-x e ;; execute
 #+END_SRC
 
 Bst-find ищет элемент в дереве и если находит,
