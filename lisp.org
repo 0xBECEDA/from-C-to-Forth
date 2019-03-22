@@ -732,8 +732,8 @@ RGB. Цвета деляется на ветки по преобладанию �
 
 #+BEGIN_SRC lisp
 
-    (defstruct node
-      color (r nil) (g nil) (b nil))
+      (defstruct node
+        color (r nil) (g nil) (b nil))
 
   (defun make_bst (obj bst >)
     (if (null bst)
@@ -757,8 +757,8 @@ RGB. Цвета деляется на ветки по преобладанию �
                               red_node green_node blue_node)
                       (if ( > red_obj red_node)
                           (progn
-                            (format t " red_node ~a red_obj ~a ~& "
-                                    red_node red_obj)
+                            (format t " red_obj  ~a > red_node ~a ~& "
+                                    red_obj red_node)
                             (make-node
                              :color color
                              :r (make_bst obj (node-r bst) >)
@@ -766,7 +766,7 @@ RGB. Цвета деляется на ветки по преобладанию �
                              :b (node-b bst)))
                           (if (> green_obj green_node)
                               (progn
-                                (format t " green_obj ~a green_node ~a ~& "
+                                (format t " green_obj ~a > green_node ~a ~& "
                                         green_obj green_node)
                                 (make-node
                                  :color color
@@ -775,42 +775,55 @@ RGB. Цвета деляется на ветки по преобладанию �
                                  :b (node-b bst)))
                               (if (> blue_obj blue_node)
                                   (progn
-                                    (format t " blue_obj ~a blue_node ~a ~& "
+                                    (format t " blue_obj ~a > blue_node ~a ~& "
                                             blue_obj blue_node)
                                     (make-node
                                      :color color
                                      :r (node-r bst)
                                      :g (node-g bst)
-                                     :b (make_bst obj (node-g bst) >)))
+                                     :b (make_bst obj (node-b bst) >)))
                                   (if ( eql red_obj red_node)
-                                      (make-node
-                                       :color color
-                                       :r (make_bst obj (node-r bst) >)
-                                       :g (node-g bst)
-                                       :b (node-b bst))
+                                      (progn
+                                        (format t " red_obj ~a =  red_node ~a ~& "
+                                                red_obj red_node)
+                                        (make-node
+                                         :color color
+                                         :r (make_bst obj (node-r bst) >)
+                                         :g (node-g bst)
+                                         :b (node-b bst)))
                                       (if (eql green_obj green_node)
-                                          (make-node
-                                           :color color
-                                           :r (node-r bst)
-                                           :g (make_bst obj (node-g bst) >)
-                                           :b (node-b bst))
+                                          (progn
+                                            (format t " green_obj ~a =  green_node ~a ~& "
+                                                    green_obj green_node)
+                                            (make-node
+                                             :color color
+                                             :r (node-r bst)
+                                             :g (make_bst obj (node-g bst) >)
+                                             :b (node-b bst)))
                                           (if (eql blue_obj blue_node)
-                                              (make-node
-                                               :color color
-                                               :r (node-r bst)
-                                               :g (node-g bst)
-                                               :b (make_bst obj (node-g bst) >)))))))))))))))))
+                                              (progn
+                                                (format t " blue_obj ~a = blue_node ~a ~& "
+                                                        blue_obj blue_node)
+                                                (make-node
+                                                 :color color
+                                                 :r (node-r bst)
+                                                 :g (node-g bst)
+                                                 :b (make_bst obj (node-b bst) >))))))))))))))))))
 
-  ; Функция для запуска:
+    ; Функция для запуска:
 
   (defun execute_make_tree (lst)
     (let ((tree))
       (do ((i (length lst) (- i 1)))
           ((= i 0) tree)
-        (setf tree (make_bst (car lst) tree #'>)
-        (format t "~a ~&" (car lst))
+        (format t " OBJ ~A ~&" (car lst))
+        (setf tree (make_bst (car lst) tree #'>))
         (setf lst (cdr lst)))))
+  ;При таком запуске дерево неправильное, но фиг пойми почему.
 
-  (execute_make_tree '((255 25 30) (38 255 42) (0 44 42) (16 255 0) (13 40 255)))
+    (execute_make_tree '((255 55 30) (38 255 42) (0 44 42) (16 255 0) (13 40 255)))
+
+  ;Тут постоянно растет красная ветка (red), т.е. все работает верно.
+  (execute_make_tree '((0 0 0) (1 1 1) (2 2 2) (3 3 3) (4 4 4)))
 
 #+END_SRC
