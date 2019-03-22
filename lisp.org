@@ -696,6 +696,10 @@ Copy-list
 #+END_SRC
 
 
+My-reverse абсолютно аналогичен my_copy_list, за исключением того, что
+после выполнения цикла do список не переворачивается с помощью
+reverse. Для ассоциативных списоков эта функция так же не годится.
+
 #+BEGIN_SRC lisp
 
   (defun my_reverse (lst)
@@ -707,5 +711,106 @@ Copy-list
       (reduce #'(lambda (a b)
                   (append a b))
               new_lst)))
+
+#+END_SRC
+** tree
+
+Определите структуру для дерева, каждый узел котоого помимо некоторых
+данных имеет трех потомков.
+
+Опеределите функцию, которая копирует такое дерево.
+Опеределите функцию, которая принимает такое дерево и объект и
+возвращает истину, если объект встречается хотя бы в одном узле
+дерева.
+
+Для начала определяем структуру узла. Затем пишем функцию, которая
+создаст нам такое дерево.
+
+Элементы нашего дерева - цвета. Цвет - это список из 3х значений
+RGB. Цвета деляется на ветки по преобладанию одного из трех цветов в
+них.
+
+#+BEGIN_SRC lisp
+
+    (defstruct node
+      color (r nil) (g nil) (b nil))
+
+  (defun make_bst (obj bst >)
+    (if (null bst)
+        (make-node :color obj :r nil :g nil :b nil)
+        (let ((color (node-color bst)))
+          (format t " color ~a ~& " color)
+          (let ((red_obj))
+            (setf red_obj (car obj))
+            (let ((red_node))
+              (setf red_node (car color))
+              (let ((green_obj))
+                (setf green_obj (nth 1 obj))
+                (let ((green_node))
+                  (setf green_node (nth 1 color))
+                  (let ((blue_obj))
+                    (setf blue_obj (nth 2 obj))
+                    (let ((blue_node))
+                      (setf blue_node (nth 2 color))
+                      (format t " Obj: R ~a G ~a B ~a | Node: R ~a G ~a B ~a ~&"
+                              red_obj green_obj blue_obj
+                              red_node green_node blue_node)
+                      (if ( > red_obj red_node)
+                          (progn
+                            (format t " red_node ~a red_obj ~a ~& "
+                                    red_node red_obj)
+                            (make-node
+                             :color color
+                             :r (make_bst obj (node-r bst) >)
+                             :g (node-g bst)
+                             :b (node-b bst)))
+                          (if (> green_obj green_node)
+                              (progn
+                                (format t " green_obj ~a green_node ~a ~& "
+                                        green_obj green_node)
+                                (make-node
+                                 :color color
+                                 :r (node-r bst)
+                                 :g (make_bst obj (node-g bst) >)
+                                 :b (node-b bst)))
+                              (if (> blue_obj blue_node)
+                                  (progn
+                                    (format t " blue_obj ~a blue_node ~a ~& "
+                                            blue_obj blue_node)
+                                    (make-node
+                                     :color color
+                                     :r (node-r bst)
+                                     :g (node-g bst)
+                                     :b (make_bst obj (node-g bst) >)))
+                                  (if ( eql red_obj red_node)
+                                      (make-node
+                                       :color color
+                                       :r (make_bst obj (node-r bst) >)
+                                       :g (node-g bst)
+                                       :b (node-b bst))
+                                      (if (eql green_obj green_node)
+                                          (make-node
+                                           :color color
+                                           :r (node-r bst)
+                                           :g (make_bst obj (node-g bst) >)
+                                           :b (node-b bst))
+                                          (if (eql blue_obj blue_node)
+                                              (make-node
+                                               :color color
+                                               :r (node-r bst)
+                                               :g (node-g bst)
+                                               :b (make_bst obj (node-g bst) >)))))))))))))))))
+
+  ; Функция для запуска:
+
+  (defun execute_make_tree (lst)
+    (let ((tree))
+      (do ((i (length lst) (- i 1)))
+          ((= i 0) tree)
+        (setf tree (make_bst (car lst) tree #'<))
+        (format t "~a ~&" (car lst))
+        (setf lst (cdr lst)))))
+
+  (execute_make_tree '((255 25 30) (38 255 42) (0 44 42) (16 255 0) (13 40 255)))
 
 #+END_SRC
