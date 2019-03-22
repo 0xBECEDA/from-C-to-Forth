@@ -807,7 +807,7 @@ RGB. Цвета деляется на ветки по преобладанию �
     (let ((tree))
       (do ((i (length lst) (- i 1)))
           ((= i 0) tree)
-        (setf tree (make_bst (car lst) tree #'<))
+        (setf tree (make_bst (car lst) tree #'>)
         (format t "~a ~&" (car lst))
         (setf lst (cdr lst)))))
 
