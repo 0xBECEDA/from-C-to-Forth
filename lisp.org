@@ -749,6 +749,7 @@ rgb), выгружаем из объекта и color цвета в соотве
 кейса. Если ни один из ифов не сработал, то текущий обЪект просто
 проигнорируется.
 
+
 #+BEGIN_SRC lisp
 
       (defstruct node
@@ -757,7 +758,7 @@ rgb), выгружаем из объекта и color цвета в соотве
   (defun make_bst (obj bst >)
     (if (null bst)
         (make-node :color obj :r nil :g nil :b nil)
-        ;выгружаем необходимые переменные
+                                          ;выгружаем необходимые переменные
         (let ((color (node-color bst)))
           (format t " color ~a ~& " color)
           (let ((red_obj))
@@ -775,7 +776,7 @@ rgb), выгружаем из объекта и color цвета в соотве
                       (format t " Obj: R ~a G ~a B ~a | Node: R ~a G ~a B ~a ~&"
                               red_obj green_obj blue_obj
                               red_node green_node blue_node)
-                      ;приступаем к сравнению по принципу ">"
+                                          ;приступаем к сравнению по принципу ">"
                       (if ( > red_obj red_node)
                           (progn
                             (format t " red_obj  ~a > red_node ~a ~& "
@@ -831,7 +832,58 @@ rgb), выгружаем из объекта и color цвета в соотве
                                                  :color color
                                                  :r (node-r bst)
                                                  :g (node-g bst)
-                                                 :b (make_bst obj (node-b bst) >))))))))))))))))))
+                                                 :b (make_bst obj (node-b bst) >)))
+                                          ; если и второй кейс не сработал,
+                                          ; то сравниваем элементы объекта между собой и
+                                          ; элемент-победитель определяет ветку
+
+                                              (if (> red_obj green_obj)
+                                                  (progn
+                                                    (format t " red_obj ~a >
+                                                                    green_obj ~a ~& "
+                                                            red_obj green_obj)
+                                                    (if (> red_obj blue_obj)
+                                                        (progn
+                                                          (format t " red_obj ~a >
+                                                                    blue_obj ~a ~& "
+                                                                  red_obj blue_obj)
+                                                          (make-node
+                                                           :color color
+                                                           :r (make_bst obj (node-r bst) >)
+                                                           :g (node-g bst)
+                                                           :b (node-b bst)))
+                                                        (progn
+                                                          (format t " blue_obj ~a >
+                                                                    red_obj ~a ~& "
+                                                                  blue_obj red_obj)
+                                                          (make-node
+                                                           :color color
+                                                           :r (node-r bst)
+                                                           :g (node-g bst)
+                                                           :b (make_bst obj (node-b bst) >))
+                                                          )))
+                                                  (if ( > green_obj blue_obj)
+                                                      (progn
+                                                        (format t " green_obj ~a >
+                                                                red_obj ~a ~& "
+                                                                green_obj red_obj)
+                                                        (make-node
+                                                         :color color
+                                                         :r (node-r bst)
+                                                         :g (make_bst obj (node-g bst) >)
+                                                         :b (node-b bst)))
+                                                      (progn
+                                                        (format t " blue_obj ~a >
+                                                                    red_obj ~a ~& "
+                                                                blue_obj red_obj)
+                                                        (make-node
+                                                         :color color
+                                                         :r (node-r bst)
+                                                         :g (node-g bst)
+                                                         :b (make_bst obj (node-b bst) >)))))
+
+                                              )))))))))))))))
+
 
     ; Функция для запуска:
 
