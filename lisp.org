@@ -750,17 +750,16 @@ rgb), выгружаем из объекта и color цвета в соотве
 
 #+BEGIN_SRC lisp
 
-      (defstruct node
-        color (r nil) (g nil) (b nil))
+  (defstruct node
+    color (r nil) (g nil) (b nil))
 
   (defun make_bst (obj bst >)
     (if (null bst)
         (make-node :color obj :r nil :g nil :b nil)
-                                          ;выгружаем необходимые переменные
+        ; выгружаем необходимые переменные
         (let ((color (node-color bst)))
-          (format t " color ~a ~& " color)
-          (let ((red_obj))
-            (setf red_obj (car obj))
+        ;  (format t " color ~a ~& " color)
+          (let ((red_obj (car obj)))
             (let ((red_node))
               (setf red_node (car color))
               (let ((green_obj))
@@ -771,14 +770,14 @@ rgb), выгружаем из объекта и color цвета в соотве
                     (setf blue_obj (nth 2 obj))
                     (let ((blue_node))
                       (setf blue_node (nth 2 color))
-                      (format t " Obj: R ~a G ~a B ~a | Node: R ~a G ~a B ~a ~&"
-                              red_obj green_obj blue_obj
-                              red_node green_node blue_node)
-                                          ;приступаем к сравнению по принципу ">"
+                     ; (format t " Obj: R ~a G ~a B ~a | Node: R ~a G ~a B ~a ~&"
+                     ;         red_obj green_obj blue_obj
+                     ;         red_node green_node blue_node)
+                      ; приступаем к сравнению по принципу ">"
                       (if ( > red_obj red_node)
                           (progn
-                            (format t " red_obj  ~a > red_node ~a ~& "
-                                    red_obj red_node)
+                        ;    (format t " red_obj  ~a > red_node ~a ~& "
+                        ;            red_obj red_node)
                             (make-node
                              :color color
                              :r (make_bst obj (node-r bst) >)
@@ -786,8 +785,8 @@ rgb), выгружаем из объекта и color цвета в соотве
                              :b (node-b bst)))
                           (if (> green_obj green_node)
                               (progn
-                                (format t " green_obj ~a > green_node ~a ~& "
-                                        green_obj green_node)
+                            ;  (format t " green_obj ~a > green_node ~a ~& "
+                            ;   green_obj green_node)
                                 (make-node
                                  :color color
                                  :r (node-r bst)
@@ -795,8 +794,8 @@ rgb), выгружаем из объекта и color цвета в соотве
                                  :b (node-b bst)))
                               (if (> blue_obj blue_node)
                                   (progn
-                                    (format t " blue_obj ~a > blue_node ~a ~& "
-                                            blue_obj blue_node)
+                            ;  (format t " blue_obj ~a > blue_node ~a ~& "
+                            ;   blue_obj blue_node)
                                     (make-node
                                      :color color
                                      :r (node-r bst)
@@ -806,8 +805,8 @@ rgb), выгружаем из объекта и color цвета в соотве
                                           ;приступаем к сравнению по принципу "="
                                   (if ( eql red_obj red_node)
                                       (progn
-                                        (format t " red_obj ~a =  red_node ~a ~& "
-                                                red_obj red_node)
+                                    ;  (format t " red_obj ~a =  red_node ~a ~& "
+                                    ;   red_obj red_node)
                                         (make-node
                                          :color color
                                          :r (make_bst obj (node-r bst) >)
@@ -815,8 +814,8 @@ rgb), выгружаем из объекта и color цвета в соотве
                                          :b (node-b bst)))
                                       (if (eql green_obj green_node)
                                           (progn
-                                            (format t " green_obj ~a =  green_node ~a ~& "
-                                                    green_obj green_node)
+                                        ;  (format t " green_obj ~a =  green_node ~a ~& "
+                                        ;   green_obj green_node)
                                             (make-node
                                              :color color
                                              :r (node-r bst)
@@ -824,8 +823,8 @@ rgb), выгружаем из объекта и color цвета в соотве
                                              :b (node-b bst)))
                                           (if (eql blue_obj blue_node)
                                               (progn
-                                                (format t " blue_obj ~a = blue_node ~a ~& "
-                                                        blue_obj blue_node)
+                                         ; (format t " blue_obj ~a = blue_node ~a ~& "
+                                         ;  blue_obj blue_node)
                                                 (make-node
                                                  :color color
                                                  :r (node-r bst)
@@ -837,23 +836,23 @@ rgb), выгружаем из объекта и color цвета в соотве
 
                                               (if (> red_obj green_obj)
                                                   (progn
-                                                    (format t " red_obj ~a >
-                                                                    green_obj ~a ~& "
-                                                            red_obj green_obj)
+                                                  ;  (format t " red_obj ~a >
+                                                  ;   green_obj ~a ~& "
+                                                  ;    red_obj green_obj)
                                                     (if (> red_obj blue_obj)
                                                         (progn
-                                                          (format t " red_obj ~a >
-                                                                    blue_obj ~a ~& "
-                                                                  red_obj blue_obj)
+                                                   ;  (format t " red_obj ~a >
+                                                   ;   blue_obj ~a ~& "
+                                                   ;   red_obj blue_obj)
                                                           (make-node
                                                            :color color
                                                            :r (make_bst obj (node-r bst) >)
                                                            :g (node-g bst)
                                                            :b (node-b bst)))
                                                         (progn
-                                                          (format t " blue_obj ~a >
-                                                                    red_obj ~a ~& "
-                                                                  blue_obj red_obj)
+                                                     ;  (format t " blue_obj ~a >
+                                                     ;   red_obj ~a ~& "
+                                                     ;   blue_obj red_obj)
                                                           (make-node
                                                            :color color
                                                            :r (node-r bst)
@@ -862,18 +861,18 @@ rgb), выгружаем из объекта и color цвета в соотве
                                                           )))
                                                   (if ( > green_obj blue_obj)
                                                       (progn
-                                                        (format t " green_obj ~a >
-                                                                red_obj ~a ~& "
-                                                                green_obj red_obj)
+                                                       ; (format t " green_obj ~a >
+                                                       ;  red_obj ~a ~& "
+                                                       ;  green_obj red_obj)
                                                         (make-node
                                                          :color color
                                                          :r (node-r bst)
                                                          :g (make_bst obj (node-g bst) >)
                                                          :b (node-b bst)))
                                                       (progn
-                                                        (format t " blue_obj ~a >
-                                                                    red_obj ~a ~& "
-                                                                blue_obj red_obj)
+                                                         ; (format t " blue_obj ~a >
+                                                         ;  red_obj ~a ~& "
+                                                         ;  blue_obj red_obj)
                                                         (make-node
                                                          :color color
                                                          :r (node-r bst)
@@ -894,7 +893,7 @@ rgb), выгружаем из объекта и color цвета в соотве
         (setf lst (cdr lst)))))
 
 
-    (execute_make_tree '((255 55 30) (38 255 42) (0 44 42) (16 255 0) (13 40 255)))
+  (execute_make_tree '((255 55 30) (38 255 42) (0 44 42) (16 255 0) (13 40 255)))
 
 
 #+END_SRC
@@ -937,33 +936,39 @@ rgb), выгружаем из объекта и color цвета в соотве
 
 
 #+BEGIN_SRC lisp
-    (defun tree_search (bst obj)
-      (if (null bst)
-          nil
-          (let ((color (node-color bst)))
-            (if (and (eql (nth 0 obj) (nth 0 color))
-                     (eql (nth 1 obj) (nth 1 obj))
-                     (eql (nth 2 obj) (nth 2 obj)))
+
+  (format t "gregre")
+
+  (defun tree_search (bst obj)
+    (if (null bst)
+        nil
+        (let ((color (node-color bst)))
+          (if (and (eql (nth 0 obj) (nth 0 color))
+                   (eql (nth 1 obj) (nth 1 obj))
+                   (eql (nth 2 obj) (nth 2 obj)))
+              (progn
                 (format t "obj ~a is found ~&" obj)
-                (if (> (nth 0 obj) (nth 0 color))
-                    (tree_search (node-r bst) obj)
-                    (if (> (nth 1 obj) (nth 1 color))
-                        ( tree_search (node-g bst) obj)
-                        (if (> (nth 2 obj) (nth 2 color))
-                            ( tree_search (node-b bst) obj)
-                            (if (eql (nth 0 obj) (nth 0 color))
-                                ( tree_search (node-r bst) obj)
-                                (if (eql (nth 1 obj) (nth 1 color))
-                                    ( tree_search (node-g bst) obj)
-                                    (if (eql (nth 2 obj) (nth 2 color))
-                                        ( tree_search (node-b bst) obj)
-                                        (if (> (nth 0 obj) (nth 1 obj))
-                                            (if (> (nth 0 obj) (nth 2 obj))
-                                                (tree_search (node-r bst) obj)
-                                                (tree_search (node-b bst) obj))
-                                            (if (> (nth 1 obj) (nth 2 obj))
-                                                (tree_search (node-g bst) obj)
-                                                (tree_search (node-b bst) obj)))))))))))))
+                obj)
+              ;; else
+              (if (> (nth 0 obj) (nth 0 color))
+                  (tree_search (node-r bst) obj)
+                  (if (> (nth 1 obj) (nth 1 color))
+                      (tree_search (node-g bst) obj)
+                      (if (> (nth 2 obj) (nth 2 color))
+                          (tree_search (node-b bst) obj)
+                          (if (eql (nth 0 obj) (nth 0 color))
+                              (tree_search (node-r bst) obj)
+                              (if (eql (nth 1 obj) (nth 1 color))
+                                  (tree_search (node-g bst) obj)
+                                  (if (eql (nth 2 obj) (nth 2 color))
+                                      (tree_search (node-b bst) obj)
+                                      (if (> (nth 0 obj) (nth 1 obj))
+                                          (if (> (nth 0 obj) (nth 2 obj))
+                                              (tree_search (node-r bst) obj)
+                                              (tree_search (node-b bst) obj))
+                                          (if (> (nth 1 obj) (nth 2 obj))
+                                              (tree_search (node-g bst) obj)
+                                              (tree_search (node-b bst) obj)))))))))))))
 
   ;Форма запуска
   (defun execute_tree_search (obj)
@@ -978,5 +983,146 @@ rgb), выгружаем из объекта и color цвета в соотве
   ;nil
   (execute_tree_search '(0 66 42))
 
+
+#+END_SRC
+
+Скопировать дерево.
+Чтобы скопировать дерево, надо последовательно обойти все его узлы.
+
+Используем рекурсию. Условие завершения рекурсии - пустое исходное
+дерево. Тогда мы возвращаем его копию.
+
+Берем содержимое каждого узла и рекурсивно вызываем его. При этом
+значение будет записано при откате рекурсси назад. То есть сначала
+будет записан лист, потом то, что было до него и т.д.
+
+
+#+BEGIN_SRC lisp
+
+  (defun copy_tree (bst)
+    (if (and
+         (null (node-r bst))
+         (null (node-g bst))
+         (null (node-b bst)))
+        (make-node :color (node-color bst) :r nil :g nil :b nil)
+        ;; else
+        (make-node
+         :color (node-color bst)
+         :r (if (null (node-r bst))
+                nil
+                (copy_tree (node-r bst)))
+         :g (if (null (node-g bst))
+                nil
+                (copy_tree (node-g bst)))
+         :b (if (null (node-b bst))
+                nil
+                (copy_tree (node-b bst)))
+         )))
+
+#+END_SRC
+
+** from bst to list
+
+Напишите функцию, которая создаст список из BST, отсортированный от
+меньшего к большему.
+
+Сначала создадим бинарное дерево.
+Определим структуру узла, функцию, создающую дерево, и функцию
+запуска.
+
+#+BEGIN_SRC lisp
+
+    (defstruct node
+        elt
+        (r nil)
+        (l nil)
+        )
+
+    (defun bst-insert (obj bst sortfun)
+      (if (null bst)
+          (make-node :elt obj :r nil :l nil)
+          ;; else
+          (let ((elt (node-elt bst)))
+            (if (eql obj elt)
+                bst
+                (if (funcall sortfun obj elt)
+                    (progn
+                      ;; (format t "<")
+                      ;; (format t " left true ~a ~&" (node-l bst))
+                      ;; (format t " right true ~a ~&" (node-r bst))
+                      (make-node
+                       :elt elt
+                       :l (bst-insert obj (node-l bst) sortfun)
+                       :r (node-r bst)))
+                    ;; else
+                    ;; (format t ">")
+                    (make-node
+                     :elt elt
+                     :r (bst-insert obj (node-r bst) sortfun)
+                     ;; (format t "right false ~a ~&" (node-r bst))
+                     :l (node-l bst)
+                     ;; (format t "left false ~a ~&" (node-l bst)))
+                    ))))))
+
+  (defun ex-bst-insert (lst)
+    (let ((tree))
+      (do ((i (length lst) (- i 1)))
+          ((= i 0) tree)
+        (setf tree (bst-insert (car lst) tree #'>))
+        (setf lst (cdr lst)))))
+
+(ex-bst-insert '(1 3 5 6 9 2 4 8))
+
+
+#+END_SRC
+
+Теперь напишем функцию, которая создаст из дерева список.
+
+#+BEGIN_SRC lisp
+
+  (defun lst_bst (bst lst)
+    (let ((elt (node-elt bst)))
+      (format t "elt ~a lst before setf ~a ~&" elt lst)
+      (setf lst (cons elt lst))
+      (format t "before lst ~a ~&" lst)
+      ;; если правая ветка != nil
+      (if (node-r bst)
+          ;; проверяем ее подветки
+          ;; в случае, если  r-подветка = nil
+          (if (null (node-r (node-r bst)))
+              ;;так же проверяем l-подветку
+              (if (null(node-l (node-r bst)))
+                  ;; если обе ветки = nil
+                  ;; копируем элемент из узла, не заходя в него
+                  (progn
+                    (setf lst (cons (node-elt(node-r bst)) lst))
+                    (format t " node R true ~a ~&" lst))
+                  ;; в противном случае заходим в узел
+                  (lst_bst (node-r bst) lst))
+              (lst_bst (node-r bst) lst))
+          nil)
+
+      ;; если левая ветка!= nil
+      (if (node-l bst)
+          ;; проверяем ее подветки
+          (progn
+            (format t " node-l ~a ~&" (node-l bst))
+            (if (null (node-r (node-l bst)))
+                (if (null(node-l (node-l bst)))
+                    (progn
+                      (setf lst (cons (node-elt(node-l bst)) lst))
+                      (format t " node L true ~a ~&" lst))
+                    (lst_bst (node-l bst) lst))
+                (lst_bst (node-l bst) lst)))
+          ;; если обе ветки текущего узла = nil,
+          ;; возвращаем полученный список
+          (sort lst #'>))))
+
+  (defun ex_lst_bst (lst)
+    (let ((tree (ex-bst-insert lst)))
+      (let ((new_lst))
+        (setf new_lst (lst_bst tree new_lst)))))
+
+  (ex_lst_bst '(1 3 5 6 9 2 4 8))
 
 #+END_SRC
