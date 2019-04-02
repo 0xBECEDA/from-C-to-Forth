@@ -598,7 +598,7 @@ nil)
 
 #+END_SRC
 
-* chapter 4
+* Chapter 4
 
 **  turn array
 
@@ -1124,5 +1124,60 @@ rgb), выгружаем из объекта и color цвета в соотве
         (setf new_lst (lst_bst tree new_lst)))))
 
   (ex_lst_bst '(1 3 5 6 9 2 4 8))
+
+#+END_SRC
+** last task
+
+Определить функцию, строящую:
+- хэш-таблицу по ассоциативному списку
+- ассоциативный список по хэш-таблице
+
+Таблица по списку:
+
+Функция принимает один аргумент - ассоциативный список. УЗнаем длинну
+списка и создаем хэш-таблицу соответствующего размера.
+Проходим по списку и устанавливаем значения в таблицу с помощью
+(setf (gethash 'element nt-table) 'value_of_element). После выхода из
+цикла печатаем хэш-таблицу.
+
+#+BEGIN_SRC lisp
+
+    (defun lst_hash (lst)
+      (let ((len (length lst)))
+        (let ((ht (make-hash-table :size len)))
+          (do ((i len (- i 1)))
+              ((= i 0) ht)
+            (let ((cell (car lst)))
+              (setf (gethash (car cell) ht) (cdr cell))
+              (setf lst (cdr lst)))))))
+
+
+          (maphash #' (lambda (a b)
+                        (format t "~a = ~a ~&" a b))
+                      ht))))
+
+
+  ;; Запуск:
+
+  (lst_hash '((a . 1) (b . 2) ( c . 3)))
+
+#+END_SRC
+
+Список по таблице:
+
+#+BEGIN_SRC lisp
+
+  (defun hash_lst (ht)
+    (let ((lst))
+      (maphash #' (lambda (a b)
+                    (setf lst (cons (cons a b) lst)))
+                  ht)
+      (reverse lst)))
+
+  ;;Запуск
+  (let ((new_ht
+         (lst_hash '((a . 1) (b . 2) ( c . 3)))))
+    (hash_lst new_ht))
+
 
 #+END_SRC
