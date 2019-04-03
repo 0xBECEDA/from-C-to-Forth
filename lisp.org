@@ -1181,3 +1181,167 @@ rgb), выгружаем из объекта и color цвета в соотве
 
 
 #+END_SRC
+
+* Chapter 5
+** let and let*
+
+Запишите следующие выражения без let и let*
+Выражения не должны вычисляться дважды.
+
+#+BEGIN_SRC lisp
+
+  (let ((x (car y)))
+    (cons x x))
+
+  (let* ((w (car x))
+         (y (+ w z)))
+    (cons w y))
+
+#+END_SRC
+
+Решение:
+
+#+BEGIN_SRC lisp
+
+   ((lambda (x)
+      (setf x (cons x x)))
+    (car y))
+
+  ((lambda (w y z)
+     (setf y (+ w z))
+     (setf w (cons w y)))
+   (car x) a b)
+
+#+END_SRC
+
+** mystery
+
+Перепишьте функцию mystery с использованием cond.
+
+Исходная функция:
+
+Принимает 2 аргумента. Выполняется поиск в списке: в случае, если
+элемент найден, возвращается его индекс в массиве, если дошли до конца
+списка и ничего не нашли, возвращается nil.
+
+Проверяем, пуст ли Y. Если пуст, возвращаем nil. Если нет, то
+сравниваем, искомый объект икс с первым элементов списка Y. В случае
+равенства возвращаем 0. В противном случае в переменную z записываем
+результат вызова mystery с объектом и хвостом списка.
+
+#+BEGIN_SRC lisp
+
+  (defun mystery (x y)
+    (format t " x ~a y ~a ~&" x y)
+    (if (null y)
+        nil
+        (if (eql (car y) x)
+            (progn
+              (format t "obj found")
+              0)
+            (let ((z (mystery x (cdr y))))
+              (format t " Z ~a ~&" z)
+              (and z (+ z 1))))))
+
+#+END_SRC
+
+Переписанный вариант:
+
+#+BEGIN_SRC lisp
+
+  (defun new_mystery (x y)
+      (format t " x ~a y ~a ~&" x y)
+      (cond ((null y) nil)
+             ((eql (car y) x)
+              (progn
+                (format t "obj found")
+                0))
+              ( t (let ((z (new_mystery x (cdr y))))
+                (format t " Z ~a ~&" z)
+                (and z (+ z 1))))))
+;; запуск:
+(new_mystery 1 '(2 3 5 7 8 1))
+
+#+END_SRC
+
+** month-num
+
+Перепишите month-num, используя case вместо svref
+
+Исходная функция:
+
+#+BEGIN_SRC lisp
+
+  (defconstant month
+    #(0 31 59 90 120 151 181 212 243 273 304 334 365))
+
+(defun month-num (m y)
+  (+ (svref month ( - m 1))
+     (if (and (> m 2) (leap? y))
+         1
+         0)))
+
+#+END_SRC
+
+Переписанный вариант:
+
+#+BEGIN_SRC lisp
+
+  (defconstant month
+    #(0 31 59 90 120 151 181 212 243 273 304 334 365))
+
+#+END_SRC
+
+** intersperse
+
+Опеределите функцию, которая поместит заданный объект между всеми
+элементами списка. Определить надо итеративно и рекурсивно.
+Например:
+(intersperse ’- ’(a b c d))
+(A - B - C - D)
+
+Итеративная версия:
+
+Функция принимает два аргумента: объект и список.
+Устанавливаем цикл, который отработает на 1 раз меньше, чем элементов
+в списке.
+В цикле мы будем брать элемент из исходного списка, соединять с
+объектом, затем уменьшать исходный список. Последний элемент списка
+будет добавлен вручную.
+
+#+BEGIN_SRC lisp
+
+  (defun mix (obj lst)
+    (let ((new_lst))
+      (do ((i (- (length lst) 1) (- i 1)))
+          ((= i 0) new_lst)
+
+        (setf new_lst (append (list obj)
+                              (list (car lst))
+                              new_lst ))
+        (format t "~a ~&" new_lst)
+        (setf lst (cdr lst)))
+      (setf new_lst (reverse (append (list (car lst)) new_lst)))))
+
+#+END_SRC
+
+Рекурсивная версия:
+
+Добавляем объект между элементами списка до тех пор, пока исходный
+список не опустеет.
+
+#+BEGIN_SRC lisp
+
+  (defun mix-rec (obj lst lst2)
+    (setf lst2 (append (list (car lst)) lst2))
+    (format t "append ~a ~&" lst2)
+    (setf lst (cdr lst))
+    (if (null lst)
+        (reverse lst2)
+        (progn
+          (setf lst2 (append (list obj)
+                             lst2 ))
+          (format t " in progn ~a ~&" lst2)
+          (mix-rec obj lst lst2))))
+
+#+END_SRC
