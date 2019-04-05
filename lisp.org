@@ -1214,6 +1214,28 @@ rgb), выгружаем из объекта и color цвета в соотве
 
 #+END_SRC
 
+** quadrate of number
+
+Определите функцию, которая возвращающую квадрат своего аргумента,
+если это положительное число меньшее или равное пяти
+
+
+#+BEGIN_SRC lisp
+
+  (defun quadrate (num)
+    (if (> num 0)
+        (if (<= num 5)
+            (progn
+              (let ((new_num 0))
+            (do ((i num (- i 1)))
+                ((= i 0) new_num)
+              (setf new_num (+ num new_num)))))
+            nil)
+        nil))
+
+#+END_SRC
+
+
 ** mystery
 
 Перепишьте функцию mystery с использованием cond.
@@ -1343,5 +1365,46 @@ rgb), выгружаем из объекта и color цвета в соотве
                              lst2 ))
           (format t " in progn ~a ~&" lst2)
           (mix-rec obj lst lst2))))
+
+#+END_SRC
+
+** COMMENT pair
+
+Определите функцию, которая принимает списк чисел и возвращает истину,
+если между каждой парой чисел разница равна единице. Определить
+функцию с помощью:
+- рекурсии
+- return
+- mapc
+- do
+
+Рекурсивная версия:
+
+Проход по списку, сравниваем первый элемент и второй, второй и третий
+и т.д. Условие окончания рекурсии: конец списка или выбивающаяся из
+условия пара.
+
+Возвращаем Т , если дошли до конца списка
+
+#+BEGIN_SRC lisp
+
+
+#+END_SRC
+
+RETURN-FROM:
+
+#+BEGIN_SRC lisp
+
+  (defun check_pair (lst)
+    (let (( diffr))
+      (tagbody
+       top
+         (setf diffr ( - (nth 0 lst) (nth 1 lst)))
+         (setf lst (cdr lst))
+         (if (eql diffr 1)
+             (if (null (cdr lst))
+                 (return-from check_pair t)
+                 (go top))
+             (return-from check_pair nil)))))
 
 #+END_SRC
