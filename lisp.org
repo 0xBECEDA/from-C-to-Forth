@@ -1183,6 +1183,7 @@ rgb), выгружаем из объекта и color цвета в соотве
 #+END_SRC
 
 * Chapter 5
+
 ** let and let*
 
 Запишите следующие выражения без let и let*
@@ -1234,7 +1235,6 @@ rgb), выгружаем из объекта и color цвета в соотве
         nil))
 
 #+END_SRC
-
 
 ** mystery
 
@@ -1292,25 +1292,48 @@ rgb), выгружаем из объекта и color цвета в соотве
 
 Исходная функция:
 
+Принимает номер месяца, отнимает от него 1 (потому что svref начинает
+считать от нуля), ищет в списке констант, если год високосный, то прибавляет к
+месяцу 1, если нет, то 0.
+
 #+BEGIN_SRC lisp
+
+  ;; константы и функция leap? нужны, чтоб запустить month-num
 
   (defconstant month
     #(0 31 59 90 120 151 181 212 243 273 304 334 365))
 
-(defun month-num (m y)
-  (+ (svref month ( - m 1))
-     (if (and (> m 2) (leap? y))
-         1
-         0)))
+  (defconstant yzero 2000)
+
+  (defun leap? (y)
+    (and (zerop (mod y 4))
+         (or (zerop (mod y 400))
+             (not (zerop (mod y 100))))))
+
+  (defun month-num (m y)
+    (+ (svref month ( - m 1))
+       (if (and (> m 2) (leap? y))
+           1
+           0)))
 
 #+END_SRC
+Svref получает доступ по индексу к константе из списка констант. Как
+заменить ее на case?
 
 Переписанный вариант:
 
 #+BEGIN_SRC lisp
 
-  (defconstant month
-    #(0 31 59 90 120 151 181 212 243 273 304 334 365))
+    (defconstant month
+      #(0 31 59 90 120 151 181 212 243 273 304 334 365))
+
+  (defun my_month-num (m y)
+    (case m
+      ((3 4 5 6 7 8 9 10 11 12)
+       (if (leap? y)
+           (+ (svref month ( - m 1)) 1)
+           (+ (svref month ( - m 1)) 0)))
+       ((1 2) (svref month ( - m 1)))))
 
 #+END_SRC
 
@@ -1368,7 +1391,7 @@ rgb), выгружаем из объекта и color цвета в соотве
 
 #+END_SRC
 
-** COMMENT pair
+** pair
 
 Определите функцию, которая принимает списк чисел и возвращает истину,
 если между каждой парой чисел разница равна единице. Определить
@@ -1388,6 +1411,16 @@ rgb), выгружаем из объекта и color цвета в соотве
 
 #+BEGIN_SRC lisp
 
+  (defun check_pair_rec (lst)
+    (let ((diff))
+      (if (< (nth 0 lst) (nth 1 lst))
+          (setf diff (- (nth 1 lst) (nth 0 lst)))
+          (setf diff (- (nth 0 lst) (nth 1 lst))))
+      (if (eql diff 1)
+          (if (null (cdr(cdr lst)))
+              t
+              (check_pair_rec (cdr lst)))
+          nil)))
 
 #+END_SRC
 
@@ -1399,12 +1432,115 @@ RETURN-FROM:
     (let (( diffr))
       (tagbody
        top
-         (setf diffr ( - (nth 0 lst) (nth 1 lst)))
+         (if (< (nth 0 lst) (nth 1 lst))
+             (setf diffr ( - (nth 1 lst) (nth 0 lst)))
+             (setf diffr ( - (nth 0 lst) (nth 1 lst))))
          (setf lst (cdr lst))
          (if (eql diffr 1)
              (if (null (cdr lst))
                  (return-from check_pair t)
                  (go top))
              (return-from check_pair nil)))))
+
+#+END_SRC
+
+MAPC:
+
+#+BEGIN_SRC lisp
+
+  (defun check_pair_map (lst)
+    (let ((diff))
+      (let ((double_lst (cdr lst)))
+        (mapc #' (lambda (a b)
+                   (if (< a b)
+                      (setf diff (- b a))
+                      (setf diff (- a b)))
+                   (if (not(eql diff 1))
+                       (return-from check_pair_map nil))) lst double_lst) t)))
+
+#+END_SRC
+
+Итеративная версия:
+
+#+BEGIN_SRC lisp
+
+  (defun check_pair_do (lst)
+    (let ((diffr))
+      (do ((i (-(length lst) 1) (- i 1)))
+          ((= i 0) t)
+        (if (< (nth 0 lst) (nth 1 lst))
+            (setf diffr ( - (nth 1 lst) (nth 0 lst)))
+            (setf diffr ( - (nth 0 lst) (nth 1 lst))))
+        (setf lst (cdr lst))
+        (if (not (eql diffr 1))
+            (return-from check_pair_do nil)))))
+
+#+END_SRC
+** search in vector
+
+Определите функцию от объекта и вектора, которая возвратит элементы
+вектора, следующие непосредственно перед объектом. Выполнить с помощью
+рекурсии и итерации.
+
+Пример:
+(precedes #\a "abracadabra")
+(#\c #\d #\r)
+
+Функция принимает 2 аргумента: объект и вектор.
+
+Проходим по вектору и сравниваем объект с каждым
+элементом. Если элемент и объект совпали, то возвращаемся на один
+элемент назад и добавляем его в список найденных элементов.
+
+Итеративная версия:
+
+#+BEGIN_SRC lisp
+
+  (defun vec_search (obj vec)
+    (let ((new_lst))
+      (let ((indx 1))
+        (do ((i (- (length vec) 1) (- i 1)))
+            ((= i 0) (reverse new_lst))
+          (if (eql (svref vec indx) obj)
+              (setf new_lst(cons (svref vec (- indx 1)) new_lst))
+              nil)
+          (setf indx (+ 1 indx))))))
+
+;; Запуск:
+
+(vec_search 'a (vector 'a 'b 'a 'd 'a 'c 'f 'a))
+
+#+END_SRC
+
+Рекурсивная:
+
+Условие завершения рекурсии: индекс = (длина вектора - 1) (мы дошли до конца)
+
+#+BEGIN_SRC lisp
+
+  (defun vec_search_rec (obj vec indx lst)
+    (if (eql indx (- (length vec) 1))
+        (return-from vec_search_rec (reverse lst))
+        (if (eql (svref vec indx) obj)
+            (setf lst(cons (svref vec (- indx 1)) lst))
+            nil))
+    (vec_search_rec obj vec (+ indx 1) lst))
+
+
+  ;; Запуск:
+
+  (vec_search_rec 'a (vector 'a 'b 'a 'd 'a 'c 'f 'a) 1 '())
+
+#+END_SRC
+
+** min and max
+
+Определите одиночную рекурсивную функцию, возвращающую минимальный и
+максимальный элемент вектора
+
+(sort)?
+
+#+BEGIN_SRC lisp
+
 
 #+END_SRC
