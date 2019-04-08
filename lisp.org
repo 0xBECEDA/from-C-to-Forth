@@ -1538,9 +1538,91 @@ MAPC:
 Определите одиночную рекурсивную функцию, возвращающую минимальный и
 максимальный элемент вектора
 
-(sort)?
+#+BEGIN_SRC lisp
+
+  (defun min_max (vec sortfun lst)
+    (let ((indx 0))
+      (let (( elt ))
+        (setf elt (svref vec indx))
+        (do ((i (- (length vec) 1) (- i 1)))
+            ((= i 0) (setf lst (cons elt lst)))
+          (setf indx (+ 1 indx))
+          (if (not (funcall sortfun elt (svref vec indx)))
+              ;; true
+              (setf elt (svref vec indx))))
+        (if (eql (length lst) 1)
+            (min_max vec #'< lst)
+            lst))))
+
+;; Запуск:
+
+(min_max (vector 1 3 5 0 8 4 10) #'> '())
+
+#+END_SRC
+** network
+
+Исходная программа продолжает поиск после того, как найден первый
+подходящий путь. Используя catch и throw перепишите программу так,
+чтоб она возвращала путь сразу после того, как он найден. Сделайте то
+же самое без catch и throw.
+
+Исходная программа:
+
+Shortest-path принимает три аргумента: начальную точку, конечную и
+саму сеть. Затемпросто вызывает bfs с "очередью", конечной точкой и
+сетью.
+
+BFS проверяет очередь. Если она пуста, значит, мы ничего не нашли
+(искомого элемента нет в сети или же путь от начальной точки к нему
+проложить невозможно) и тогда возвращаем nil.
+В противном случае загружаем в path первый элемент очереди, а в node
+(узел) первый элемент path. Если искомый элемент и node равны, то мы
+возвращаем перевернутый список узлов (потому что в противном случае
+порядок будет обратный: от конечной точки до начальной).
+Если же узел и элемент !=, то мы рекурсивно вызываем bfs с конечной
+точкой, результатом вызова new-paths и остатком прежней очереди, и
+самой сетью.
+
+New-paths принимает текущий путь, узел и сеть. Mapcar последовательно
+применит функцию к каждому элементу от (cdr (assoc node net)). То есть
+соединит путь и элемент n из переданного параметра лямбды.
+
+(Assoc вернет нам список узлов, в которые можно попать из узла node).
+
+Вопрос! Как программа может продолжать поиск по сети, даже если путь
+найден, если в случае нахождения пути возвращается список узлов, это
+является условием завершения рекурсии и мы выходим из функции?
 
 #+BEGIN_SRC lisp
 
+  (defun shortest-path (start end net)
+    (bfs end (list (list start)) net))
+
+  (defun bfs (end queue net)
+    (format t " BFS end ~a queue ~a  net ~a ~&" end queue net)
+    (if (null queue)
+        nil
+        (let ((path (car queue)))
+          (let ((node (car path)))
+            (format t " BFS path ~a ~& " path)
+            (if (eql node end)
+                (format t " reverse path ~a ~&" (reverse path))
+                (bfs end
+                     (append (cdr queue)
+                             (new-paths path node net))
+                     net))))))
+
+
+  (defun new-paths (path node net)
+    (format t " NEW-PATHS path ~a node  ~a  net ~a ~&" path node net)
+    (format t " nodes ~a ~&" (assoc node net))
+    (mapcar #'(lambda (n)
+                (cons n path))
+            (cdr (assoc node net))))
+
+;; Запуск:
+
+(let ((min '((a b c) (b c) (c d))))
+    (shortest-path 'a 'd min))
 
 #+END_SRC
