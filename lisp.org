@@ -166,7 +166,6 @@
 
 [COMMENT:gmm] - а как сделать так, чтобы не задавать кол-во аргументов ~num~?
 
-
 ** Summing list without nil
 
 Дано: написать функцию, суммирующую все элементы списка кроме nil.
@@ -188,11 +187,15 @@
 
 б)
 #+BEGIN_SRC lisp
- (defun summit (lst)
-(let ((x (car lst)))
-(if (null x)
-(summit (cdr lst))
-(+ x (summit (cdr lst))))))
+  (defun summit (lst)
+    (let ((x (car lst)))
+      (if (null x)
+          (summit (cdr lst))
+          (+ x (summit (cdr lst))))))
+
+  ;; (trace summit)
+
+  ;; (summit '(1 2 nil 3))
 #+END_SRC
 
 Здесь сразу несколько проблем. Null проверяет, является ли элемент
@@ -201,6 +204,10 @@
 функцию только без первого элемента списка, а потом прибавляю первый
 элемент. Только вот прибавляю я его ко всему списку сразу. А список -
 это не число. Соответственно, получаем ошибку.
+
+[COMMENT:gmm] - Неверно, начиная от "Лучше..". Проанализируй снова и поправь, возможно
+тебе помогут закомментированные строки. Корректная версия верна как исправление первой
+функции, но нет версии которая исправляет вторую. И следи за форматированием плиз.
 
 Корректная версия:
 
@@ -230,6 +237,8 @@
 4. (a (b . c) . d)
 (list 'a (cons (cons 'b 'c) 'd))
 
+[COMMENT:gmm] - Полагаю задание было про нарисовать квадратики на листочке.
+
 ** new_union
 
 Напишите свой вариант функции union, который сохраняет
@@ -251,19 +260,22 @@
 не кончатся
 
 #+BEGIN_SRC lisp
-
-  (defun new_union (lst1 lst2)
+  (defun new-union (lst1 lst2)
     (let ((new_lst))
       (let ((double_lst))
-        (setf double_lst lst1)
+        (setf double_lst lst1) ;; Почему не обьединить декларацию в let и инициализацию?
         (do ((i (length lst2) (- i 1)))
             ((= i 0) (append double_lst new_lst))
           (if (not (member (car lst2) lst1))
-              (setf new_lst ( append new_lst (list(car lst2))))
-              nil)
+              (setf new_lst ( append new_lst (list(car lst2)))) ;; вижу пробелы после открывающей
+              nil) ;; скобки где они не нужны, но не вижу после list где они нужны - неряшливо
           (setf lst2 (cdr lst2))))))
 
+  ;; Два нижеприведенных примера работают неодинаково
 
+  ;; (new-union '(b c f) '(b a d))
+
+  ;; (union '(b c f) '(b a d))
 #+END_SRC
 
 ** Occurrences
@@ -292,7 +304,8 @@
     (let ((lst2))
       (setf lst2 lst)
       (let ((final_lst))
-        (compr lst2 final_lst))))
+        (compr lst2 final_lst)))) ;; Если я правильно понимаю final_lst всегда nil
+  ;; тогда всю функцию можно заменить просто на вызов (compr lst nil) ?
 
 
   (defun compr (lst final_lst)
@@ -300,8 +313,8 @@
       (setf lst3 lst)
       (setf lst (remove (car lst) lst))
       (let ((len))
-        (setf len (- (length lst3) (length lst)))
-        (let ((new_lst))
+        (setf len (- (length lst3) (length lst))) ;; хм, оригинальный способ подчета
+        (let ((new_lst))                          ;; но очень неэффективный (2 прохода по спискам)
           (setf new_lst (cons (car lst3) len))
           (setf final_lst (cons new_lst final_lst))
           (if (null lst)
@@ -327,6 +340,7 @@
               (setf final_lst (cons (car lst) final_lst)))
           (setf lst (cdr lst))))))
 
+  ;; (occur '(a b a d a c d c a))
 
 #+END_SRC
 
@@ -1540,25 +1554,34 @@ MAPC:
 
 #+BEGIN_SRC lisp
 
-  (defun min_max (vec sortfun lst)
-    (let ((indx 0))
-      (let (( elt ))
-        (setf elt (svref vec indx))
-        (do ((i (- (length vec) 1) (- i 1)))
-            ((= i 0) (setf lst (cons elt lst)))
-          (setf indx (+ 1 indx))
-          (if (not (funcall sortfun elt (svref vec indx)))
-              ;; true
-              (setf elt (svref vec indx))))
-        (if (eql (length lst) 1)
-            (min_max vec #'< lst)
-            lst))))
+    (defun min_max (vec sortfun lst)
+      (let ((indx 0))
+        (let (( elt ))
+          (setf elt (svref vec indx)) ;; why initialization outside of declaration (let)?
+          (do ((i (- (length vec) 1) (- i 1))) ;; why counting comes from end?
+              ((= i 0) (setf lst (cons elt lst)))
+            (setf indx (+ 1 indx)) ;; why index is outside of do-declatation?
+            (format t "~%i=~A" i)
+            (format t "~%indx=~A" indx)
+            (if (not (funcall sortfun elt (svref vec indx)))
+                ;; true
+                (setf elt (svref vec indx))))
+          (if (eql (length lst) 1)
+              (min_max vec #'< lst)
+              lst))))
 
-;; Запуск:
+  ;; Запуск:
 
-(min_max (vector 1 3 5 0 8 4 10) #'> '())
+  (min_max (vector 1 3 5 0 8 4 10) #'> '())
 
+  ;; What about empty vector?
+  (min_max (vector ) #'> '())
+
+  (min_max (vector 1) #'> '())
 #+END_SRC
+
+Что-то мне подсказывает что это не рекурсивная функция..
+
 ** network
 
 Исходная программа продолжает поиск после того, как найден первый
@@ -1595,34 +1618,35 @@ New-paths принимает текущий путь, узел и сеть. Mapc
 
 #+BEGIN_SRC lisp
 
-  (defun shortest-path (start end net)
-    (bfs end (list (list start)) net))
+    (defun shortest-path (start end net)
+      (bfs end (list (list start)) net))
 
-  (defun bfs (end queue net)
-    (format t " BFS end ~a queue ~a  net ~a ~&" end queue net)
-    (if (null queue)
-        nil
-        (let ((path (car queue)))
-          (let ((node (car path)))
-            (format t " BFS path ~a ~& " path)
-            (if (eql node end)
-                (format t " reverse path ~a ~&" (reverse path))
-                (bfs end
-                     (append (cdr queue)
-                             (new-paths path node net))
-                     net))))))
+    (defun bfs (end queue net)
+      (format t " BFS end ~a queue ~a  net ~a ~&" end queue net)
+      (if (null queue)
+          nil
+          (let ((path (car queue)))
+            (let ((node (car path)))
+              (format t " BFS path ~a ~& " path)
+              (if (eql node end)
+                  (format t " reverse path ~a ~&" (reverse path))
+                  (bfs end
+                       (append (cdr queue)
+                               (new-paths path node net))
+                       net))))))
 
 
-  (defun new-paths (path node net)
-    (format t " NEW-PATHS path ~a node  ~a  net ~a ~&" path node net)
-    (format t " nodes ~a ~&" (assoc node net))
-    (mapcar #'(lambda (n)
-                (cons n path))
-            (cdr (assoc node net))))
+    (defun new-paths (path node net)
+      (format t " NEW-PATHS path ~a node  ~a  net ~a ~&" path node net)
+      (format t " nodes ~a ~&" (assoc node net))
+      (mapcar #'(lambda (n)
+                  (cons n path))
+              (cdr (assoc node net))))
 
-;; Запуск:
+  ;; Запуск:
 
-(let ((min '((a b c) (b c) (c d))))
-    (shortest-path 'a 'd min))
+  (let ((min '((a b c) (b c) (c d))))
+      (shortest-path 'a 'd min))
+
 
 #+END_SRC
