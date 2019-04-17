@@ -133,51 +133,50 @@
 Итерация:
 
 #+BEGIN_SRC lisp
-  (defun counter (lst obj num count)
-    (let (lst2))
-    (setf lst2 lst)
-    (do ((i num (- i 1)))
-        ((= i 0) count)
-      (and (eql(car lst2) obj) (setf count(+ count 1)))
-      (setf lst2 (cdr lst2))))
+  (defun counter (lst obj count)
+    (let ((lst2))
+      (setf lst2 lst)
+      (do ((i (length lst) (- i 1)))
+          ((= i 0) count)
+        (and (eql (car lst2) obj) (setf count(+ count 1)))
+        (setf lst2 (cdr lst2)))))
 
-  (counter '(a b c a) 'a 4 0)
+  (counter '(a b c a) 'a 0)
+
 #+END_SRC
 
 Рекурсия:
 
 #+BEGIN_SRC lisp
-  (defun counter (lst obj num count)
+
+  (defun counter (lst obj count)
     (and (eql (car lst) obj)
          (setf count (+ count 1)))
-    (setf num (- num 1))
-    (if (> num 0)
-        (counter (cdr lst) obj num count)
-        (format t "~a ~&" count)))
+    (if (null (cdr lst))
+        count
+        (counter (cdr lst) obj count)))
 
-  (counter '(a b c a) 'a 4 0)
+  (counter '(a b c a) 'a 0)
 #+END_SRC
 
-Обе функции принимают списки из любого количества элементов. Нужно
-только задать количество элементов аргументом num. Count в обоих
+Обе функции принимают списки из любого количества элементов. Count в обоих
 случаях - увеличивающийся счетчик, должен быть равен нулю на старте.
 
 Пример вызова: (counter '(a b c) 'a 3 0)
-
-[COMMENT:gmm] - а как сделать так, чтобы не задавать кол-во аргументов ~num~?
 
 ** Summing list without nil
 
 Дано: написать функцию, суммирующую все элементы списка кроме nil.
 "Некто" написал 2 функции, ни одна из которых не работает. Объяснить
-причину и предложить своб версию.
+причину и предложить свою версию.
 
 а)
 #+BEGIN_SRC lisp
 
-(defun summit (lst)
-(remove nil lst)
-(apply #’+ lst))
+  (defun summit (lst)
+    (remove nil lst)
+    (apply #’+ lst))
+
 #+END_SRC
 
 Проблема в том, что remove не удаляет элемент из списка, а
@@ -187,6 +186,7 @@
 
 б)
 #+BEGIN_SRC lisp
+
   (defun summit (lst)
     (let ((x (car lst)))
       (if (null x)
@@ -198,25 +198,25 @@
   ;; (summit '(1 2 nil 3))
 #+END_SRC
 
-Здесь сразу несколько проблем. Null проверяет, является ли элемент
-пустым списком. Лучше бы заменить его на not. Далее меня смущает
-(+ x (summit (cdr lst))). Получается, что я сначала рекурсивно вызываю
-функцию только без первого элемента списка, а потом прибавляю первый
-элемент. Только вот прибавляю я его ко всему списку сразу. А список -
-это не число. Соответственно, получаем ошибку.
+Проблема одна: проверяется только первый элемент списка. То есть если
+nil будет в "хвосте списка", то проверка его никак не заметит. Вывод:
+пройти по всему списку сначала, найти nil, избавиться от него, только
+затем прибавлять.
 
-[COMMENT:gmm] - Неверно, начиная от "Лучше..". Проанализируй снова и поправь, возможно
-тебе помогут закомментированные строки. Корректная версия верна как исправление первой
-функции, но нет версии которая исправляет вторую. И следи за форматированием плиз.
+
 
 Корректная версия:
 
 #+BEGIN_SRC lisp
+
 (defun summit (lst)
    (let(lst2))
    (setf lst2 (remove nil lst))
  (apply #' + lst2))
+
 #+END_SRC
+
+Да, кооректная версия должна быть одна. А не на каждую функцию.
 
 * Chapter 3
 
@@ -260,6 +260,7 @@
 не кончатся
 
 #+BEGIN_SRC lisp
+
   (defun new-union (lst1 lst2)
     (let ((new_lst))
       (let ((double_lst))
@@ -277,6 +278,10 @@
 
   ;; (union '(b c f) '(b a d))
 #+END_SRC
+
+Наверное, функции работают не одинаково, потому что union деструктивна
+и не соблюдает порядок элементов в заданных списках, а задание звучало
+"напишите функцию с соблюдением порядка элементов в заданных списках?"
 
 ** Occurrences
 
@@ -1490,6 +1495,7 @@ MAPC:
             (return-from check_pair_do nil)))))
 
 #+END_SRC
+
 ** search in vector
 
 Определите функцию от объекта и вектора, которая возвратит элементы
@@ -1554,33 +1560,32 @@ MAPC:
 
 #+BEGIN_SRC lisp
 
-    (defun min_max (vec sortfun lst)
-      (let ((indx 0))
-        (let (( elt ))
-          (setf elt (svref vec indx)) ;; why initialization outside of declaration (let)?
-          (do ((i (- (length vec) 1) (- i 1))) ;; why counting comes from end?
-              ((= i 0) (setf lst (cons elt lst)))
-            (setf indx (+ 1 indx)) ;; why index is outside of do-declatation?
-            (format t "~%i=~A" i)
-            (format t "~%indx=~A" indx)
-            (if (not (funcall sortfun elt (svref vec indx)))
-                ;; true
-                (setf elt (svref vec indx))))
-          (if (eql (length lst) 1)
-              (min_max vec #'< lst)
-              lst))))
+  (defun min_max (vec sortfun lst)
+    (if (< (length vec) 2)
+        nil
+        (let ((indx 0))
+          (let (( elt (svref vec indx)))
+            (do ((i (- (length vec) 1) (- i 1))
+                 (indx 1 (+ indx 1)))
+                ((= i 0) (setf lst (cons elt lst)))
+              (format t "~%i=~A" i)
+              (format t "~%indx=~A" indx)
+              (if (not (funcall sortfun elt (svref vec indx)))
+                  ;; true
+                  (setf elt (svref vec indx))))
+            (if (eql (length lst) 1)
+                (min_max vec #'< lst)
+                lst)))))
 
   ;; Запуск:
 
   (min_max (vector 1 3 5 0 8 4 10) #'> '())
 
-  ;; What about empty vector?
-  (min_max (vector ) #'> '())
 
-  (min_max (vector 1) #'> '())
+
 #+END_SRC
 
-Что-то мне подсказывает что это не рекурсивная функция..
+В случае если в векторе меньше 2х элементов, возвращаем nil.
 
 ** network
 
@@ -1616,6 +1621,9 @@ New-paths принимает текущий путь, узел и сеть. Mapc
 найден, если в случае нахождения пути возвращается список узлов, это
 является условием завершения рекурсии и мы выходим из функции?
 
+Видимо, нужно чтоб выход был мгновенный, без возвращения по
+рекурсивному стеку.
+
 #+BEGIN_SRC lisp
 
     (defun shortest-path (start end net)
@@ -1647,6 +1655,181 @@ New-paths принимает текущий путь, узел и сеть. Mapc
 
   (let ((min '((a b c) (b c) (c d))))
       (shortest-path 'a 'd min))
+
+
+#+END_SRC
+
+Изменения коснулись только функции bfs. Переписанный вариант без catch
+и throw:
+
+Использован return-from, который обеспечивает немедленное прерывание
+выполнения и возвращает путь.
+
+#+BEGIN_SRC lisp
+
+  (defun bfs (end queue net)
+    (format t " BFS end ~a queue ~a  net ~a ~&" end queue net)
+    (if (null queue)
+        nil
+        (let ((path (car queue)))
+          (let ((node (car path)))
+            (format t " BFS path ~a ~& " path)
+            (if (eql node end)
+                (return-from bfs (reverse path))
+                (bfs end
+                     (append (cdr queue)
+                             (new-paths path node net))
+                     net))))))
+
+#+END_SRC
+
+Вариант с catch и throw:
+
+#+BEGIN_SRC lisp
+
+  (defun bfs (end queue net)
+    (format t " BFS end ~a queue ~a  net ~a ~&" end queue net)
+    (if (null queue)
+        nil
+        (catch 'end
+          (let ((path (car queue)))
+            (let ((node (car path)))
+              (format t " BFS path ~a ~& " path)
+              (if (eql node end)
+                  (throw 'end (reverse path))
+                  (bfs end
+                       (append (cdr queue)
+                               (new-paths path node net))
+                       net)))))))
+
+#+END_SRC
+
+* Chapter 6
+
+** Num of args
+
+Определите функцию, принимающую любое количество аргументов и
+возвращающую их количество
+
+#+BEGIN_SRC lisp
+
+  (defun param (&rest args)
+    (length args))
+
+#+END_SRC
+
+** remove-if
+
+Опеределите remove-if без аргументов по ключу с помощью filter.
+Это функция filter. Она принимает функцию и список и с помощью функции
+проводит над ним операции.
+
+#+BEGIN_SRC lisp
+
+  (filter #'(lambda (x)
+              (and (evenp x) (+ x 10)))
+            '(1 2 3 4 5 6 7))
+#+END_SRC
+
+remove-if:
+принимает два аргумента: последовательность и предикат
+нужно:
+- проход по списку
+- проверка, соответствует ли текущий элемент списка предикату
+- если соответствует, то не помещать его в новый список
+- если не соответствует, то проигнорироватьи пойти дальше
+
+Вопрос! Предкаты бывают разные, как унифицировать работу функции для
+разных предикатов?
+
+#+BEGIN_SRC lisp
+
+  (defun myremove-if (fn lst)
+    (let ((new_lst))
+      (do (( i (length lst) (- i 1))
+           (indx 0 (+ indx 1)))
+          ((= i 0) (reverse new_lst))
+          (if (not(funcall fn (nth indx lst)))
+              (setf new_lst(cons (nth indx lst) new_lst))))))
+
+#+END_SRC
+
+** most
+
+Определите функцию most так, чтоб она возвращала 2 значения -
+элемента, которые имеют наибольший вес
+
+Итак, это исходная функция.
+
+#+BEGIN_SRC lisp
+
+    ;; принимает 2 аргумента: функцию и список
+    (defun most (fn lst)
+      ;; если список пустой
+      (if (null lst)
+          ;; возвращаем nil
+          (values nil nil)
+          ;; в противном случае устанавливаем переменную wins,
+          ;; щаписываем в нее первый элемент списка,
+          ;; узнаем ее длину (в нашем случае) и записываем в max
+          (let* ((wins (car lst))
+                 (max (funcall fn wins)))
+            ;; затем устанавливаем проход по остатку списка
+            (dolist (obj (cdr lst))
+              ;; записываем в переменную score результат от вызова функции-параметра и объекта
+              (let ((score (funcall fn obj)))
+                ;; в случае если score больше max
+                (when (> score max)
+                  ;; то мы устновим в wins значение объекта
+                  (progn
+                    (setf wins obj
+                          max score)
+                    (format t" wins ~a obj ~a score ~a max ~a ~&" wins obj score max)))))
+            ;; после того, как цикл отработает, мы возвращаем два начения
+            (values wins max))))
+
+
+  (most #'length '((a b) (a b c) (a)))
+
+#+END_SRC lisp
+
+Нужно вернуть теперь 2 элемента: самый "весомый" и первый "весомый
+после него.
+- проход по списку
+- сранивниваем первый и второй элементы в списке
+- если второй выиграл в сравнении, делаем его первым и сравниваем дальше с ним.
+- если список кончился, то записываем в результаты элемент-победитель, и если
+результат один, то делаем все то же самое, предварительно удалив элемент-победитель
+из списка.
+
+Мой вариант:
+
+#+BEGIN_SRC lisp
+
+  (defun my_most (fn lst)
+    (if (null lst)
+        (values nil)
+        (let ((result))
+          (tagbody
+           top
+             (let* ((wins (car lst))
+                    (max (funcall fn wins)))
+               (do ((i ( - (length lst) 1) (- i 1))
+                    (indx 1 (+ indx 1)))
+                   ((= i 0) result)
+                 (let* ((obj (nth indx lst))
+                        (score (funcall fn obj)))
+                   (if (> score max)
+                      (if (null (cdr lst))
+                          (setf result (cons obj result))
+                          (setf wins obj)))))
+               (if (not ( > (length result) 1))
+                   (progn
+                     ( setf lst (remove wins lst :test #'equal))
+                     (format t "lst  ~a result ~a " lst result)
+                    (go top))
+                   result))))))
+
 
 
 #+END_SRC
