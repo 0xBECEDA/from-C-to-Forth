@@ -1820,7 +1820,7 @@ remove-if:
                  (let* ((obj (nth indx lst))
                         (score (funcall fn obj)))
                    (if (> score max)
-                      (if (null (cdr lst))
+                      (if (null (nth ( + indx 1 ) lst))
                           (setf result (cons obj result))
                           (setf wins obj)))))
                (if (not ( > (length result) 1))
@@ -1829,7 +1829,5 @@ remove-if:
                      (format t "lst  ~a result ~a " lst result)
                     (go top))
                    result))))))
-
-
 
 #+END_SRC
