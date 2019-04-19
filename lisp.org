@@ -1863,26 +1863,55 @@ remove-if:
                       obj)))))))
 #+END_SRC
 
+Мой вариант:
 
 #+BEGIN_SRC lisp
 
-  (defun bin-search (obj vec &key start end key test)
-      (if (and (not (zerop len)) (null start) (null end))
-          (finder obj vec 0 (- (length vec) 1))
-          (if (and (not (null start)) (not (null end)))
-              (finder obj vec start end)
 
-  (defun finder (obj vec start end)
-    (let ((range (- end start)))
-      (if (zerop range)
-          (if (eql obj (aref vec start))
-              obj
-              nil)
-          (let ((mid (+ start (round (/ range 2)))))
-            (let ((obj2 (aref vec mid)))
-              (if (< obj obj2)
-                  (finder obj vec start (- mid 1))
-                  (if (> obj obj2)
-                      (finder obj vec (+ mid 1) end)
-                      obj)))))))
+    (defun bin-search (obj vec &key (start 0) (end (- (length vec) 1)) (test #'> )
+                                 (key nil key-supplied-p))
+      (let ((len (length vec)))
+        (format t " end ~a ~&" end)
+        (if (zerop len)
+            nil
+            (tagbody
+             top
+               (format t "start ~a end ~a ~&" start end)
+               (let ((range (- end start)))
+                 (if (zerop range)
+                     (if (and t key-supplied-p)
+                         (and(eql obj (funcall key (aref vec start)))
+                             (return-from bin-search obj))
+                         (and(eql obj (aref vec start))
+                             (return-from bin-search obj)))
+                     (let ((mid (+ start (round (/ range 2)))))
+                       (let ((obj2))
+                         (if (and t key-supplied-p)
+                             (progn
+                               (setf obj2 (funcall key (aref vec mid)))
+                               (format t "mid with key ~a ~&" mid))
+                             (progn
+                               (setf obj2 (aref vec mid))
+                               (format t "mid ~a ~&" mid)))
+                         (if (eql obj obj2)
+                             (progn
+                               (format t "obj ~a ~&" obj)
+                               (return-from bin-search obj))
+                             (if (funcall test obj obj2)
+                                 (progn
+                                   (format t "bigger ~&")
+                                   (setf start (+ mid 1))
+                                   (go top))
+                                 (progn
+                                   (format t "smaller ~&")
+                                   (setf end (- mid 1))
+                                   (go top))))))))))))
+
+  ;;варианты запуска
+  (let ((vec (vector 1 2 3 4 5 6 7 8)))
+    (bin-search 3 vec))
+
+  (let ((vec (vector '(8 7) '(6 5) '(4 3) '(2 1))))
+    (bin-search 2 vec :test #'< :key #'car))
+
 #+END_SRC
