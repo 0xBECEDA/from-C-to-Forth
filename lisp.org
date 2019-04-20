@@ -1841,6 +1841,8 @@ remove-if:
 ключи :key, :test, :start и :end, имеющие обычные для них значения по
 умолчанию.
 
+Исходная функция:
+
 #+BEGIN_SRC lisp
 
   (defun bin-search (obj vec)
@@ -1913,5 +1915,62 @@ remove-if:
 
   (let ((vec (vector '(8 7) '(6 5) '(4 3) '(2 1))))
     (bin-search 2 vec :test #'< :key #'car))
+
+#+END_SRC
+
+** Improved tokens
+
+Определите версию tokens, которая использует
+ключи :test и :start, по умолчанию равные #’constituent и 0
+соответственно.
+
+Исходная версия:
+Принимает строку и предикат. Возвращает все подстроки, соответствующие
+этому предикату.
+
+#+BEGIN_SRC lisp
+
+  (defun tokens (str test start)
+    (let ((p1 (position-if test str :start start)))
+      (if p1
+          (let ((p2 (position-if #'(lambda (c)
+                                     (not (funcall test c)))
+                                   str :start p1)))
+            (cons (subseq str p1 p2)
+                  (if p2
+                      (tokens str test p2)
+                      nil)))
+          nil)))
+
+  (defun constituent (c)
+    (and (graphic-char-p c)
+         (not (char= c #\ ))))
+
+#+END_SRC
+
+Моя версия:
+Не распознает ключ :test
+Возможно, проблема в том, что position-if не принимает
+ключ :test. Значит, надо каким-то образом передать функции предикант,
+но не с помощью ключа :test
+
+#+BEGIN_SRC lisp
+
+
+  (defun constituent (c)
+    (and (graphic-char-p c)
+         (not (char= c #\ ))))
+
+  (defun tokens (str &key (test #'constituent) (start 0))
+    (let ((p1 (position-if test str :start start)))
+      (if p1
+          (let ((p2 (position-if #'(lambda (c)
+                                     (not (funcall test c)))
+                                   str :start p1)))
+            (cons (subseq str p1 p2)
+                  (if p2
+                      (tokens str test p2)
+                      nil)))
+          nil)))
 
 #+END_SRC
