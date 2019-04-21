@@ -1754,7 +1754,7 @@ remove-if:
 
 #+END_SRC
 
-** most
+** TODO most
 
 Определите функцию most так, чтоб она возвращала 2 значения -
 элемента, которые имеют наибольший вес
@@ -1918,7 +1918,7 @@ remove-if:
 
 #+END_SRC
 
-** Improved tokens
+** TODO Improved tokens
 
 Определите версию tokens, которая использует
 ключи :test и :start, по умолчанию равные #’constituent и 0
@@ -1930,21 +1930,25 @@ remove-if:
 
 #+BEGIN_SRC lisp
 
-  (defun tokens (str test start)
-    (let ((p1 (position-if test str :start start)))
-      (if p1
-          (let ((p2 (position-if #'(lambda (c)
-                                     (not (funcall test c)))
-                                   str :start p1)))
-            (cons (subseq str p1 p2)
-                  (if p2
-                      (tokens str test p2)
-                      nil)))
-          nil)))
+    (defun tokens (str test start)
+      (let ((p1 (position-if test str :start start)))
+        (if p1
+            (let ((p2 (position-if #'(lambda (c)
+                                       (not (funcall test c)))
+                                     str :start p1)))
+              (cons (subseq str p1 p2)
+                    (if p2
+                        (tokens str test p2)
+                        nil)))
+            nil)))
 
-  (defun constituent (c)
-    (and (graphic-char-p c)
-         (not (char= c #\ ))))
+    (defun constituent (c)
+      (and (graphic-char-p c)
+           (not (char= c #\ ))))
+
+  ;; запуск
+
+  (tokens "ab12 3cde.fgh" #'constituent 0)
 
 #+END_SRC
 
@@ -1954,6 +1958,7 @@ remove-if:
 ключ :test. Значит, надо каким-то образом передать функции предикант,
 но не с помощью ключа :test
 
+Не распознанный &key constituent.
 #+BEGIN_SRC lisp
 
 
@@ -1974,3 +1979,88 @@ remove-if:
           nil)))
 
 #+END_SRC
+
+** bigger_num
+
+Определите функцию, которая принимает число и возвращает его же, если
+в предыдущем вызове функции число было меньше текущего числа. При этом
+первый вызов должен вернуть nil.
+
+
+#+BEGIN_SRC lisp
+
+  (let ((num))
+    (defun fn (x)
+      (if (null num)
+          (progn
+            (setf num x)
+            nil)
+          (if ( > x num)
+              x
+              nil))))
+
+  ;; запуск (запустить оба по очереди)
+  ;; (fn 1) (fn 3)
+
+#+END_SRC
+
+** bigger_num 2
+
+Определите функцию, принимающую число и возвращающую наибольшее число
+из когда-либо принятых ею.
+
+*** style-warning: The return value of STABLE-SORT-LIST should not be discarded,
+*** но функция стабильно работает
+
+#+BEGIN_SRC lisp
+
+  (let ((lst))
+    (defun fn (x)
+      (if (null lst)
+          (progn
+            (setf lst (cons x lst))
+            x)
+          (progn
+            (setf lst (cons x lst))
+            (sort lst #'>)
+            (car lst)))))
+  ;; запуск
+  ;; (fn 1) (fn 2) (fn 3) (fn 2) и т.д.
+
+#+END_SRC
+** expensive
+
+Предположим, что функция expensive принимает числа от 0 до 100 и
+проводит над ними дорогостоящие вычисления. Определите функцию frugal,
+возвращающую тот же ответ, что и expensive, но при этом она передает
+аргумент expensive только в том случае, если он не встречался ранее.
+
+В мане нет никакой функции expensive, поэтому я определю ее
+самостоятельно.
+
+#+BEGIN_SRC lisp
+
+  (defun expensive (x)
+    (+ x 1))
+
+  (let ((args))
+    (defun frugal (num)
+      (if (member num args)
+          nil
+          (progn
+            (setf args (cons num args))
+            (expensive num)))))
+
+#+END_SRC
+
+** new_apply
+
+Определите функцию на подобие apply, но где все числа, которые могут
+быть напечатаны, выводятся в восьмиричной системе.
+
+Apply принимает сколько угодно аргументов, но последний из них должен
+быть список. А еще apply принимает функцию и выполняет действия над
+остальными аргументами, согласно этой функции.
+
+Мой вариант будет принимать список чисел и функцию. Возвращаемое
+значение будет печататься в восьмиричной системе.
