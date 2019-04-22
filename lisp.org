@@ -1754,7 +1754,7 @@ remove-if:
 
 #+END_SRC
 
-** TODO most
+** most
 
 Определите функцию most так, чтоб она возвращала 2 значения -
 элемента, которые имеют наибольший вес
@@ -1793,45 +1793,36 @@ remove-if:
 
 #+END_SRC lisp
 
-Нужно вернуть теперь 2 элемента: самый "весомый" и первый "весомый
-после него.
-- если список пустой..
-- иначе: устанавливаем defaults wins-1 & wins-2
-- проход по списку
-- сранивниваем первый и второй элементы в списке
-- если второй выиграл в сравнении, шифтим wins-1 & wins-2
-- возвращаем wins-ы
-
 Мой вариант:
 
 #+BEGIN_SRC lisp
 
+  ;;запуск
+  (my_most #'length '((a b) (a b c d) (a b c d e)  (a b c) (a)))
+
+
   (defun my_most (fn lst)
     (if (null lst)
-        (values nil)
-        (let ((result))
-          (tagbody
-           top
-             (let* ((wins (car lst))
-                    (max (funcall fn wins)))
-               (do ((i ( - (length lst) 1) (- i 1))
-                    (indx 1 (+ indx 1)))
-                   ((= i 0) result)
-                 (let* ((obj (nth indx lst))
-                        (score (funcall fn obj)))
-                   (if (> score max)
-                      (if (null (nth ( + indx 1 ) lst))
-                          (setf result (cons obj result))
-                          (setf wins obj)))))
-               (if (not ( > (length result) 1))
-                   (progn
-                     ( setf lst (remove wins lst :test #'equal))
-                     (format t "lst  ~a result ~a " lst result)
-                    (go top))
-                   result))))))
+        (values nil nil)
+        (let ((win1 (search_elt fn lst)))
+          ( setf lst (remove win1 lst :test #'equal))
+          (let ((win2 (search_elt fn lst)))
+            (values win1 win2)))))
 
-
-  (most #'length '((a b) (a b c) (a)))
+  (defun search_elt (fn lst)
+    (format t "lst ~a ~&" lst)
+    (let* ((wins (car lst))
+           (max (funcall fn wins)))
+      (do ((i ( - (length lst) 1) (- i 1))
+           (indx 1 (+ indx 1)))
+          ((= i 0) wins)
+        (format t " i ~a ~&" i)
+        (let* ((obj (nth indx lst))
+               (score (funcall fn obj)))
+          (if (> score max)
+              (progn
+                (setf wins obj)
+                (setf max (funcall fn wins))))))))
 
 #+END_SRC
 
