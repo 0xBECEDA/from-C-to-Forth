@@ -1951,8 +1951,6 @@ remove-if:
 
 Не распознанный &key constituent.
 #+BEGIN_SRC lisp
-
-
   (defun constituent (c)
     (and (graphic-char-p c)
          (not (char= c #\Space))))
@@ -1977,6 +1975,9 @@ remove-if:
   ;; (tokens " ab12 3cde.fgh" :test #'constituent)
 
   ;; (tokens "ab12 3cde.fgh")
+
+
+  (tokens "ab12 3cde.fgh")
 
 #+END_SRC
 
