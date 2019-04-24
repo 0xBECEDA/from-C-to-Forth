@@ -1921,21 +1921,21 @@ remove-if:
 
 #+BEGIN_SRC lisp
 
-    (defun tokens (str test start)
-      (let ((p1 (position-if test str :start start)))
-        (if p1
-            (let ((p2 (position-if #'(lambda (c)
-                                       (not (funcall test c)))
-                                     str :start p1)))
-              (cons (subseq str p1 p2)
-                    (if p2
-                        (tokens str test p2)
-                        nil)))
-            nil)))
+  (defun tokens (str test start)
+    (let ((p1 (position-if test str :start start)))
+      (if p1
+          (let ((p2 (position-if #'(lambda (c)
+                                     (not (funcall test c)))
+                                 str :start p1)))
+            (cons (subseq str p1 p2)
+                  (if p2
+                      (tokens str test p2)
+                      nil)))
+          nil)))
 
-    (defun constituent (c)
-      (and (graphic-char-p c)
-           (not (char= c #\ ))))
+  (defun constituent (c)
+    (and (graphic-char-p c)
+         (not (char= c #\ ))))
 
   ;; запуск
 
@@ -1955,19 +1955,28 @@ remove-if:
 
   (defun constituent (c)
     (and (graphic-char-p c)
-         (not (char= c #\ ))))
+         (not (char= c #\Space))))
 
-  (defun tokens (str &key (test #'constituent) (start 0))
-    (let ((p1 (position-if test str :start start)))
-      (if p1
-          (let ((p2 (position-if #'(lambda (c)
-                                     (not (funcall test c)))
+  (defun tokens (str &key (test nil param-exist) (start 0))
+    (let ((test (if (null param-exist)
+                    #'constituent
+                    test)))
+      (let ((p1 (position-if test str :start start)))
+        (if p1
+            (let ((p2 (position-if #'(lambda (c)
+                                       (not (funcall test c)))
                                    str :start p1)))
-            (cons (subseq str p1 p2)
-                  (if p2
-                      (tokens str test p2)
-                      nil)))
-          nil)))
+              ;; (subseq str p1 p2)
+              (cons (subseq str p1 p2)
+                    (if p2
+                        (tokens str :test test :start p2)
+                        nil)))
+            nil)
+        )))
+
+  ;; (tokens " ab12 3cde.fgh" :test #'constituent)
+
+  ;; (tokens "ab12 3cde.fgh")
 
 #+END_SRC
 
