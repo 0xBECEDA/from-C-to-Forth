@@ -598,3 +598,109 @@ Bst-find ищет элемент в дереве и если находит,
 
 
 #+END_SRC
+
+#+BEGIN_SRC lisp
+
+  ;; создаем структуру buf
+  ;; ее поля - это ветор и его индексы (поэтому все значения - 1, индекс начинается с нуля)
+  (defstruct buf
+    vec (start -1) (used -1) (new -1) (end -1))
+
+  ;; bref позволяет получить значение по заданному индексу
+  (defun bref (buf n)
+    ;; получаем вектор из поля структуры и индекс, поделив заданный индекс на размер буфера
+    ;; зачем делить?), и все это передаем svref, что  вернет элемент
+    (svref (buf-vec buf)
+           (mod n (length (buf-vec buf)))))
+
+  ;; обратная операция: кладем элемент по индексу
+  (defun (setf bref) (val buf n)
+    (setf (svref (buf-vec buf)
+                 (mod n (length (buf-vec buf))))
+          val))
+  ;; создаем кольцевой буфер заданного размера
+  (defun new-buf (len)
+    (make-buf :vec (make-array len)))
+
+  ;; функция добавляет элемент к буферу, аргументы: элемент и буфер
+  ;; сначала передаем функции bref буфер и инкрементированный индекс end, затем setf запишет
+  ;; по этому индексу значение x
+  (defun buf-insert (x b)
+    (setf (bref b (incf (buf-end b))) x))
+
+  ;; обратная операция: стираем элемент из вектора
+  (defun buf-pop (b)
+    (prog1
+        (bref b (incf (buf-start b)))
+      (setf (buf-used b) (buf-start b)
+            (buf-new b) (buf-end b))))
+
+  ;; чтение следующего элемента из буфера без его извлечения
+  (defun buf-next (b)
+    (when (< (buf-used b) (buf-new b))
+      (bref b (incf (buf-used b)))))
+
+#+END_SRC
+
+
+#+BEGIN_SRC lisp
+
+  ;; file-subst принимает на вход 4 аргумента:
+  ;; строку, подлежащую замене, строку, которая заменит старую, файл,
+  ;; входной и выходной файлы.
+  (defun file-subst (old new file1 file2)
+    ;; открываеv потоки между файлами: читаем из  file1, пишем в file2
+    (with-open-file (in file1 :direction :input)
+      (with-open-file (out file2 :direction :output
+                           :if-exists :supersede)
+        ;; вызываем алгоритм замены строк
+        (stream-subst old new in out))))
+
+  (defun stream-subst (old new in out)
+    ;; устанавливаем переменные: позицию, длину старой строки, новый буфер,
+    ;; (что такое from-buf ?)
+    (let* ((pos 0)
+           (len (length old))
+           (buf (new-buf len))
+           (from-buf nil))
+      ;; в переменную цикла "с" записывается символ из файла in,
+      ;; условие завершения цикла - конец файла. Зачем тут or?
+      (do ((c (read-char in nil :eof)
+              (or (setf from-buf (buf-next buf))
+                  (read-char in nil :eof))))
+          ((eql c :eof))
+        ;; если "с" равен букве на заданном индексе из старой строки, тогда инекрементируем
+        ;; pos и проверяем, не сравнялся ли pos  с длиной старой строки (тогда мы дошли до ее
+        ;; конца)
+        ;; если дошли: печатаем новую стоку в вывод, обнуляем pos, очищаем буфер
+        ;; не понятно, что с from-buf. Видимо, если pos != len, то мы добавим символ в буфер
+        ;; и продолжим сравнивать дальше
+        (cond ((char= c (char old pos))
+               (incf pos)
+               (cond ((= pos len)
+                                          ; 3
+                      (princ new out)
+                      (setf pos 0)
+                      (buf-clear buf))
+                     ((not from-buf)
+                                          ; 2
+                      (buf-insert c buf))))
+              ;; если pos = 0
+              ;; выводим символ в файл out (зачем?!)
+              ((zerop pos)
+                                          ; 1
+               (princ c out)
+               ;; дальше не понятно ничего
+               (when from-buf
+                 (buf-pop buf)
+                 (buf-reset buf)))
+              (t
+                                          ; 4
+               (unless from-buf
+                 (buf-insert c buf))
+               (princ (buf-pop buf) out)
+               (buf-reset buf)
+               (setf pos 0))))
+      (buf-flush buf out)))
+
+#+END_SRC
