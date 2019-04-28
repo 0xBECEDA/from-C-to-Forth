@@ -590,14 +590,33 @@ Bst-find ищет элемент в дереве и если находит,
       ;; запускаем цикл, который будет грузить в переменную line
       ;; каждую строку файла по очереди
       ;; условие завершения цикла: line = eof (?)
-      (do ((line (read-line str nil 'eof)
-                 (read-line str nil 'eof)))
+      (do ((line ;; this is VAR
+            (read-line str nil 'eof) ;; this is INIT
+            (read-line str nil 'eof) ;; this is STEP
+            ))
           ((eql line 'eof))
         ;; вывод строки
         (format t "~A~%" line))))
 
-
+  ;; (pseudo-cat "go3.sh")
 #+END_SRC
+
+[COMMENT:gmm] Как написано, например тут:
+http://filonenko-mikhail.github.io/cltl2-doc/ru/clmse42.html#x54-860007.8.2
+В общем виде DO выглядит так:
+
+#+BEGIN_SRC lisp
+  (do ((var1 init1 step1)
+       (var2 init2 step2)
+       ...
+       (varn initn stepn))
+      (end-test . result)
+   {declaration}*
+      . tagbody)
+#+END_SRC
+
+Таким образом вторая запись (read-line str nil 'eof) соответствует STEP. На каждом шаге
+будет выполняться форма STEP и ее результат будет записан в переменную.
 
 #+BEGIN_SRC lisp
 
