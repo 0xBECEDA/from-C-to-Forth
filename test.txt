@@ -1,0 +1,2 @@
+It is test-file. We have to read each line and write them in
+list. After that we will return the list if srings.
