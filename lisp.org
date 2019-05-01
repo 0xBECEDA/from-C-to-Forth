@@ -2154,25 +2154,20 @@ Apply принимает сколько угодно аргументов, но 
               (do ((chr (read-char pipe1 nil :eof)
                         (read-char pipe1 nil :eof)))
                   ((eql chr :eof))
-                (format t "~a " chr)
-                ;; проблема в этом ифе!
-                (if (eql chr '%)
-                    (progn
-                      (format t "symbol!")
-                      (setf check (+ check 1))
-                      (if (eql check 2)
-                          (progn
-                            (format t "symbol second!")
-                            (setf check 0)
-                            (format pipe2 "~a" chr))))
-                    (format pipe2 "~a" chr)))
+                (if (and (zerop check) (not (eql chr #\%)))
+                    (format pipe2 "~a" chr)
+                    (if (eql chr #\%)
+                        (progn
+                          (setf check (+ check 1))
+                          (if (eql check 2)
+                              (setf check 0))))))
               (close pipe1)
               (close pipe2)
-              ;; чтение из второго файла
+              ;; чтение из второго файла (проверяем, что там оказалось после записи)
               (let ((pipe2 (open path2 :direction :input)))
                 (do ((line (read-line pipe2 nil 'eof)
                            (read-line pipe2 nil 'eof)))
                     ((eql line 'eof))
-              (format t "~a" line)))))))))
+                  (format t "~a" line)))))))))
 
 #+END_SRC
