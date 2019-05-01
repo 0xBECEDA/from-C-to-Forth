@@ -2065,6 +2065,7 @@ Apply принимает сколько угодно аргументов, но 
 
 Мой вариант будет принимать список чисел и функцию. Возвращаемое
 значение будет печататься в восьмиричной системе.
+
 * Chapter 7
 
 ** list of str
@@ -2079,8 +2080,99 @@ Apply принимает сколько угодно аргументов, но 
 - вернуть список
 
 #+BEGIN_SRC lisp
+
   (defun read_file (file)
-    ;; создаем путь к файлу
-    (let ((path (make-pathname :name "test.txt")))
+    (let ((path (make-pathname :name file)))
+      (let ((pipe (open path :direction :input)))
+        (let ((lst))
+        (do ((line (read-line pipe nil 'eof)
+                   (read-line pipe nil 'eof)))
+            ((eql line 'eof))
+          (setf lst (append (list line) lst)))
+        (close pipe)
+        (return-from read_file (reverse lst))))))
+
+
+  ;; запуск (read_file "test.txt")
+
+#+END_SRC
+
+** list of expr
+
+Определите функцию, возвращающую список выражений, прочитанных из
+заданного файла.
+
+#+BEGIN_SRC lisp
+
+  (defun read_expr (file)
+    (let ((path (make-pathname :name file)))
+      (let ((pipe (open path :direction :input)))
+        (let ((lst))
+        (do ((expr (read pipe nil 'eof)
+                   (read pipe nil 'eof)))
+            ((eql expr 'eof))
+          (setf lst (append (list expr) lst)))
+        (close pipe)
+        (return-from read_expr (reverse lst))))))
+
+
+  ;; запуск (read_expr "expr_test.txt")
+
+#+END_SRC
+
+** from-to
+
+В файле некоторого формата комментарии обозначаются знаком
+~%~. Содержимое между знаками комментария игнориуется. Напишите функцию,
+принимающую два файла, которая перепишет содержимое первого файла во
+второй, вырезав комментарии.
+
+- функция принимает два файла
+- определить два пути
+- определить два потока: один на чтение, другой на запись
+- определить цикл, который посимвольно будет читать из первого файла
+- внутри цикла определить if: если встречен знак ~%~, то не записываем
+  во второй файл, пока не встретим второй ~%~.
+- вернуть второй файл
+
+Использовать read-char.
+
+Запись производится, но с комментами. Не срабатывает проверка в ифе!
+
+#+BEGIN_SRC lisp
+
+  (defun new_file (file1 file2)
+    (let ((path1 (make-pathname :name file1)))
+      (let ((path2 (make-pathname :name file2)))
+        ;;чтение
+        (let ((pipe1 (open path1 :direction :input)))
+          ;; запись
+          (let ((pipe2 (open path2 :direction :output
+                             :if-exists :supersede)))
+            (let ((check 0))
+              ;; запись посимвольно во второй файл
+              (do ((chr (read-char pipe1 nil :eof)
+                        (read-char pipe1 nil :eof)))
+                  ((eql chr :eof))
+                (format t "~a " chr)
+                ;; проблема в этом ифе!
+                (if (eql chr '%)
+                    (progn
+                      (format t "symbol!")
+                      (setf check (+ check 1))
+                      (if (eql check 2)
+                          (progn
+                            (format t "symbol second!")
+                            (setf check 0)
+                            (format pipe2 "~a" chr))))
+                    (format pipe2 "~a" chr)))
+              (close pipe1)
+              (close pipe2)
+              ;; чтение из второго файла
+              (let ((pipe2 (open path2 :direction :input)))
+                (do ((line (read-line pipe2 nil 'eof)
+                           (read-line pipe2 nil 'eof)))
+                    ((eql line 'eof))
+              (format t "~a" line)))))))))
 
 #+END_SRC

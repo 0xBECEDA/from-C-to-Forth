@@ -1,0 +1,1 @@
+Here is some text. % This is comment % We continue without comment.
