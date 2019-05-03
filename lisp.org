@@ -2171,3 +2171,25 @@ Apply принимает сколько угодно аргументов, но 
                   (format t "~a" line)))))))))
 
 #+END_SRC
+
+** print array
+
+Определите функцию, принимающую двухмерный массив числе с плавающей
+точкой. Отобразите массив в виде аккуратных колонок. Каждый элемент
+должен печататься с двумя знаками после запятой на пространстве 10 знаков.
+
+
+#+BEGIN_SRC lisp
+
+  (defun print_array (arr)
+    (let ((lst_dim (array-dimensions arr)))
+        (do ((ver 0 (+ ver 1)))
+            ((>= ver (nth 1 lst_dim)))
+          (format t "~10,2,0,'*,' F ~10,2,0,'*,' F ~&"
+                  (aref arr 0 ver) (aref arr 1 ver)))))
+
+  ;; запуск
+  (print_array(make-array '(2 3) :initial-contents
+                          '((1.2234 3.111 4.111) (1.222 3.555 6.678))))
+
+#+END_SRC
