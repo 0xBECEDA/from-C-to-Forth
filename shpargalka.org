@@ -743,3 +743,91 @@ http://filonenko-mikhail.github.io/cltl2-doc/ru/clmse42.html#x54-860007.8.2
       (buf-flush buf out)))
 
 #+END_SRC
+
+* chapter 8
+
+Пример: генерация случайного текста
+
+#+BEGIN_SRC lisp
+  ;; хэш-таблица для прочитанного абзаца
+  (defparameter *words* (make-hash-table :size 10000))
+
+  ;; максимум в абзаце может быть 100 слов
+  (defconstant maxword 100)
+
+  ;;чтение текста
+  ;; на вход получаем путь к тексту
+  (defun read-text (pathname)
+    ;; открываем файл на чтение
+    (with-open-file (s pathname :direction :input)
+      ;; создаем буфер исходя из идеи, что в обзаце 100 слов
+      (let ((buffer (make-string maxword))
+            ;; устанавливаем индекс
+            (pos 0))
+        ;; цикл обеспечит чтение текст посимвольно (не путать символы-буквами
+        ;; с символами-идентификаторами, видимо, недоработка переводчика)
+        ;; условие конца цткла - конец файла
+        (do ((c (read-char s nil :eof)
+                (read-char s nil :eof)))
+            ((eql c :eof))
+          ;; если считанный знак буква или апостроф
+          (if (or (alpha-char-p c) (char= c #\'))
+              ;; записываем его в буфер и инкрементируем индекс
+              (progn
+                (setf (aref buffer pos) c)
+                (incf pos))
+              ;; считанный знак != буква или апостроф, слово кончилось
+              ;; pos = 0?
+              (progn
+                (unless (zerop pos)
+                  ;; нет
+                  ;; накопленное слово превращаем в символ (тот, что заглавными буквами
+                  ;; пишется, символ-идентификатор)
+                  (see (intern (string-downcase
+                                (subseq buffer 0 pos))))
+                  ;; устанавливаем индекс в 0
+                  (setf pos 0))
+                ;; если символ = знак пунктупции, то punc выдаст нам его как есть
+                (let ((p (punc c)))
+                  ;; что значит этот иф?
+                  (if p (see p)))))))))
+
+  (defun punc (c)
+    (case c
+      (#\. '|.|) (#\, '|,|) (#\; '|;|)
+      (#\! '|!|) (#\? '|?|) ))
+  ;; фнукция see полученный символ запишет в таблицу слов
+  ;; так же она "помнит" предыдущее слово с помощью prev. По умолчанию prev - это точка.
+
+  (let ((prev '|.|))
+    ;; получаем на вход символ
+    (defun see (symb)
+      ;; устанавливаем пару символ-ключ.В нашем варианте это предудыщее слово - текущее слово
+      ;; устанавливаем пару
+      (let ((pair (assoc symb (gethash prev *words*))))
+        ;; пара пустая?
+        (if (null pair)
+            ;; зачит, это первое слово в таблице, таки запишем (слово. 1)
+            (push (cons symb 1) (gethash prev *words*))
+            ;; в противном случае инкрементируем cdr образовавшейся пары
+            ;; (получилось (слово . 2)
+            (incf (cdr pair))))
+      ;; устанавливаем текущий символ в prev
+      (setf prev symb)))
+
+  ;; а вот эта часть обеспечит саму генерацию текста
+
+  (defun generate-text (n &optional (prev ’|.|))
+    (if (zerop n)
+        (terpri)
+        (let ((next (random-next prev)))
+          (format t "~A " next)
+          (generate-text (1- n) next))))
+  (defun random-next (prev)
+    (let* ((choices (gethash prev *words*))
+           (i (random (reduce #’+ choices
+                                :key #’cdr))))
+      (dolist (pair choices)
+        (if (minusp (decf i (cdr pair)))
+            (return (car pair))))))
+#+END_SRC
