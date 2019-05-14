@@ -831,3 +831,41 @@ http://filonenko-mikhail.github.io/cltl2-doc/ru/clmse42.html#x54-860007.8.2
         (if (minusp (decf i (cdr pair)))
             (return (car pair))))))
 #+END_SRC
+
+
+* Chapter 9
+
+#+BEGIN_SRC lisp
+  ;;возвращает квадрат числа
+  (defun sq (x)
+    (* x x))
+  ;; возвращает длину ветора по трем компонентам
+  (defun mag (x y z)
+    (sqrt (+ (sq x) (sq y) (sq z))))
+
+  (defun unit-vector (x y z)
+    (let ((d (mag x y z)))
+      (values (/ x d) (/ y d) (/ z d))))
+
+  (defstruct (point (:conc-name nil))
+    x y z)
+
+  (defun distance (p1
+                   (mag (- (x p1) (x
+                                   (- (y p1) (y
+                                              (- (z p1) (z
+                                                         p2)
+                                                 p2))
+                                      p2))
+                           p2))))
+
+  (defun minroot (a b c)
+    (if (zerop a)
+        (/ (- c) b)
+        (let ((disc (- (sq b) (* 4 a c))))
+          (unless (minusp disc)
+            (let ((discrt (sqrt disc)))
+              (min (/ (+ (- b) discrt) (* 2 a))
+                   (/ (- (- b) discrt) (* 2 a))))))))
+
+#+END_SRC
