@@ -2780,29 +2780,34 @@ Henley исходном коде принимает абзац, который �
 (b) (X B C D)
 (c) ((C D A) Z)
 
-Не читает обратную кавычку.
 a)
-Работающий вариант без обратной кавычки перед z внутри list
 #+BEGIN_SRC lisp
 
   (let ((x 'a)
        (y 'b)
        (z (list 'c 'd)))
-   (list (z 'a 'z)))
+   `(,z a z))
 
 #+END_SRC
-
 b)
-Работающий вариант без обратных кавычек
+
 #+BEGIN_SRC lisp
 
-   (let ((x 'a)
+  (let ((x 'a)
         (y 'b)
         (z (list 'c 'd)))
-    (append (list 'x y) z))
+    `(x ,y ,@z))
 
 #+END_SRC
+c)
 
+#+BEGIN_SRC lisp
+  (let ((x 'a)
+        (y 'b)
+        (z (list 'c 'd)))
+    `((,@z ,x) z))
+
+#+END_SRC
 
 ** my_if
 
@@ -2815,7 +2820,7 @@ b)
 #+BEGIN_SRC lisp
 
   (defmacro my_if (expr_true true_part &optional expr_false false_part)
-    (cond ((@,expr_true) true_part)
-          ((@,expr_false) false_part)))
+    (cond (`(@,expr_true) `(@,true_part))
+          (`(@,expr_false) `(@,false_part))))
 
 #+END_SRC
