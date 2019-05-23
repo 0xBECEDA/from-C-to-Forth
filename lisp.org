@@ -2819,8 +2819,72 @@ c)
 
 #+BEGIN_SRC lisp
 
-  (defmacro my_if (expr_true true_part &optional expr_false false_part)
-    (cond (`(@,expr_true) `(@,true_part))
-          (`(@,expr_false) `(@,false_part))))
+  (defmacro my-if (expr true-part &optional (false-part nil false-part-supplied-p))
+    (cond ((false-part-supplied-p `(cond (,expr ,true-part)
+                                         (t ,false-part-supplied-p))))
+          (t `(cond (,expr ,true-part)
+                    (t ,nil)))))
+#+END_SRC
+
+** nth-expr
+
+Напишите макрос, принимающий число n и набор выражений. Макрос должен
+вернуть значение произвольного n-нного выражения.
+
+Например:
+
+(let ((n 2))
+(nth-expr n (/ 1 0) (+ 1 2) (/ 1 0)))
+
+3
+
+
+#+BEGIN_SRC lisp
+
+  (defmacro nth-expr (n &rest exprs)
+    (let ((expr (nth (- n 1) exprs)))
+      `,expr))
+
+  ;;запуск (nth-expr 3 (/ 6 3) (+ 1 2) (/ 8 2) (+ 10 18 ))
+
+#+END_SRC
+
+** old value
+
+Напишите макрос, принимающий список переменных и тело кода. После исполнения
+тела кода, переменные должны получить свои исходные значения.
+
+Будем считать, что в моем списке 3 переменные.
+
+#+BEGIN_SRC lisp
+
+  (defmacro old_value (lst &rest body)
+    (let ((first (nth 0 lst)) (second (nth 1 lst)) (third (nth 2 lst)))
+      `,body
+      (setf (nth 0 lst) first)
+      (setf (nth 1 lst) second)
+      (setf (nth 2 lst) third))
+    (values lst))
+
+  ;;запуск
+
+  (let ((one 1) (two 2) (three 3))
+    (let (( lst (list one two three)))
+      (old_value lst
+                 (setf one (+ one two))
+                 (setf two (+ two three))
+                 (setf three (+ three three))
+                 (format t "one is ~a ~& two is ~a ~& three is ~a ~&"
+                         one two three))))
+#+END_SRC
+
+** double
+
+Определите макрос, удваивающий свой аргумент
+
+#+BEGIN_SRC lisp
+
+  (defmacro my_double (x)
+    (setf x (+ x x)))
 
 #+END_SRC
