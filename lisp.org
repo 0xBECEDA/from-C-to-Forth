@@ -2849,18 +2849,25 @@ c)
 
 #+END_SRC
 
-** old value
+** old value HELP!
 
 Напишите макрос, принимающий список переменных и тело кода. После исполнения
 тела кода, переменные должны получить свои исходные значения.
 
 Будем считать, что в моем списке 3 переменные.
+- Получаем переменные-параметры и сохраняем их в локальные переменные
+- Вычисляем код
+- Возвращаем значения переменных-параметров
+
+Почему не работает?
 
 #+BEGIN_SRC lisp
 
   (defmacro old_value (lst &rest body)
     (let ((first (nth 0 lst)) (second (nth 1 lst)) (third (nth 2 lst)))
       `,body
+      (format t " length lst ~a ~&" (length lst))
+      (format t " lst is ~a ~&" lst)
       (setf (nth 0 lst) first)
       (setf (nth 1 lst) second)
       (setf (nth 2 lst) third))
@@ -2868,14 +2875,12 @@ c)
 
   ;;запуск
 
-  (let ((one 1) (two 2) (three 3))
-    (let (( lst (list one two three)))
-      (old_value lst
-                 (setf one (+ one two))
-                 (setf two (+ two three))
-                 (setf three (+ three three))
+      (old_value '(1 2 3)
+                 (setf (nth 0 lst) (+ (nth 0 lst) (nth 1 lst)))
+                 (setf (nth 1 lst) (+ (nth 1 lst) (nth 2 lst)))
+                 (setf (nth 2 lst) (+ (nth 2 lst) (nth 2 lst)))
                  (format t "one is ~a ~& two is ~a ~& three is ~a ~&"
-                         one two three))))
+                         (nth 0 lst) (nth 1 lst) (nth 2 lst)))
 #+END_SRC
 
 ** double
@@ -2888,3 +2893,15 @@ c)
     (setf x (+ x x)))
 
 #+END_SRC
+** wrong push
+
+Что не так со следующим определением push?
+
+(defmacro push (obj lst)
+`(setf ,lst (cons ,obj ,lst)))
+
+Приведите пример ситуации, в которой данный код будет
+работать
+не так, как настоящий push.
+
+Ответ:
