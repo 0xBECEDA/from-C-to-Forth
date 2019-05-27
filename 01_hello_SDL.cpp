@@ -927,7 +927,7 @@ void* udp_socket(void* pointer)
 
 
 /*
-   Инициализация UDP-сервера и создание потока udp_socket
+   Инициализация сокета и создание потока udp_socket
    Использует глобальные переменные:
    - sockfd
    - servaddr

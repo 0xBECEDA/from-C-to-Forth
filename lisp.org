@@ -2864,23 +2864,69 @@ c)
 #+BEGIN_SRC lisp
 
   (defmacro old_value (lst &rest body)
-    (let ((first (nth 0 lst)) (second (nth 1 lst)) (third (nth 2 lst)))
-      `,body
-      (format t " length lst ~a ~&" (length lst))
-      (format t " lst is ~a ~&" lst)
-      (setf (nth 0 lst) first)
-      (setf (nth 1 lst) second)
-      (setf (nth 2 lst) third))
-    (values lst))
+    `(let ((first (nth 0 ,lst)) (second (nth 1 ,lst)) (third (nth 2 ,lst)))
+      ,body
+      (format t " length lst ~a ~&" (length ,lst))
+      (format t " lst is ~a ~&" ,lst)
+      (setf (nth 0 ,lst) first)
+      (setf (nth 1 ,lst) second)
+      (setf (nth 2 ,lst) third))
+    )
 
   ;;запуск
 
-      (old_value '(1 2 3)
-                 (setf (nth 0 lst) (+ (nth 0 lst) (nth 1 lst)))
-                 (setf (nth 1 lst) (+ (nth 1 lst) (nth 2 lst)))
-                 (setf (nth 2 lst) (+ (nth 2 lst) (nth 2 lst)))
-                 (format t "one is ~a ~& two is ~a ~& three is ~a ~&"
-                         (nth 0 lst) (nth 1 lst) (nth 2 lst)))
+  (let ((a 1)
+        (b 2)
+        (c 3))
+    (macroexpand-1 '(old_value '(a b c)
+                     (setf (nth 0 lst) (+ (nth 0 lst) (nth 1 lst)))
+                     (setf (nth 1 lst) (+ (nth 1 lst) (nth 2 lst)))
+                     (setf (nth 2 lst) (+ (nth 2 lst) (nth 2 lst)))
+                     (format t "one is ~a ~& two is ~a ~& three is ~a ~&"
+                      (nth 0 lst) (nth 1 lst) (nth 2 lst)))))
+
+
+  (let ((a 1) (b 2) (c 3) (d 4))
+    (old-values (a b c d)
+      (let ((e (+ b c)))
+        (setf a (+ c d))
+        (print (list e a))))
+    (print a)
+    (print b)
+    (print c)
+    (print d))
+
+
+  ;; (let ((a 1) (b 2) (c 3) (d 4))
+  ;;   (let ((tmp-a a)
+  ;;         (tmp-b b)
+  ;;         (tmp-c c)
+  ;;         (tmp-d d))
+  ;;     <<BODY>>
+  ;;     (setf d tmp-d)
+  ;;     (setf c tmp-c)
+  ;;     (setf b tmp-b)
+  ;;     (setf a tmp-a)
+  ;;     ))
+
+
+  (defmacro old-values (lst &body body)
+    (let ((varlist (mapcar #'(lambda (elt)
+                               (cons (gensym) elt))
+                           lst)))
+      `(let (,@(mapcar #'(lambda (elt)
+                           `(,(car elt) ,(cdr elt)))
+                       `,varlist))
+         ,@body
+         ,@(mapcar #'(lambda (elt)
+                       `(setf ,(cdr elt) ,(car elt)))
+                 varlist))))
+
+  (macroexpand-1 '(old-values (a b c d)
+                   (let ((e (+ b c)))
+                     (setf a (+ c d))
+                     (print (list e a)))))
+
 #+END_SRC
 
 ** double
