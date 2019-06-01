@@ -2939,11 +2939,12 @@ c)
     (setf x (+ x x)))
 
 #+END_SRC
+
 ** wrong push
 
 Что не так со следующим определением push?
 
-(defmacro push (obj lst)
+(defmacro mypush (obj lst)
 `(setf ,lst (cons ,obj ,lst)))
 
 Приведите пример ситуации, в которой данный код будет
@@ -2951,3 +2952,39 @@ c)
 не так, как настоящий push.
 
 Ответ:
+
+Этот пуш напрямую оперирует параметрами, значит, это открывает
+путь для разнообразных ошибок типа захвата переменных.
+
+** ntimes
+
+Определите ntimes, который раскроется в локальную рекурсивную
+функцию вместа цикла с do.
+
+Исходная версия ntimes:
+
+#+BEGIN_SRC lisp
+
+(defmacro ntimes (n &rest body)
+`(do ((x 0 (+ x 1)))
+((>= x ,n))
+,@body))
+
+#+END_SRC
+
+Это макрораскрытие:
+получается бесконечная рекурсивная функция, body не выполняется
+должным образом
+#+BEGIN_SRC lisp
+
+  (defun myntimes (n &rest body)
+    (format t "~a ~a ~& " n body)
+    body
+    (if (null n)
+        nil
+        (progn
+          ;;(format t "~a ~& "n)
+          (myntimes (- 1 n) body))))
+
+  ;;запуск (myntimes n (princ "."))
+#+END_SRC
