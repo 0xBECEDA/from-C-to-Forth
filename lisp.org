@@ -2965,10 +2965,17 @@ c)
 
 #+BEGIN_SRC lisp
 
-(defmacro ntimes (n &rest body)
-`(do ((x 0 (+ x 1)))
-((>= x ,n))
-,@body))
+  (defmacro ntimes (n &rest body)
+    `(do ((x 0 (+ x 1)))
+         ((>= x ,n))
+       ,@body))
+
+  (macroexpand-1 '(ntimes 5 (print n)))
+  =>
+  (do ((x 0 (+ x 1)))
+      ((>= x 5))
+    (PRINT N))
+
 
 #+END_SRC
 
@@ -2993,7 +3000,7 @@ Test рекурсия.
 параметра.
 
 Не понятно, как корректно проверить, что подставляется в body, чтоб не
-писать вывод переменной B, которая встречается в коде из body, но в
+писать вывод пf dеременной B, которая встречается в коде из body, но в
 самой функции она нигде не определена. Так что как только имя
 переменной меняется, все падает, естетсвенно.
 
@@ -3014,6 +3021,21 @@ Test рекурсия.
           body
           (format t "B ~a counter ~a ~&" B counter )
           (test2 (- counter 1) body))))
+
+  (test 5)
+  ;; =>
+  ;; 5
+  ;; 4
+  ;; 3
+  ;; 2
+  ;; 1
+  ;; 0
+
+  (let ((b 0))
+    (test2 5 (test2 2 (setf B (+ B 1)))))
+  ;; => Err:
+  ;; The variable B is unbound.
+  ;; [Condition of type UNBOUND-VARIABLE]
 
   ;; запуск (setf B 0) (test2 2 (setf B (+ B 1)))
 
