@@ -3048,5 +3048,31 @@ c)
          (setf result ,@expr)
          (setf lst (cons result lst)))))
 
+  ;; маркрораскрытие (возвращает nil, format внутри цикла ничего
+  ;; не печатает)
+
+  (let ((var 5) (num 3)
+        (lst) (result))
+    (do ((i 0 (+ i 1))
+         (+ 1 var))
+        (( <= i num) lst)
+      (format t "цикл идет")
+      (setf result (* var 2 ))
+      (format t " result ~a ~&" result)
+      (setf lst (cons result lst)))
+    (format t "lst ~a ~&" lst))
+
+
+  ;; тестовый вариант макрораскрытия (здесь format тоже ничего не выводит)
+
+  (let* ((n 3) (var 2) (expr ( * var 2)))
+  (defun test (n &rest expr)
+      (do ((i 0 (+ i 1))
+           (+ 1 var))
+          (( <= i n))
+        (format t "result ~a ~&" expr))))
+
+  (let* ((n 3) (var 2) (expr ( * var 2)))
+    (test n expr))
 
 #+END_SRC
