@@ -3055,7 +3055,7 @@ c)
         (lst) (result))
     (do ((i 0 (+ i 1))
          (+ 1 var))
-        (( <= i num) lst)
+        (( >= i num) lst)
       (format t "цикл идет")
       (setf result (* var 2 ))
       (format t " result ~a ~&" result)
@@ -3074,5 +3074,4 @@ c)
 
   (let* ((n 3) (var 2) (expr ( * var 2)))
     (test n expr))
-
 #+END_SRC
