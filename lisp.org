@@ -2991,34 +2991,40 @@ c)
 
 #+BEGIN_SRC lisp
 
-  (defmacro test (n)
-    `(defun rec_test (n)
-       (if (not (eql n 0))
-           (progn
-             (print n)
-             (rec_test (- n 1))))))
+    (defmacro test (n &rest body)
+      `(defun rec_test (n &rest body)
+         (if (not (eql n 0))
+             (progn
+               ,@body
+               (rec_test (- n 1) ,@body)))))
 
 
-  (defmacro test (n &body body)
-    `(defun rec_test (n &body body)
-       (if (not (eql n 0))
-           (progn
-             ,@body
-             (rec_test (- n 1) ,@body)))))
+    (macroexpand-1 '(test 3 (print n)))
 
-  ;; попытка написать макрораскрытие
-  ;; запуск (rec_test 3 (print n)) - в этом случае ошибка "переменная n не привязана"
-  ;; (rec_test 3 (format t "Hi!")) - Hi! печатается только 1 раз, поскольку при рекурсивном
-  ;; вызове body каждый раз дополнительно оборачивается в список. Эксприменты с апострофами и запятыми ничего не дал.
+  (let ((b 10))
+    (macroexpand-1
+     '(test 3
+       (progn
+         (setf b (b - 3))
+         (print b)))))
 
-  (defun rec_test (n &rest body)
-    (if (not (eql n 0))
-        (progn
-          (format t "true!")
-          body
-          (rec_test (- n 1) body))))
+  ;; макроэкспанд показывает ожидаемую картину:
 
+  (DEFUN REC_TEST (N &REST BODY)
+    (IF (NOT (EQL N 0))
+        (PROGN
+          (PROGN (SETF B (B - 3)) (PRINT B))
+          (REC_TEST (- N 1) (PROGN (SETF B (B - 3)) (PRINT B))))))
 
+  ;; Но при запуске rec_test рекурсия отрабатывает 1 раз, после чего
+  ;; переменная b не распознается
+  ;; запуск:
+
+  (let ((b 10))
+    (rec_test 3
+       (progn
+         (setf b (b - 3))
+         (print b))))
 
 #+END_SRC
 
@@ -3038,40 +3044,51 @@ c)
 раз увеличивая переменную на 1 и вычисляя выражение с ней. При этом на
 каждой итерации текущий результат будет сохраняться в список результатов.
 
+Вопрос!
+Макрос корркетно работает, если переменная, которую мы инкрементируем n-ое
+количество раз - var. Стоит поменять название переменной, как макрос
+валится, поскольку var внутри него оказывается не привязана к
+какому-то значению. При этом макрос в качестве параметров
+принимает только n и выражение, которое содержит изменяемую
+переменную, но саму переменную в качестве параметра не принимает
+(см. задание). Таким образом, в макрос нельзя передать любую
+переменную. Для этого нужно будет переписать его, заменив var на имя
+переменной, которую хотим использовать.
+Как это обойти?
+
+
 #+BEGIN_SRC lisp
 
-  (defmacro n_of (var num &rest expr)
-    (let ((lst) (result))
-      `(do ((i 0 (+ i 1))
-            (+ var 1))
-           ((<= i ,num) lst)
-         (setf result ,@expr)
-         (setf lst (cons result lst)))))
+  ;; работает верно c переменной var
 
-  ;; маркрораскрытие (возвращает nil, format внутри цикла ничего
-  ;; не печатает)
+  (let ((var))
+    (defmacro n_of (n &rest expr)
+      `(let ((lst) (result))
+         (do ((i 0 (+ i 1)))
+             ((>= i n) (reverse lst))
+           (setf result ,@expr)
+           (setf lst (cons result lst))
+           (setf var (+ 1 var ))))))
 
-  (let ((var 5) (num 3)
-        (lst) (result))
-    (do ((i 0 (+ i 1))
-         (+ 1 var))
-        (( >= i num) lst)
-      (format t "цикл идет")
-      (setf result (* var 2 ))
-      (format t " result ~a ~&" result)
-      (setf lst (cons result lst)))
-    (format t "lst ~a ~&" lst))
+  (let ((var 5) (n 3))
+    (macroexpand-1 '(n_of n (* var 2))))
 
+  (let ((var 4) (n 3))
+    (n_of n (* var 2)))
 
-  ;; тестовый вариант макрораскрытия (здесь format тоже ничего не выводит)
+  (let ((var 30) (n 3))
+    (n_of n (- var 3)))
 
-  (let* ((n 3) (var 2) (expr ( * var 2)))
-  (defun test (n &rest expr)
-      (do ((i 0 (+ i 1))
-           (+ 1 var))
-          (( <= i n))
-        (format t "result ~a ~&" expr))))
+  ;; тестовый вариант макрораскрытия, почему-то результат все время одинаковый
 
-  (let* ((n 3) (var 2) (expr ( * var 2)))
-    (test n expr))
+    (let ((n 3) (var 2))
+          (defun test (n expr)
+          (do ((i 0 (+ i 1)))
+              (( >= i n))
+            (setf var (+ 1 var))
+            (format t "result ~a ~&" expr))))
+
+    (let* ((n 3) (var 2))
+      (test n (* var 2)))
+
 #+END_SRC
