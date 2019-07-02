@@ -3092,3 +3092,441 @@ c)
       (test n (* var 2)))
 
 #+END_SRC
+* Chapter 11
+
+** slot-value
+
+Определите параметры accessor, initform, initarg для классов,
+определенных на рис. 11.2. Внесите необходимые правки, чтобы код
+более не использовал slot-value.
+
+Исходный код:
+
+#+BEGIN_SRC lisp
+
+  (defclass rectangle ()
+    (height width))
+
+  (defclass circle ()
+    (radius))
+
+  (defmethod area ((x rectangle))
+    (* (slot-value x 'height) (slot-value x 'width)))
+
+  (defmethod area ((x circle))
+    (* pi (expt (slot-value x 'radius) 2)))
+
+#+END_SRC
+
+Ответ:
+
+#+BEGIN_SRC lisp
+
+  (defclass rectangle ()
+    ((height :accessor rec-height)
+     (width  :accessor rec-width)))
+
+  (defclass circle ()
+    ((radius :accessor circle-radius)))
+
+
+  (defmethod area ((x rectangle))
+    (* (rec-height x) (rec-width x)))
+
+  (defmethod area ((x circle))
+    (* pi (expt (circle-radius x) 2)))
+
+  ;;запуск
+
+  (let ((r (make-instance 'rectangle)))
+    (setf (rec-height r) 2
+          (rec-width r) 3)
+    (area r))
+
+  (let ((r (make-instance 'circle)))
+    (setf (circle-radius r) 6)
+    (area r))
+
+#+END_SRC
+
+** Sphere
+
+Перепишите код так, чтобы сферы и точки были
+классами, а introspect и normal – обобщенными функциями.
+
+Исходный код:
+
+#+BEGIN_SRC lisp
+
+  (defstruct surface color)
+
+  (defparameter *world* nil)
+
+  (defstruct (sphere (:include surface))
+    radius center)
+
+  (defun defsphere (x y z r c)
+    (let ((s (make-sphere
+              :radius r
+              :center (make-point :x x :y y :z z)
+              :color c)))
+      (push s *world*)
+      s))
+
+  (defun intersect (s pt xr yr zr)
+    (funcall (typecase s (sphere #'sphere-intersect))
+             s pt xr yr zr))
+
+  (defun sphere-intersect (s pt xr yr zr)
+    (let* ((c (sphere-center s))
+           (n (minroot (+ (sq xr) (sq yr) (sq zr))
+                       (* 2 (+ (* (- (x pt) (x c)) xr)
+                               (* (- (y pt) (y c)) yr)
+                               (* (- (z pt) (z c)) zr)))
+                       (+ (sq (- (x pt) (x c)))
+                          (sq (- (y pt) (y c)))
+                          (sq (- (z pt) (z c)))
+                          (- (sq (sphere-radius s)))))))
+      (if n
+          (make-point :x (+ (x pt) (* n xr))
+                      :y (+ (y pt) (* n yr))
+                      :z (+ (z pt) (* n zr))))))
+
+  (defun normal (s pt)
+    (funcall (typecase s (sphere #’sphere-normal))
+             s pt))
+
+  (defun sphere-normal (s pt)
+    (let ((c (sphere-center s)))
+      (unit-vector (- (x c) (x pt))
+                   (- (y c) (y pt))
+                   (- (z c) (z pt)))))
+
+#+END_SRC
+
+#+BEGIN_SRC lisp
+
+  (defclass surface ()
+    ((color :accessor sur-color)))
+
+  (defclass sphere (surface)
+    ((radius :accessor sphere-radius)
+     (center :accessor sphere-center)))
+
+  (defclass center ()
+    (x y z))
+
+  (defmethod sphere (x y z r c)
+    (let ((s (make-instance 'sphere
+              :sphere-radius r
+              :sphere-center (make-instance 'center :x x :y y :z z)
+              :sur-color c)))
+      (push s *world*)
+      s))
+
+  (defmethod intersect ((s sphere) pt xr yr zr)
+    (funcall (typecase s (sphere #'sphere-intersect))
+             s pt xr yr zr))
+
+
+#+END_SRC
+
+
+#+NAME: tracer
+#+BEGIN_SRC lisp
+  (defun sq (x)
+    "Возведение в квадрат"
+    (* x x))
+
+  (defun mag (x y z)
+    "Длина вектора"
+    (sqrt (+ (sq x) (sq y) (sq z))))
+
+  (defun unit-vector (x y z)
+    "Возвращает координаты конца вектора как если бы он шел из начала координат"
+    (let ((d (mag x y z)))
+      (values (/ x d) (/ y d) (/ z d))))
+
+  ;; Структура точки в 3D
+  (defstruct (point (:conc-name nil))
+    x y z)
+
+  (defun distance (p1 p2)
+    "Вычисляет дистанцию между точками"
+    (mag (- (x p1) (x p2))
+         (- (y p1) (y p2))
+         (- (z p1) (z p2))))
+
+  (defun minroot (a b c)
+    "Решает квадратное уравнение Ax^2+Bx+c, применяется при вычислении пересечений сфер"
+    (if (zerop a)
+        (/ (- c) b)
+        (let ((disc (- (sq b) (* 4 a c))))
+          (unless (minusp disc)
+            (let ((discrt (sqrt disc)))
+              (min (/ (+ (- b) discrt) (* 2 a))
+                   (/ (- (- b) discrt) (* 2 a))))))))
+
+  ;; Структура поверхности, имеющая только цвет
+  (defstruct surface color)
+
+  ;; Список объектов мира
+  (defparameter *world* nil)
+
+  ;; Координаты point-of-view
+  (defconstant eye (make-point :x 0 :y 0 :z 200))
+
+  (defun tracer (pathname &optional (res 1))
+    (with-open-file (p pathname :direction :output :if-exists :supersede)
+      (format p "P2 ~A ~A 255" (* res 100) (* res 100))
+      (let ((inc (/ res)))
+        (do ((y -50 (+ y inc)))
+            ((< (- 50 y) inc))
+          (do ((x -50 (+ x inc)))
+              ((< (- 50 x) inc))
+            (print (color-at x y) p)
+            ;; (format t "y: ~A; x: ~A; inc: ~A; color: ~A | (< (- 50 ~A) ~A) ~%"
+            ;;         y
+            ;;         x
+            ;;         inc
+            ;;         (color-at x y)
+            ;;         y
+            ;;         inc
+            ;;         )
+            )))))
+
+  (defun color-at (x y)
+    "Возвращает количество света, в диапазоне от 0 до 255 попадающее в EYE"
+    (multiple-value-bind (xr yr zr)
+        ;; Ищем вектор от EYE к точке X:Y:0 т.е. к точке экрана
+        (unit-vector (- x (x eye))
+                     (- y (y eye))
+                     (- 0 (z eye)))
+      ;; Отправляем луч, проходящий от глаза через эту точку в мир,
+      ;; получая число от 0 до 1, которое потом масштабируем
+      ;; на от 0 до 255
+      (round (* (sendray eye xr yr zr) 255))))
+
+  (defun sendray (pt xr yr zr)
+    "Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE"
+    (multiple-value-bind (s int)
+        ;; Находим куда попал луч (среди объектов списка *WORLD*)
+        ;; или 0 если луч никуда не попадает
+        (first-hit pt xr yr zr)
+      (if s
+          ;; Если есть попадание, то вычисляем интенсивность света,
+          ;; отраженного точкой поверхности по закону Ламберта и умножаем его
+          ;; на цвет поверхности (темная отражает меньше света)
+          (* (lambert s int xr yr zr)
+             (surface-color s))
+          0)))
+
+  (defun first-hit (pt xr yr zr)
+    ;; Перебираем *WORLD* пока не найдем тот элемент,
+    ;; для которого INTERSECT даст T
+    ;; Проверяем DISTANCE и если все ок - возращаем
+    (let (surface hit dist)
+      (dolist (s *world*)
+        (let ((h (intersect s pt xr yr zr)))
+          (when h
+            (let ((d (distance h pt)))
+              (when (or (null dist) (< d dist))
+                (setf surface s hit h dist d))))))
+      (values surface hit)))
+
+  (defun lambert (s int xr yr zr)
+    "Интенсивность света, отраженного точкой поверхности,
+     пропорциональна скалярному произведению единичного вектора N,
+     направленного из этой точки вдоль нормали к поверхности, и
+     единичного вектора L, направленного вдоль луча к источнику света.
+
+     i = N * L
+
+     Нормаль к поверхности - это вектор, длина которого равна 1,
+     направленный перпендикулярно поверхности в заданной точке
+
+     Означает, что сила света плоской поверхности максимальна по
+     перпендикуляру к ней и, убывая с увеличением угла, становится
+     равной нулю в касательных к поверхности направлениях."
+    (multiple-value-bind (xn yn zn)
+        (normal s int)
+      (max 0 (+ (* xr xn)
+                (* yr yn)
+                (* zr zn)))))
+
+  ;; Структура сферы, включающая в себя структуру surface
+  (defstruct (sphere (:include surface))
+    radius center)
+
+  (defun defsphere (x y z r c)
+    "Процедура, создающая сферу и пуш-ащая ее в *WORLD*"
+    (let ((s (make-sphere
+              :radius r
+              :center (make-point :x x :y y :z z)
+              :color c)))
+      (push s *world*)
+      s))
+
+  (defun intersect (s pt xr yr zr)
+    "Процедура, которая для каждого типа объекта S вызывает
+    функцию, которая ищет пересечение этого объекта с лучом.
+    У нас пока есть только один объект - сфера"
+    (funcall
+     (typecase s
+       (sphere #'sphere-intersect))
+     s pt xr yr zr))
+
+  (defun sphere-intersect (s pt xr yr zr)
+    "<<Как найти пересечение луча со сферой?>>"
+    (let* ((c (sphere-center s))
+           (n (minroot (+ (sq xr) (sq yr) (sq zr))
+                       (* 2 (+ (* (- (x pt) (x c)) xr)
+                               (* (- (y pt) (y c)) yr)
+                               (* (- (z pt) (z c)) zr)))
+                       (+ (sq (- (x pt) (x c)))
+                          (sq (- (y pt) (y c)))
+                          (sq (- (z pt) (z c)))
+                          (- (sq (sphere-radius s)))))))
+      (if n
+          (make-point :x (+ (x pt) (* n xr))
+                      :y (+ (y pt) (* n yr))
+                      :z (+ (z pt) (* n zr))))))
+
+  (defun normal (s pt)
+    "Процедура, которая для каждого типа объекта S вызывает
+    функцию, которая ищет нормль.
+    У нас пока есть только один объект - сфера"
+    (funcall
+     (typecase s
+       (sphere #'sphere-normal))
+     s pt))
+
+  (defun sphere-normal (s pt)
+    "Расчет нормали к сфере"
+    (let ((c (sphere-center s)))
+      (unit-vector (- (x c) (x pt))
+                   (- (y c) (y pt))
+                   (- (z c) (z pt)))))
+
+  (defun ray-test (&optional (res 1))
+    (setf *world* nil)
+    (defsphere 0 -300 -1200 200 .8)
+    (defsphere -80 -150 -1200 200 .7)
+    (defsphere 70 -100 -1200 200 .9)
+    (do ((x -2 (1+ x)))
+        ((> x 2))
+      (do ((z 2 (1+ z)))
+          ((> z 7))
+        (defsphere (* x 200) 300 (* z -400) 40 .75)))
+    (tracer (make-pathname :name "spheres.pgm") res))
+
+  (ray-test 10)
+#+END_SRC
+
+
+** area
+
+Измените код так, чтобы при каждом вызове
+обобщенной функции area увеличивался некий глобальный счетчик. Функция
+не должна менять свое поведение никаким иным образом.
+
+Исходный код см в задании slot-value.
+
+Глобальный счетчик я понимаю как глобальную переменную, значение
+которой должно увеличиваться при каждом вызове.
+
+
+#+BEGIN_SRC lisp
+  ;; глобальная переменная
+  (setf counter 0)
+
+  (defclass rectangle ()
+    (height width))
+
+  (defclass circle ()
+    (radius))
+
+  (defmethod area ((x rectangle))
+    (setf counter (+ counter 1))
+    (* (slot-value x 'height) (slot-value x 'width)))
+
+  (defmethod area ((x circle))
+    (setf counter (+ counter 1))
+    (* pi (expt (slot-value x 'radius) 2)))
+
+  (let ((r (make-instance 'rectangle)))
+    (setf (slot-value r 'height) 2
+          (slot-value r 'width) 3)
+    (area r))
+
+#+END_SRC
+
+** difficult task
+
+Приведите пример задачи, трудноразрешимой в том случае,
+когда лишь первый аргумент обобщенной функции может быть
+специализирован.
+
+Итак, специализация аргумента - т.е. к какому типу он относитмся: к
+какому классу, типу числа и т.д.
+
+К чему может привести ситуация, когда специализирован только первый
+аргумент?
+
+Обобщенная функция включает в себя разнообразные методы с одним и тем
+же именем. Привызове обобщенной функции, поиск метода осуществляется
+по принципу специфичности.
+
+1.
+Если мы нашли наиболее специфичный метод
+для первого аргумента, посик методов на этом заканчивается. Но что
+если у нас "ничья"? Тогда проверяется на спецификацию второй
+аргумент. И вот тут могут быть проблемы, поскольку если для первого
+аргумента наиболее специфичный метод не найден, а второй аргумент
+никак не специфицирован, может быть выбран не самый подходящий метод.
+
+2.
+Во время написания примера, нашла еще одну деталь. Мною написаны 2
+метода, печатающие разные строки, чей первый аргумент - экземпляр
+класса burning-forest, а второй - неспецифицированная переменная. В
+этом случае лисп считает их одинаковыми и в обощенную функцию попадает
+последний определенный метод, хотя по моей задумке должны были попасть
+оба и непарвильно печатать строки: можно сказать "потушить 20 акров",
+но нельзя сказать "спасти 10.234325 людей".
+
+Пример:
+
+#+BEGIN_SRC lisp
+
+  (defclass campfire ()
+    ((height :accessor campfire-heigh)))
+
+  (defclass burning-house ()
+    ((height :accessor burning-house-height)))
+
+  (defclass burning-forest ()
+    ((height :accessor burning-forest-height)))
+
+  (defmethod help ((x campfire) people)
+    (format t "Make fire bigger and take matshmelow for ~a people " people ))
+
+  (defmethod help ((x burning-house) people)
+    (format t "Call ambulance and firefiters to save ~a people" people))
+
+  (defmethod help ((x burning-forest) acres)
+    (format t "Call firefiters and helicopters to douse ~a acres" acres))
+
+  (defmethod help ((x burning-forest) people)
+    (format t "Call firefiters, helicopters and ambulance to save ~a people" people))
+
+
+  (let ((x (make-instance 'campfire)))
+    (help x 10))
+
+  (let ((x (make-instance 'burning-forest)))
+    (help x 10.23559))
+
+  (let ((x (make-instance 'burning-forest)))
+    (help x 20))
+
+#+END_SRC
