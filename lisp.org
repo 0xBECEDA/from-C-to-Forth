@@ -3180,7 +3180,7 @@ c)
      (center :accessor sphere-center
              :initarg :sphere-center)))
 
-  (defmethod defsphere (x y z r c)
+  (defun defsphere (x y z r c)
     (let ((s (make-instance 'sphere
                             ::sphere-radius r
                             :sphere-center (make-instance 'point :x x :y y :z z)
@@ -3188,17 +3188,17 @@ c)
       (push s *world*)
       s))
 
-  (defmethod sq (x)
+  (defun sq (x)
     (* x x))
 
-  (defmethod mag (x y z)
+  (defun mag (x y z)
     (sqrt (+ (sq x) (sq y) (sq z))))
 
-  (defmethod unit-vector (x y z)
+  (defun unit-vector (x y z)
     (let ((d (mag x y z)))
       (values (/ x d) (/ y d) (/ z d))))
 
-  (defmethod distance ((p1 point) (p2 point))
+  (defun distance ((p1 point) (p2 point))
     ;; передаем два экземпляра класса point,
     ;; затем в mag передаем посля X, Y и Z от классов
     (mag (- (x p1) (x p2))
@@ -3207,7 +3207,7 @@ c)
 
   ;; принимает 3 действительных числа (число, которое можно записать в виде конечной дроби)
   ;; возвращает наименьший Х, для которого  Ax^2+Bx+c = 0
-  (defmethod minroot (a b c)
+  (defun minroot (a b c)
     ;; если А = 0
     (if (zerop a)
         ;; вычисляем эту строку
@@ -3237,7 +3237,7 @@ c)
                       :y (+ (y pt) (* n yr))
                       :z (+ (z pt) (* n zr))))))
 
-  (defmethod first-hit (pt xr yr zr)
+  (defun first-hit (pt xr yr zr)
     ;; Перебираем *WORLD* пока не найдем тот элемент,
     ;; для которого INTERSECT даст T
     ;; Проверяем DISTANCE и если все ок - возращаем объект мира и точку на нем, в которую
@@ -3261,7 +3261,7 @@ c)
                    (- (y c) (y pt))
                    (- (z c) (z pt)))))
 
-  (defmethod lambert (s int xr yr zr)
+  (defun lambert (s int xr yr zr)
     ;;   "Интенсивность света, отраженного точкой поверхности,
     ;;    пропорциональна скалярному произведению единичного вектора N,
     ;;    направленного из этой точки вдоль нормали к поверхности, и
@@ -3281,7 +3281,7 @@ c)
                 (* yr yn)
                 (* zr zn)))))
 
-  (defmethod sendray (pt xr yr zr)
+  (defun sendray (pt xr yr zr)
     ;;   Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE
     ;;   Параметры:
     ;;   pt - point of view (eye)
@@ -3298,7 +3298,7 @@ c)
              (sur-color s))
           0)))
 
-  (defmethod color-at (x y)
+  (defun color-at (x y)
     "Возвращает количество света, в диапазоне от 0 до 255 попадающее в EYE"
     (multiple-value-bind (xr yr zr)
         ;; Ищем вектор от EYE к точке X:Y:0 т.е. к точке экрана
@@ -3310,7 +3310,7 @@ c)
       ;; на от 0 до 255
       (round (* (sendray eye xr yr zr) 255))))
 
-  (defmethod tracer (pathname &optional (res 1))
+  (defun tracer (pathname &optional (res 1))
     (with-open-file (p pathname :direction :output :if-exists :supersede)
       ;; создаем заголовок файла
       (format p "P2 ~A ~A 255" (* res 100) (* res 100))
