@@ -3415,7 +3415,7 @@ c)
 
 #+BEGIN_SRC lisp
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NEW VARIANT
-
+  (ql:quickload "png")
   (ql:quickload "l-math")
 
   (defstruct (point)
@@ -3468,7 +3468,7 @@ c)
       (do ((x (- (/ width 2)) (+ x 1)))
           ((< (- (/ width 2) x) 1))
         (put-pixel canvas
-                   (- (- width 1)  (+ x (/ width 2)))
+                   (- (- width 1) (+ x (/ width 2)))
                    (- (- height 1) (+ y (/ height 2)))
                    (color-at scn (/ x res) (/ y res))))))
 
@@ -3588,31 +3588,31 @@ c)
           (lghts nil))
       (push (create-plane 0 1 .001 400 1) srfcs)
       (push (create-plane 0 -1 .001 400 1) srfcs)
-      (push (create-sphere 0 -200 -1200 200 .8) srfcs)
+      (push (create-sphere 0 -100 -1200 200 .8) srfcs)
       (push (create-sphere -80 -50 -1200 200 .7) srfcs)
       (push (create-sphere 70 0 -1200 200 .9) srfcs)
       (do ((x -2 (1+ x)))
           ((> x 2))
         (do ((z 2 (1+ z)))
             ((> z 7))
-          (push (create-sphere (* x 200) 300 (* z -400) 50 .75) srfcs)))
-      (push (make-light :position (make-point :x 600 :y 0 :z 0)) lghts)
+          (push (create-sphere (* x 200) 300 (* z -400) 80 .75) srfcs)))
+      (push (make-light :position (make-point :x 0 :y -350 :z -950)) lghts)
       (make-scene :eye (make-point :x 0 :y 0 :z 200) :surfaces srfcs :lights lghts)))
+
+  (render "ccc222.png" (init-scene) 300 300 1)
 
   (defun render (pathname scn width height res)
     (let ((result (png:make-image height width 1)))
       (tracer scn result width height res)
-      (with-open-file (p pathname :direction :output :if-exists :supersede)
-        ;; создаем заголовок файла
-        (format p "P2 ~A ~A 255" (* res 100) (* res 100))
-        (destructuring-bind (l m n) (array-dimensions result)
-          (loop for i from (- l 1) downto 0 do
-               (loop for j from (- m 1) downto 0 do
-                    (loop for k from (- n 1) downto 0 do
-                       ;; (format t "a[~a ~a ~a] = ~a~%" i j k (aref result i j k))
-                         (print (aref result i j k) p))))))))
+      (let ((p (open pathname
+                     :direction :output
+                     :if-does-not-exist :create
+                     :if-exists :overwrite
+                     :element-type '(unsigned-byte 8))))
+        (png:encode result p)
+        (close p))))
 
-  (render "ccc.pgm" (init-scene) 100 100 1)
+
 #+END_SRC
 
 ** area
