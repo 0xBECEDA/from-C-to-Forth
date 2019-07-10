@@ -3158,35 +3158,41 @@ c)
 
 
 #+BEGIN_SRC lisp
-
   ;; Список объектов мира
   ;; чтобы добавить обЪект в мир, надо занести его в world, при этом его
   ;; z-координата должна быть отрицательной, чтоб обЪект был видимым
   (defparameter *world* nil)
 
-  ;; Структура точки в 3D
-  (defclass point  ()
+  ;; Класс точки в трехмероном пространстве
+  (defclass point ()
     ((x :initarg :x :accessor x )
      (y :initarg :y :accessor y)
      (z :initarg :z :accessor z)))
 
-  ;; Координаты point-of-view
-  (defparameter eye (make-instance 'point :x 0 :y 0 :z 200))
+  ;; Класс луча в трехмероном пространстве
+  ;; Состоит из точки (origin) единичного вектора направления (direction)
+  (defclass ray ()
+    ((origin     :initarg :origin     :accessor origin)
+     (direction  :initarg :direction  :accessor direction)))
 
-  ;; Структура поверхности, имеющая только цвет
-  ;; color принимает значения от 0 (черный) до 1 (белый)
+  ;; Класс поверхности, имеющей только цвет, от него наследуются
+  ;; геометрические фигуры
+  ;; sur-color принимает значения от 0 (черный) до 1 (белый)
   (defclass surface ()
     ((color :accessor sur-color
             :initarg :sur-color)))
 
-  ;; Структура сферы, включающая в себя структуру surface
+  ;; Класс сферы, включающая в себя структуру surface
   ;; Чтобы определить сферу нам нужны ее X,Y,Z-координаты,
   ;; радиус и цвет (который определен в surface)
   (defclass sphere (surface)
-    ((radius :accessor sphere-radius
-             :initarg :sphere-radius)
-     (center :accessor sphere-center
-             :initarg :sphere-center)))
+    ((radius :initarg :sphere-radius  :accessor sphere-radius)
+     (center :initarg :sphere-center  :accessor sphere-center)))
+
+
+  ;; Координаты point-of-view
+  (defparameter eye (make-instance 'point :x 0 :y 0 :z 200))
+
 
   (defun defsphere (x y z r c)
     "Процедура, создающая сферу и пуш-ащая ее в *WORLD*"
@@ -3405,6 +3411,208 @@ c)
 
   (ray-test 5)
 
+#+END_SRC
+
+#+BEGIN_SRC lisp
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NEW VARIANT
+
+  (ql:quickload "l-math")
+
+  (defstruct (point)
+    x y z)
+
+  (defstruct (surface)
+    color)
+
+  (defstruct (sphere (:include surface))
+    radius center)
+
+  (defstruct (plane (:include surface))
+    normal distance)
+
+  (defstruct (light)
+    position)
+
+  (defstruct (scene)
+    eye surfaces lights)
+
+  (defstruct (ray)
+    origin direction)
+
+  (defun sq (x)
+    (* x x))
+
+  (defun mag (x y z)
+    (sqrt (+ (sq x) (sq y) (sq z))))
+
+  (defun distance (p1 p2)
+    (mag (- (point-x p1) (point-x p2))
+         (- (point-y p1) (point-y p2))
+         (- (point-z p1) (point-z p2))))
+
+  (defun minroot (a b c)
+    (if (zerop a)
+        (/ (- c) b)
+        (let ((disc (- (sq b) (* 4 a c))))
+          (unless (minusp disc)
+            (let ((discrt (sqrt disc)))
+              (min (/ (+ (- b) discrt) (* 2 a))
+                   (/ (- (- b) discrt) (* 2 a))))))))
+
+  (defun put-pixel (canvas x y color)
+    (setf (aref canvas y x 0) color))
+
+  (defun tracer (scn canvas width height res)
+    (do ((y (- (/ height 2)) (+ y 1)))
+        ((< (- (/ height 2) y) 1))
+      (do ((x (- (/ width 2)) (+ x 1)))
+          ((< (- (/ width 2) x) 1))
+        (put-pixel canvas
+                   (- (- width 1)  (+ x (/ width 2)))
+                   (- (- height 1) (+ y (/ height 2)))
+                   (color-at scn (/ x res) (/ y res))))))
+
+  (defun dir-vector (p1 p2)
+    (lm:normalise (lm:make-vector 3 :initial-elements (list (- (point-x p2) (point-x p1))
+                                                            (- (point-y p2) (point-y p1))
+                                                            (- (point-z p2) (point-z p1))))))
+
+  (defun color-at (scn x y)
+    (let* ((vr (dir-vector (scene-eye scn) (make-point :x x :y y :z 0)))
+           (r (make-ray :origin (scene-eye scn) :direction vr)))
+      (round (* (sendray scn r) 255))))
+
+  (defun sendray (scn r)
+    (multiple-value-bind (s int) (first-hit scn r)
+      (if s
+          (shade scn s int)
+          0)))
+
+  (defun send-shadow-ray (o scn r)
+    (multiple-value-bind (s int dist) (first-hit scn r)
+      (declare (ignore int))
+      (if (and s (not (equal o s)))
+                                          ;    (if s
+          dist
+          NIL)))
+
+  (defun shade (scn s int)
+    (let ((color 0))
+      (dolist (l (scene-lights scn))
+        (let* ((vl (dir-vector int (light-position l)))
+               (sr (make-ray :origin int :direction vl))
+               (dist (send-shadow-ray s scn sr)))
+          (if (or (null dist)
+                  (> dist (distance int (light-position l))))
+              (setf color (+ color (* (lambert s int vl) (surface-color s)))))))
+      (min color 1)))
+
+  (defun first-hit (scn r)
+    (let (surface hit dist)
+      (dolist (s (scene-surfaces scn))
+        (let ((h (intersect s r)))
+          (when h
+            (let ((d (distance h (ray-origin r))))
+              (when (or (null dist)
+                        (< d dist))
+                (setf surface s
+                      hit h
+                      dist d))))))
+      (values surface hit dist)))
+
+  (defun lambert (s int vl)
+    (let ((vn (normal s int)))
+                                          ;(break)
+      (max 0 (lm:dot-product vl vn))))
+
+  (defun create-sphere (x y z r c)
+    (make-sphere :radius r
+                 :center (make-point :x x :y y :z z)
+                 :color c))
+
+  (defun create-plane (xn yn zn d c)
+    (make-plane :normal (lm:normalise (lm:make-vector 3 :initial-elements (list xn yn zn)))
+                :distance d
+                :color c))
+
+  (defun intersect (s r)
+    (funcall (typecase s
+               (sphere #'sphere-intersect)
+               (plane #'plane-intersect))
+             s r))
+
+  (defun sphere-intersect (s r)
+    (let* ((c (sphere-center s))
+           (n (minroot (+ (sq (lm:x (ray-direction r))) (sq (lm:y (ray-direction r))) (sq (lm:z (ray-direction r))))
+                       (* 2 (+ (* (- (point-x (ray-origin r)) (point-x c)) (lm:x (ray-direction r)))
+                               (* (- (point-y (ray-origin r)) (point-y c)) (lm:y (ray-direction r)))
+                               (* (- (point-z (ray-origin r)) (point-z c)) (lm:z (ray-direction r)))))
+                       (+ (sq (- (point-x (ray-origin r)) (point-x c)))
+                          (sq (- (point-y (ray-origin r)) (point-y c)))
+                          (sq (- (point-z (ray-origin r)) (point-z c)))
+                          (- (sq (sphere-radius s)))))))
+      (if n
+          (make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+                      :y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
+                      :z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
+
+  (defun point-to-vector (p)
+    (lm:make-vector 3 :initial-elements (list (point-x p)
+                                              (point-y p)
+                                              (point-z p))))
+
+  (defun plane-intersect (s r)
+    (let* ((vd (lm:dot-product (plane-normal s) (ray-direction r)))
+           (v0 (- (+ (lm:dot-product (plane-normal s) (point-to-vector (ray-origin r))) (plane-distance s))))
+           (n (/ v0 vd)))
+      (if (>= n 0)
+          (make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+                      :y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
+                      :z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
+
+  (defun normal (s pt)
+    (funcall (typecase s
+               (sphere #'sphere-normal)
+               (plane #'plane-norm))
+             s pt))
+
+  (defun sphere-normal (s pt)
+    (dir-vector (sphere-center s) pt))
+
+  (defun plane-norm (s pt)
+    (declare (ignore pt))
+    (plane-normal s))
+
+  (defun init-scene ()
+    (let ((srfcs nil)
+          (lghts nil))
+      (push (create-plane 0 1 .001 400 1) srfcs)
+      (push (create-plane 0 -1 .001 400 1) srfcs)
+      (push (create-sphere 0 -200 -1200 200 .8) srfcs)
+      (push (create-sphere -80 -50 -1200 200 .7) srfcs)
+      (push (create-sphere 70 0 -1200 200 .9) srfcs)
+      (do ((x -2 (1+ x)))
+          ((> x 2))
+        (do ((z 2 (1+ z)))
+            ((> z 7))
+          (push (create-sphere (* x 200) 300 (* z -400) 50 .75) srfcs)))
+      (push (make-light :position (make-point :x 600 :y 0 :z 0)) lghts)
+      (make-scene :eye (make-point :x 0 :y 0 :z 200) :surfaces srfcs :lights lghts)))
+
+  (defun render (pathname scn width height res)
+    (let ((result (png:make-image height width 1)))
+      (tracer scn result width height res)
+      (with-open-file (p pathname :direction :output :if-exists :supersede)
+        ;; создаем заголовок файла
+        (format p "P2 ~A ~A 255" (* res 100) (* res 100))
+        (destructuring-bind (l m n) (array-dimensions result)
+          (loop for i from (- l 1) downto 0 do
+               (loop for j from (- m 1) downto 0 do
+                    (loop for k from (- n 1) downto 0 do
+                       ;; (format t "a[~a ~a ~a] = ~a~%" i j k (aref result i j k))
+                         (print (aref result i j k) p))))))))
+
+  (render "ccc.pgm" (init-scene) 100 100 1)
 #+END_SRC
 
 ** area
