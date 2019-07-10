@@ -3418,8 +3418,12 @@ c)
   (ql:quickload "png")
   (ql:quickload "l-math")
 
-  (defstruct (point)
-    x y z)
+  ;; Класс точки в трехмероном пространстве
+  (defclass point ()
+    ((x :initarg :x :accessor point-x)
+     (y :initarg :y :accessor point-y)
+     (z :initarg :z :accessor point-z)))
+
 
   (defstruct (surface)
     color)
@@ -3478,7 +3482,7 @@ c)
                                                             (- (point-z p2) (point-z p1))))))
 
   (defun color-at (scn x y)
-    (let* ((vr (dir-vector (scene-eye scn) (make-point :x x :y y :z 0)))
+    (let* ((vr (dir-vector (scene-eye scn) (make-instance 'point :x x :y y :z 0)))
            (r (make-ray :origin (scene-eye scn) :direction vr)))
       (round (* (sendray scn r) 255))))
 
@@ -3527,7 +3531,7 @@ c)
 
   (defun create-sphere (x y z r c)
     (make-sphere :radius r
-                 :center (make-point :x x :y y :z z)
+                 :center (make-instance 'point :x x :y y :z z)
                  :color c))
 
   (defun create-plane (xn yn zn d c)
@@ -3552,9 +3556,9 @@ c)
                           (sq (- (point-z (ray-origin r)) (point-z c)))
                           (- (sq (sphere-radius s)))))))
       (if n
-          (make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
-                      :y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
-                      :z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
+          (make-instance 'point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+                         :y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
+                         :z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
 
   (defun point-to-vector (p)
     (lm:make-vector 3 :initial-elements (list (point-x p)
@@ -3566,7 +3570,7 @@ c)
            (v0 (- (+ (lm:dot-product (plane-normal s) (point-to-vector (ray-origin r))) (plane-distance s))))
            (n (/ v0 vd)))
       (if (>= n 0)
-          (make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+          (make-instance 'point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
                       :y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
                       :z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
 
@@ -3596,10 +3600,8 @@ c)
         (do ((z 2 (1+ z)))
             ((> z 7))
           (push (create-sphere (* x 200) 300 (* z -400) 80 .75) srfcs)))
-      (push (make-light :position (make-point :x 0 :y -350 :z -950)) lghts)
-      (make-scene :eye (make-point :x 0 :y 0 :z 200) :surfaces srfcs :lights lghts)))
-
-  (render "ccc222.png" (init-scene) 300 300 1)
+      (push (make-light :position (make-instance 'point :x 0 :y -350 :z -950)) lghts)
+      (make-scene :eye (make-instance 'point :x 0 :y 0 :z 200) :surfaces srfcs :lights lghts)))
 
   (defun render (pathname scn width height res)
     (let ((result (png:make-image height width 1)))
@@ -3612,6 +3614,7 @@ c)
         (png:encode result p)
         (close p))))
 
+  (render "ccc222.png" (init-scene) 300 300 1)
 
 #+END_SRC
 
