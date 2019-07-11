@@ -3163,7 +3163,7 @@ c)
 
   ;; Структура точки в 3D
   (defclass point  ()
-    ((x :initarg :x :accessor x )
+    ((x :initarg :x :accessor x)
      (y :initarg :y :accessor y)
      (z :initarg :z :accessor z)))
 
@@ -3180,25 +3180,59 @@ c)
      (center :accessor sphere-center
              :initarg :sphere-center)))
 
-  (defun defsphere (x y z r c)
+  (defclass flat (surface point)
+    ((flat-normalX :accessor Nx
+              :initarg :Nx)
+     (flat-normalY :accessor Ny
+              :initarg :Ny)
+     (flat-normalZ :accessor Nz
+              :initarg :Nz)
+     (D :accessor d
+        :initarg :d)))
+
+  (defclass triangle (surface)
+    ((A :accessor A
+        :initarg :A)
+     (B :accessor B
+        :initarg :B)
+     (C :accessor C
+        :initarg :C)))
+
+    (defun defsphere (x y z r c)
     (let ((s (make-instance 'sphere
-                            ::sphere-radius r
+                            :sphere-radius r
                             :sphere-center (make-instance 'point :x x :y y :z z)
                             :sur-color c)))
+      (push s *world*)
+      s))
+  ;; Чтобы построить плоскость, нужно указать координаты точки, нормаль к плоскости и
+  ;; расстояние от начала координат до этой плоскости
+  (defun defflat (x y z Nx Ny Nz d color)
+    (let ((s (make-instance 'flat
+                            :x x
+                            :y y
+                            :z z
+                            :Nx Nx
+                            :Ny Ny
+                            :Nz Nz
+                            :D d
+                            :sur-color color)))
       (push s *world*)
       s))
 
   (defun sq (x)
     (* x x))
 
+  ;; длина вектора
   (defun mag (x y z)
     (sqrt (+ (sq x) (sq y) (sq z))))
 
+  ;; возвращает координаты конца вектора, как если бы он шел из начала координат
   (defun unit-vector (x y z)
     (let ((d (mag x y z)))
       (values (/ x d) (/ y d) (/ z d))))
 
-  (defun distance ((p1 point) (p2 point))
+  (defun distance (p1 p2)
     ;; передаем два экземпляра класса point,
     ;; затем в mag передаем посля X, Y и Z от классов
     (mag (- (x p1) (x p2))
@@ -3237,6 +3271,34 @@ c)
                       :y (+ (y pt) (* n yr))
                       :z (+ (z pt) (* n zr))))))
 
+  ;; метод, работающий с плоскостями
+  ;; принимает плоскость, точку, из которой исходит луч и координаты его единичного вектора
+  ;; действиет по формуле: n1(x0 + t* lx) + n2(y0 + t* ly) + n3(z0 + t* lz) + d = 0
+  ;; где n1, n2, n3 - нормаль к плоскости; x0, y0, z0 - точка испускания луча,
+  ;; lx, ly, lz - вектор луча, а d - расстояние от начала координат до плоскости.
+  ;; требуется найти такое t, при ктором уравнение верно
+  ;; из этого уравнение следует другое (не понятно как):
+  ;; t = (n1* x0 + n2 * y0 + n3 * z0 +d)
+  ;;   _   ______________________________
+  ;;     (n1 * lx + n2 *ly + n3* lz)
+
+  ;; если t < 0. луч не пересекает плоскость, если t > 0, значит, на плоскость падает луч.
+  ;; Чтобы определить, куда именно падает лучть нужно:
+  ;; tx = x0 + t* lx; ty = y0 + t* ly; tz = z0 + t* lz;
+
+  (defmethod intersect ((s flat) pt xr yr zr)
+    (let ((flat (s flat)))
+      (let ((num (+ ( * (Nx flat) (x pt)) ( * (Ny flat) (y pt)) ( * (Nz flat) (z pt))
+                    (d flat))))
+        (let ((den ( + (* (Nx flat) xr) (* (Ny flat) yr) (* (Nz flat) zr))))
+          (let (( n ( - 0 (/ num den))))
+          (if ( < n 0)
+              (let (( p-intersect
+                     (make-instance 'point :x (+ (x pt) (* n xr))
+                                    :y (+ (y pt) (* n yr))
+                                    :z (+ (z pt) (* n zr))))))))))))
+
+
   (defun first-hit (pt xr yr zr)
     ;; Перебираем *WORLD* пока не найдем тот элемент,
     ;; для которого INTERSECT даст T
@@ -3261,7 +3323,15 @@ c)
                    (- (y c) (y pt))
                    (- (z c) (z pt)))))
 
-  (defun lambert (s int xr yr zr)
+
+  (defmethod normal ((s flat) (pt point))
+    (let ((flat (s flat)))
+      (values (Nx flat) (Ny flat) (Nz flat))))
+
+  (defgeneric normal (object pt)
+    (:documentation "Вычисляет нормаль к объекту"))
+
+    (defun lambert (s int xr yr zr)
     ;;   "Интенсивность света, отраженного точкой поверхности,
     ;;    пропорциональна скалярному произведению единичного вектора N,
     ;;    направленного из этой точки вдоль нормали к поверхности, и
@@ -3342,7 +3412,15 @@ c)
         (defsphere (* x 200) 300 (* z -400) 40 .75)))
     (tracer (make-pathname :name "spheres.pgm") res))
 
+
+  (defun ray-test-flat (&optional (res 1))
+    (setf *world* nil)
+    (defflat 0 -150 -200 -100 -120 -130 -9 .8)
+    (tracer (make-pathname :name "spheres.pgm") res))
+
   (ray-test 10)
+
+  (ray-test-flat 10)
 
 #+END_SRC
 
