@@ -3420,39 +3420,39 @@ c)
 
   ;; Класс точки в трехмероном пространстве
   (defclass point ()
-    ((x :initarg :point-x :accessor point-x)
-     (y :initarg :point-y :accessor point-y)
-     (z :initarg :point-z :accessor point-z)))
+    ((point-x :initarg :point-x :accessor point-x)
+     (point-y :initarg :point-y :accessor point-y)
+     (point-z :initarg :point-z :accessor point-z)))
 
   ;; Класс оболочки, имеющей только цвет, от него наследуются геометрические фигуры
   ;; color принимает значения от 0 (черный) до 1 (белый)
   (defclass surface ()
-    ((color :initarg :surface-color :accessor surface-color)))
+    ((surface-color :initarg :surface-color :accessor surface-color)))
 
   ;; Класс сферы, включающий в себя surface
   ;; Чтобы определить сферу нам нужны ее X,Y,Z-координаты,
   ;; радиус и цвет (который определен в surface)
   (defclass sphere (surface)
-    ((radius :initarg :sphere-radius  :accessor sphere-radius)
-     (center :initarg :sphere-center  :accessor sphere-center)))
+    ((sphere-radius :initarg :sphere-radius  :accessor sphere-radius)
+     (sphere-center :initarg :sphere-center  :accessor sphere-center)))
 
   ;; Класс поверхности, определяемой через нормаль и точку
   (defclass plane (surface)
-    ((normal   :initarg :plane-normal    :accessor plane-normal)
-     (distance :initarg :plane-distance  :accessor plane-distance)))
+    ((plane-normal   :initarg :plane-normal    :accessor plane-normal)
+     (plane-distance :initarg :plane-distance  :accessor plane-distance)))
 
   ;; Класс источника света
   (defclass light ()
     ((light-position :initarg :light-position :accessor light-position)))
 
   (defclass scene ()
-    ((eye      :initarg :scene-eye       :accessor scene-eye)
-     (surfaces :initarg :scene-surfaces  :accessor scene-surfaces)
-     (lights   :initarg :scene-lights    :accessor scene-lights)))
+    ((scene-eye      :initarg :scene-eye       :accessor scene-eye)
+     (scene-surfaces :initarg :scene-surfaces  :accessor scene-surfaces)
+     (scene-lights   :initarg :scene-lights    :accessor scene-lights)))
 
   (defclass ray ()
-    ((origin    :initarg :ray-origin     :accessor ray-origin)
-     (direction :initarg :ray-direction  :accessor ray-direction)))
+    ((ray-origin    :initarg :ray-origin     :accessor ray-origin)
+     (ray-direction :initarg :ray-direction  :accessor ray-direction)))
 
   (defun sq (x)
     (* x x))
@@ -3579,9 +3579,15 @@ c)
       (if n
           (make-instance
            'point
-           :point-x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
-           :point-y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
-           :point-z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
+           :point-x (+ (point-x (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:x (ray-direction r))))
+           :point-y (+ (point-y (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:y (ray-direction r))))
+           :point-z (+ (point-z (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:z (ray-direction r))))))))
 
   (defun point-to-vector (p)
     (lm:make-vector
