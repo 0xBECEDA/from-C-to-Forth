@@ -3498,15 +3498,11 @@ c)
   (defun color-at (scn x y)
     (let* ((vr (dir-vector
                 (scene-eye scn)
-                (make-instance
-                 'point
-                 :point-x x
-                 :point-y y
-                 :point-z 0)))
-           (r (make-instance
-               'ray
-               :ray-origin (scene-eye scn)
-               :ray-direction vr)))
+                (make-instance 'point
+                               :point-x x :point-y y :point-z 0)))
+           (r (make-instance 'ray
+                             :ray-origin (scene-eye scn)
+                             :ray-direction vr)))
       (round (* (sendray scn r) 255))))
 
   (defun sendray (scn r)
