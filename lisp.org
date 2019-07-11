@@ -3267,9 +3267,11 @@ c)
                           (sq (- (z pt) (z c)))
                           (- (sq (sphere-radius s)))))))
       (if n
-          (make-instance 'point :x (+ (x pt) (* n xr))
-                      :y (+ (y pt) (* n yr))
-                      :z (+ (z pt) (* n zr))))))
+          (make-instance
+           'point
+           :x (+ (x pt) (* n xr))
+           :y (+ (y pt) (* n yr))
+           :z (+ (z pt) (* n zr))))))
 
   ;; метод, работающий с плоскостями
   ;; принимает плоскость, точку, из которой исходит луч и координаты его единичного вектора
@@ -3278,25 +3280,38 @@ c)
   ;; lx, ly, lz - вектор луча, а d - расстояние от начала координат до плоскости.
   ;; требуется найти такое t, при ктором уравнение верно
   ;; из этого уравнение следует другое (не понятно как):
-  ;; t = (n1* x0 + n2 * y0 + n3 * z0 +d)
-  ;;   _   ______________________________
-  ;;     (n1 * lx + n2 *ly + n3* lz)
-
+  ;; t = (r0 * n) + d
+  ;;   _   __________
+  ;;     (l * n)
+  ;;
   ;; если t < 0. луч не пересекает плоскость, если t > 0, значит, на плоскость падает луч.
   ;; Чтобы определить, куда именно падает лучть нужно:
   ;; tx = x0 + t* lx; ty = y0 + t* ly; tz = z0 + t* lz;
 
+  (defun dot-product (vec1 vec2)
+    (+ (* (x vec1) (x vec2))
+       (* (y vec1) (y vec2))
+       (* (z vec1) (z vec2))))
+
   (defmethod intersect ((s flat) pt xr yr zr)
-    (let ((flat (s flat)))
-      (let ((num (+ ( * (Nx flat) (x pt)) ( * (Ny flat) (y pt)) ( * (Nz flat) (z pt))
-                    (d flat))))
-        (let ((den ( + (* (Nx flat) xr) (* (Ny flat) yr) (* (Nz flat) zr))))
-          (let (( n ( - 0 (/ num den))))
-          (if ( < n 0)
-              (let (( p-intersect
-                     (make-instance 'point :x (+ (x pt) (* n xr))
-                                    :y (+ (y pt) (* n yr))
-                                    :z (+ (z pt) (* n zr))))))))))))
+    (let* ((flat s)
+           (flat-normal (make-instance 'point
+                                  :x (Nx flat)
+                                  :y (Ny flat)
+                                  :z (Nz flat)))
+           (num (+ (dot-product pt flat-normal) (d flat)))
+           (ray-normal (make-instance 'point
+                                       :x xr
+                                       :y yr
+                                       :z zr))
+           (den (+ (dot-product ray-normal flat-normal)))
+           (result (- (/ num den))))
+      (if (> result 0)
+          (make-instance
+           'point
+           :x (+ (x pt) (* result xr))
+           :y (+ (y pt) (* result yr))
+           :z (+ (z pt) (* result zr))))))
 
 
   (defun first-hit (pt xr yr zr)
@@ -3325,7 +3340,7 @@ c)
 
 
   (defmethod normal ((s flat) (pt point))
-    (let ((flat (s flat)))
+    (let ((flat s))
       (values (Nx flat) (Ny flat) (Nz flat))))
 
   (defgeneric normal (object pt)
