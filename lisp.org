@@ -3420,9 +3420,9 @@ c)
 
   ;; Класс точки в трехмероном пространстве
   (defclass point ()
-    ((x :initarg :x :accessor x)
-     (y :initarg :y :accessor y)
-     (z :initarg :z :accessor z)))
+    ((x :initarg :point-x :accessor point-x)
+     (y :initarg :point-y :accessor point-y)
+     (z :initarg :point-z :accessor point-z)))
 
   ;; Класс оболочки, имеющей только цвет, от него наследуются геометрические фигуры
   ;; color принимает значения от 0 (черный) до 1 (белый)
@@ -3461,9 +3461,9 @@ c)
     (sqrt (+ (sq x) (sq y) (sq z))))
 
   (defun distance (p1 p2)
-    (mag (- (x p1) (x p2))
-         (- (y p1) (y p2))
-         (- (z p1) (z p2))))
+    (mag (- (point-x p1) (point-x p2))
+         (- (point-y p1) (point-y p2))
+         (- (point-z p1) (point-z p2))))
 
   (defun minroot (a b c)
     (if (zerop a)
@@ -3491,12 +3491,18 @@ c)
     (lm:normalise
      (lm:make-vector
       3
-      :initial-elements (list (- (x p2) (x p1))
-                              (- (y p2) (y p1))
-                              (- (z p2) (z p1))))))
+      :initial-elements (list (- (point-x p2) (point-x p1))
+                              (- (point-y p2) (point-y p1))
+                              (- (point-z p2) (point-z p1))))))
 
   (defun color-at (scn x y)
-    (let* ((vr (dir-vector (scene-eye scn) (make-instance 'point :x x :y y :z 0)))
+    (let* ((vr (dir-vector
+                (scene-eye scn)
+                (make-instance
+                 'point
+                 :point-x x
+                 :point-y y
+                 :point-z 0)))
            (r (make-instance
                'ray
                :ray-origin (scene-eye scn)
@@ -3550,7 +3556,11 @@ c)
     (make-instance
      'sphere
      :sphere-radius r
-     :sphere-center (make-instance 'point :x x :y y :z z)
+     :sphere-center (make-instance
+                     'point
+                     :point-x x
+                     :point-y y
+                     :point-z z)
      :surface-color c))
 
 
@@ -3562,34 +3572,41 @@ c)
 
   (defun sphere-intersect (s r)
     (let* ((c (sphere-center s))
-           (n (minroot (+ (sq (lm:x (ray-direction r))) (sq (lm:y (ray-direction r))) (sq (lm:z (ray-direction r))))
-                       (* 2 (+ (* (- (x (ray-origin r)) (x c)) (lm:x (ray-direction r)))
-                               (* (- (y (ray-origin r)) (y c)) (lm:y (ray-direction r)))
-                               (* (- (z (ray-origin r)) (z c)) (lm:z (ray-direction r)))))
-                       (+ (sq (- (x (ray-origin r)) (x c)))
-                          (sq (- (y (ray-origin r)) (y c)))
-                          (sq (- (z (ray-origin r)) (z c)))
-                          (- (sq (sphere-radius s)))))))
+           (n (minroot
+               (+ (sq (lm:x (ray-direction r)))
+                  (sq (lm:y (ray-direction r)))
+                  (sq (lm:z (ray-direction r))))
+               (* 2 (+ (* (- (point-x (ray-origin r)) (point-x c)) (lm:x (ray-direction r)))
+                       (* (- (point-y (ray-origin r)) (point-y c)) (lm:y (ray-direction r)))
+                       (* (- (point-z (ray-origin r)) (point-z c)) (lm:z (ray-direction r)))))
+               (+ (sq (- (point-x (ray-origin r)) (point-x c)))
+                  (sq (- (point-y (ray-origin r)) (point-y c)))
+                  (sq (- (point-z (ray-origin r)) (point-z c)))
+                  (- (sq (sphere-radius s)))))))
       (if n
-          (make-instance 'point :x (+ (x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
-                         :y (+ (y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
-                         :z (+ (z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
+          (make-instance
+           'point
+           :point-x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+           :point-y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
+           :point-z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
 
   (defun point-to-vector (p)
     (lm:make-vector
      3
-     :initial-elements (list (x p)
-                             (y p)
-                             (z p))))
+     :initial-elements (list (point-x p)
+                             (point-y p)
+                             (point-z p))))
 
   (defun plane-intersect (s r)
     (let* ((vd (lm:dot-product (plane-normal s) (ray-direction r)))
            (v0 (- (+ (lm:dot-product (plane-normal s) (point-to-vector (ray-origin r))) (plane-distance s))))
            (n (/ v0 vd)))
       (if (>= n 0)
-          (make-instance 'point :x (+ (x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
-                      :y (+ (y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
-                      :z (+ (z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
+          (make-instance
+           'point
+           :point-x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+           :point-y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
+           :point-z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
 
   (defun normal (s pt)
     (funcall (typecase s
@@ -3627,11 +3644,15 @@ c)
           (push (create-sphere (* x 200) 300 (* z -400) 80 .75) srfcs)))
       (push (make-instance
              'light
-             :light-position (make-instance 'point :x 0 :y -350 :z -950))
+             :light-position (make-instance
+                              'point
+                              :point-x 0
+                              :point-y -350
+                              :point-z -950))
             lghts)
       (make-instance
        'scene
-       :scene-eye (make-instance 'point :x 0 :y 0 :z 200)
+       :scene-eye (make-instance 'point :point-x 0 :point-y 0 :point-z 200)
        :scene-surfaces srfcs
        :scene-lights lghts)))
 
