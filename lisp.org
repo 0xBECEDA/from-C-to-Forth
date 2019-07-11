@@ -3563,14 +3563,7 @@ c)
                      :point-z z)
      :surface-color c))
 
-
-  (defun intersect (s r)
-    (funcall (typecase s
-               (sphere #'sphere-intersect)
-               (plane #'plane-intersect))
-             s r))
-
-  (defun sphere-intersect (s r)
+  (defmethod intersect ((s sphere) r)
     (let* ((c (sphere-center s))
            (n (minroot
                (+ (sq (lm:x (ray-direction r)))
@@ -3597,37 +3590,40 @@ c)
                              (point-y p)
                              (point-z p))))
 
-  (defun plane-intersect (s r)
+  (defmethod intersect ((s plane) r)
     (let* ((vd (lm:dot-product (plane-normal s) (ray-direction r)))
-           (v0 (- (+ (lm:dot-product (plane-normal s) (point-to-vector (ray-origin r))) (plane-distance s))))
+           (v0 (- (+ (lm:dot-product
+                      (plane-normal s)
+                      (point-to-vector (ray-origin r)))
+                     (plane-distance s))))
            (n (/ v0 vd)))
       (if (>= n 0)
           (make-instance
            'point
-           :point-x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
-           :point-y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
-           :point-z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
+           :point-x (+ (point-x (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:x (ray-direction r))))
+           :point-y (+ (point-y (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:y (ray-direction r))))
+           :point-z (+ (point-z (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:z (ray-direction r))))))))
 
-  (defun normal (s pt)
-    (funcall (typecase s
-               (sphere #'sphere-normal)
-               (plane #'plane-norm))
-             s pt))
-
-  (defun sphere-normal (s pt)
+  (defmethod normal ((s sphere) pt)
     (dir-vector (sphere-center s) pt))
 
-  (defun plane-norm (s pt)
+  (defmethod normal ((s plane) pt)
     (declare (ignore pt))
     (plane-normal s))
 
-  (defun create-plane (xn yn zn d c)
+  (defun create-plane (xn yn zn dist color)
     (make-instance
      'plane
      :plane-normal (lm:normalise
                     (lm:make-vector 3 :initial-elements (list xn yn zn)))
-     :plane-distance d
-     :surface-color c))
+     :plane-distance dist
+     :surface-color color))
 
   (defun init-scene ()
     (let ((srfcs nil)
