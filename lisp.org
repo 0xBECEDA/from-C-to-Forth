@@ -3190,7 +3190,7 @@ c)
      (D :accessor d
         :initarg :d)))
 
-  (defclass triangle (surface)
+  (defclass triangle (flat)
     ((A :accessor A
         :initarg :A)
      (B :accessor B
@@ -3207,7 +3207,7 @@ c)
       s))
   ;; Чтобы построить плоскость, нужно указать координаты точки, нормаль к плоскости и
   ;; расстояние от начала координат до этой плоскости
-  (defun defflat (x y z Nx Ny Nz d color)
+  (defun defflat (x y z Nx Ny Nz color)
     (let ((s (make-instance 'flat
                             :x x
                             :y y
@@ -3219,6 +3219,52 @@ c)
                             :sur-color color)))
       (push s *world*)
       s))
+
+  (defun normal-triangle (a b c)
+    (let* ((vec-ab (make-instance 'point
+                                  :x (- (x b) (x a))
+                                  :y (- (y b) (y a))
+                                  :z (- (z b) (z a))))
+           (vec-ac (make-instance 'point
+                                  :x (- (x c) (x a))
+                                  :y (- (y c) (y a))
+                                  :z (- (z c) (z a))))
+           ;; Получили вектора AB, и ВС.
+           ;; Вычисляем нормаль по формуле: x = (V1.y * V2.z) - (V1.z * V2.y)
+           ;; y =  (V1.z * V2.x) - (V1.x * V2.z); z = (V1.x * V2.y) - (V1.y * V2.x)
+           (normal (make-instance 'point
+                                  :x (- (* (y vec-ab) (z vec-ac)) (* (z vec-ab) (y vec-ac)))
+                                  :y (- (* (z vec-ab) (x vec-ac)) (* (x vec-ab) (z vec-ac)))
+                                  :z (- (* (x vec-ab) (y vec-ac))
+                                        (* (y vec-ab) (x vec-ac))))))
+    (values (x normal) (y normal) (z normal))))
+
+  ;; в одной из ссылок нашла, что чтобы узнать D, нужно воспользоваться формулой
+  ;; Ax + By +Cz = -D, где ABC - нормаль, а XYZ - координаты любой из вершин треугольника
+  (defun deftriangle (a b c color)
+    (multiple-value-bind (xn yn zn)
+        (normal-triangle a b c)
+      (let ((s (make-instance 'triangle
+                              :A (make-instance 'point
+                                                :x (x a)
+                                                :y (y a)
+                                                :z (z a))
+                              :B (make-instance 'point
+                                                :x (x b)
+                                                :y (y b)
+                                                :z (z b))
+                              :C (make-instance 'point
+                                                :x (x c)
+                                                :y (y c)
+                                                :z (z c))
+                              :Nx xn
+                              :Ny yn
+                              :Nz zn
+                              :D (- (+ (* xn (x a)) (* yn (y a)) (* zn (z a))))
+                              :sur-color color)))
+        (push s *world*)
+        s)))
+
 
   (defun sq (x)
     (* x x))
@@ -3281,8 +3327,8 @@ c)
   ;; требуется найти такое t, при ктором уравнение верно
   ;; из этого уравнение следует другое (не понятно как):
   ;; t = (r0 * n) + d
-  ;;   _   __________
-  ;;     (l * n)
+  ;;   _ ____________
+  ;;       (l * n)
   ;;
   ;; если t < 0. луч не пересекает плоскость, если t > 0, значит, на плоскость падает луч.
   ;; Чтобы определить, куда именно падает лучть нужно:
@@ -3313,6 +3359,8 @@ c)
            :y (+ (y pt) (* result yr))
            :z (+ (z pt) (* result zr))))))
 
+  (defun get-vector (pt1 pt2)
+    (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
 
   (defun first-hit (pt xr yr zr)
     ;; Перебираем *WORLD* пока не найдем тот элемент,
@@ -3323,6 +3371,7 @@ c)
       (dolist (s *world*)
         (let ((h (intersect s pt xr yr zr)))
           (when h
+            (format t "h ~a ~&" h)
             (let ((d (distance h pt)))
               (when (or (null dist)
                         (< d dist))
@@ -3342,6 +3391,7 @@ c)
   (defmethod normal ((s flat) (pt point))
     (let ((flat s))
       (values (Nx flat) (Ny flat) (Nz flat))))
+
 
   (defgeneric normal (object pt)
     (:documentation "Вычисляет нормаль к объекту"))
@@ -3430,8 +3480,21 @@ c)
 
   (defun ray-test-flat (&optional (res 1))
     (setf *world* nil)
-    (defflat 0 -150 -200 -100 -120 -130 -9 .8)
-    (tracer (make-pathname :name "spheres.pgm") res))
+    (let*
+        ((a (make-instance 'point
+                           :x -5
+                           :y -40
+                           :z -28))
+         (b (make-instance 'point
+                           :x -100
+                           :y -38
+                           :z -150))
+         (c (make-instance 'point
+                           :x -70
+                           :y -100
+                           :z -200)))
+    (deftriangle a b c .8)
+    (tracer (make-pathname :name "spheres.pgm") res)))
 
   (ray-test 10)
 
