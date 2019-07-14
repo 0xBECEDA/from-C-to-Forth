@@ -3190,6 +3190,9 @@ c)
      (D :accessor d
         :initarg :d)))
 
+  ;; класс для треугольника.
+  ;; иерархия классов (дана снизу вверх, т.е. первый класс самый
+  ;; "молодой": triangle -> flat -> surface + point
   (defclass triangle (flat)
     ((A :accessor A
         :initarg :A)
@@ -3220,6 +3223,7 @@ c)
       (push s *world*)
       s))
 
+  ;; высчитывает нормаль по 3 точкам
   (defun normal-triangle (a b c)
     (let* ((vec-ab (make-instance 'point
                                   :x (- (x b) (x a))
@@ -3242,9 +3246,11 @@ c)
 
   ;; в одной из ссылок нашла, что чтобы узнать D, нужно воспользоваться формулой
   ;; Ax + By +Cz = -D, где ABC - нормаль, а XYZ - координаты любой из вершин треугольника
-  (defun deftriangle (a b c d color)
+
+  (defun deftriangle (a b c color)
     (multiple-value-bind (xn yn zn)
         (normal-triangle a b c)
+      (format t "normal-triangle x ~a y ~a z ~a ~&" xn yn zn)
       (let ((s (make-instance 'triangle
                               :A (make-instance 'point
                                                 :x (x a)
@@ -3261,10 +3267,10 @@ c)
                               :Nx xn
                               :Ny yn
                               :Nz zn
-                              ;;:D (- (+ (* xn (x a)) (* yn (y a)) (* zn (z a))))
-                              :D d
+                              :D (- (+ (* xn (x a)) (* yn (y a)) (* zn (z a))))
                               :sur-color color)))
         (push s *world*)
+        (format t "push Ax ~a Ay ~a Az ~a ~&" (x (A s)) (y (A s)) (z (A s)))
         s)))
 
 
@@ -3361,7 +3367,17 @@ c)
            :y (+ (y pt) (* result yr))
            :z (+ (z pt) (* result zr))))))
 
+  ;;метод работает с треугольниками
+  ;; принимает объект типа "треугольник", точку испускания луча и его вектор.
   (defmethod intersect ((s triangle) pt xr yr zr)
+  ;; проверяем, падает ли луч на плоскость, на которой лежит треугольник
+    (format t "Ax ~a Ay ~a Az ~a ~&
+               Bx ~a By ~a Bz ~a ~&
+               Cx ~a Cy ~a Cz ~a ~&
+               ------------------- ~&"
+            (x (A s)) (y (A s)) (z (A s)) (x (B s)) (y (B s)) (z (B s))
+            (x (C s)) (y (C s)) (z (C s)))
+
     (let* ((flat s)
            (flat-normal (make-instance 'point
                                        :x (Nx flat)
@@ -3392,10 +3408,7 @@ c)
 
 
   (defun change-location (pt1 pt2)
-    (setf (x pt2) (- (x pt2) (x pt1)))
-    (setf (y pt2) (- (y pt2) (y pt1)))
-    (setf (z pt2) (- (z pt2) (z pt1)))
-    (values (x pt2) (y pt2) (z pt2)))
+    (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
 
   (defun triangle-intersect (triangle ray-point)
     (multiple-value-bind (xa ya za)
@@ -3567,17 +3580,17 @@ c)
                            :x 5
                            :y 13
                            :z 0)))
-      (defflat -100 200 -80 5 3 4 6 .7)
-  ;;    (deftriangle a b c -9 .8)
-      ;; ;;(defsphere 0 -300 -1200 200 .8)
-  ;; ;;    (defsphere -80 -150 -1200 200 .7)
-  ;;   ;;  (defsphere 70 -100 -1200 200 .9)
-  ;;     (do ((x -2 (1+ x)))
-  ;;         ((> x 2))
-  ;;       (do ((z 2 (1+ z)))
-  ;;           ((> z 7))
-  ;;         (defsphere (* x 200) 300 (* z -400) 40 .75)))
-    (tracer (make-pathname :name "spheres.pgm") res)))
+    ;;  (defflat -100 200 -80 5 3 4 6 .7)
+     (deftriangle a b c .8)
+     (defsphere 0 -300 -1200 200 .8)
+     (defsphere -80 -150 -1200 200 .7)
+     (defsphere 70 -100 -1200 200 .9)
+     (do ((x -2 (1+ x)))
+         ((> x 2))
+       (do ((z 2 (1+ z)))
+           ((> z 7))
+         (defsphere (* x 200) 300 (* z -400) 40 .75)))
+     (tracer (make-pathname :name "spheres.pgm") res)))
 
   (ray-test 10)
 
