@@ -3515,7 +3515,7 @@ c)
     (multiple-value-bind (s int dist) (first-hit scn r)
       (declare (ignore int))
       (if (and s (not (equal o s)))
-          ;;    (if s
+          ;; (if s
           dist
           NIL)))
 
@@ -3545,7 +3545,6 @@ c)
 
   (defun lambert (s int vl)
     (let ((vn (normal s int)))
-      ;;(break)
       (max 0 (lm:dot-product vl vn))))
 
   (defun create-sphere (x y z r c)
@@ -3630,23 +3629,24 @@ c)
   (defun init-scene ()
     (let ((srfcs nil)
           (lghts nil))
-      (push (create-plane 0 1 .001 400 1) srfcs)
-      (push (create-plane 0 -1 .001 400 1) srfcs)
-      (push (create-sphere 0 -100 -1200 200 .8) srfcs)
-      (push (create-sphere -80 -50 -1200 200 .7) srfcs)
-      (push (create-sphere 70 0 -1200 200 .9) srfcs)
+      (push (create-plane 0 1 .001 380 1) srfcs)
+      (push (create-plane 1 0 .001 800 1) srfcs)
+      (push (create-plane -1 0 .001 800 1) srfcs)
+      (push (create-plane 0 -1 .001 800 1) srfcs)
+      (push (create-plane 0 0 0.001 3000 1) srfcs)
+      (push (create-sphere 0 0 -2200 300 .9) srfcs)
       (do ((x -2 (1+ x)))
           ((> x 2))
         (do ((z 2 (1+ z)))
-            ((> z 7))
-          (push (create-sphere (* x 200) 300 (* z -400) 80 .75) srfcs)))
+            ((> z 5))
+          (push (create-sphere (* x 200) -300 (* z -400) 80 .75) srfcs)))
       (push (make-instance
              'light
              :light-position (make-instance
                               'point
                               :point-x 0
-                              :point-y -350
-                              :point-z -950))
+                              :point-y 500
+                              :point-z -1500))
             lghts)
       (make-instance
        'scene
@@ -3665,7 +3665,7 @@ c)
         (png:encode result p)
         (close p))))
 
-  (render "ccc222.png" (init-scene) 300 300 1)
+  (render "ccc2223.png" (init-scene) 600 600 3)
 #+END_SRC
 
 ** area
