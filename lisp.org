@@ -3158,28 +3158,49 @@ c)
 
 
 #+BEGIN_SRC lisp
-
+  ;; Список объектов мира
+  ;; чтобы добавить обЪект в мир, надо занести его в world, при этом его
+  ;; z-координата должна быть отрицательной, чтоб обЪект был видимым
   (defparameter *world* nil)
 
+<<<<<<< HEAD
   ;; Структура точки в 3D
   (defclass point  ()
     ((x :initarg :x :accessor x)
+=======
+  ;; Класс точки в трехмероном пространстве
+  (defclass point ()
+    ((x :initarg :x :accessor x )
+>>>>>>> 65e9c61f22f82c6670bf9c60cb21a7c7d4d6470e
      (y :initarg :y :accessor y)
      (z :initarg :z :accessor z)))
 
-  ;; Координаты point-of-view
-  (defconstant eye (make-instance 'point :x 0 :y 0 :z 200))
+  ;; Класс луча в трехмероном пространстве
+  ;; Состоит из точки (origin) единичного вектора направления (direction)
+  (defclass ray ()
+    ((origin     :initarg :origin     :accessor origin)
+     (direction  :initarg :direction  :accessor direction)))
 
+  ;; Класс поверхности, имеющей только цвет, от него наследуются
+  ;; геометрические фигуры
+  ;; sur-color принимает значения от 0 (черный) до 1 (белый)
   (defclass surface ()
     ((color :accessor sur-color
             :initarg :sur-color)))
 
+  ;; Класс сферы, включающая в себя структуру surface
+  ;; Чтобы определить сферу нам нужны ее X,Y,Z-координаты,
+  ;; радиус и цвет (который определен в surface)
   (defclass sphere (surface)
-    ((radius :accessor sphere-radius
-             :initarg :sphere-radius)
-     (center :accessor sphere-center
-             :initarg :sphere-center)))
+    ((radius :initarg :sphere-radius  :accessor sphere-radius)
+     (center :initarg :sphere-center  :accessor sphere-center)))
 
+
+  ;; Координаты point-of-view
+  (defparameter eye (make-instance 'point :x 0 :y 0 :z 200))
+
+
+<<<<<<< HEAD
   (defclass flat (surface point)
     ((flat-normalX :accessor Nx
               :initarg :Nx)
@@ -3199,6 +3220,10 @@ c)
         :initarg :C)))
 
     (defun defsphere (x y z r c)
+=======
+  (defun defsphere (x y z r c)
+    "Процедура, создающая сферу и пуш-ащая ее в *WORLD*"
+>>>>>>> 65e9c61f22f82c6670bf9c60cb21a7c7d4d6470e
     (let ((s (make-instance 'sphere
                             :sphere-radius r
                             :sphere-center (make-instance 'point :x x :y y :z z)
@@ -3221,18 +3246,25 @@ c)
       s))
 
   (defun sq (x)
+    "Возведение в квадрат"
     (* x x))
 
   ;; длина вектора
   (defun mag (x y z)
+    "Длина вектора"
     (sqrt (+ (sq x) (sq y) (sq z))))
 
   ;; возвращает координаты конца вектора, как если бы он шел из начала координат
   (defun unit-vector (x y z)
+    "Возвращает координаты конца вектора как если бы он шел из начала координат"
     (let ((d (mag x y z)))
       (values (/ x d) (/ y d) (/ z d))))
 
   (defun distance (p1 p2)
+<<<<<<< HEAD
+=======
+    "Вычисляет дистанцию между точками"
+>>>>>>> 65e9c61f22f82c6670bf9c60cb21a7c7d4d6470e
     ;; передаем два экземпляра класса point,
     ;; затем в mag передаем посля X, Y и Z от классов
     (mag (- (x p1) (x p2))
@@ -3271,6 +3303,7 @@ c)
                       :y (+ (y pt) (* n yr))
                       :z (+ (z pt) (* n zr))))))
 
+<<<<<<< HEAD
   ;; метод, работающий с плоскостями
   ;; принимает плоскость, точку, из которой исходит луч и координаты его единичного вектора
   ;; действиет по формуле: n1(x0 + t* lx) + n2(y0 + t* ly) + n3(z0 + t* lz) + d = 0
@@ -3298,6 +3331,52 @@ c)
                                     :y (+ (y pt) (* n yr))
                                     :z (+ (z pt) (* n zr))))))))))))
 
+=======
+  (defun explained-sphere-intersect (s pt xr yr zr)
+    ""
+    ;; Определяем, пересекает ли луч сферу
+    ;; Дистанция между центром сферы и ближайшей точкой луча может быть посчитана
+    ;; Если эта дистанция больше чем радиус сферы - значит пересечения нет.
+    ;; Для вычисления расстояния рассматриваются два случая:
+    ;; - центр сферы проецируется на луч
+    ;; - либо нет
+    ;; Пусть V будет вектором, который идет от P (точка начала луча?) к C (центру сферы)
+    ;; Тогда если:
+    ;; - d . v > 0  // Расстояние до луча может быть вычислено (рис. Sphere 1)
+    ;; - d . v <= 0 // Сфера находится позади луча (рис. Sphere 2)
+    ;; Здесь "." (точка) - это "dot product", т.е. скалярное произведение векторов,
+    ;; операция над двумя векторами, результатом которой является число. Ее геометрический
+    ;; смысл - умножение длины первого вектора на длину проекции второго
+    ;; вектора на первый вектор.
+    ;; Технически, мы можем получить скалярное произведение умножив длины векторов друг
+    ;; на друга и на косинус угла между ними, но я не уверен что могу правильно посчитать
+    ;; этот угол.
+    ;; Чтобы рассчитать скалярное произведение двух векторов, мы должны умножить их
+    ;; компоненты, а затем сложить полученные результаты вместе
+    ;; Возможны три варианта:
+    ;; - Нет пересечения сферы с лучом
+    ;; - Есть пересечении в одной точке (точке касательной к сфере)
+    ;; - Есть два пересечения в двух точках (где луч пронзает сферу)
+    ;; Сначала посчитаем проекцию центра сферы на луч,
+    ;; назовем ее PC (projection of center sphere)
+    ;; - Если расстояние от PC до луча больше чем радиус сферы, то пересечения нет
+    ;; - Если расстояние от PC до луча равно радиусу сферы, то есть одно пересечение
+    ;; - В противном случае у нас два пересечения
+    ;; Последний случай требует немного дополнительной работы
+    ;; bool ray_intersect(const Vec3f &orig, const Vec3f &dir, float &t0) const {
+    ;; Vec3f L = center - orig;
+    ;; float tca = L*dir;
+    ;; float d2 = L*L - tca*tca;
+    ;; if (d2 > radius*radius) return false;
+    ;; float thc = sqrtf(radius*radius - d2);
+    ;; t0       = tca - thc;
+    ;; float t1 = tca + thc;
+    ;; if (t0 < 0) t0 = t1;
+    ;; if (t0 < 0) return false;
+    ;; return true;
+    ;;     }
+    )
+>>>>>>> 65e9c61f22f82c6670bf9c60cb21a7c7d4d6470e
 
   (defun first-hit (pt xr yr zr)
     ;; Перебираем *WORLD* пока не найдем тот элемент,
@@ -3380,106 +3459,6 @@ c)
       ;; на от 0 до 255
       (round (* (sendray eye xr yr zr) 255))))
 
-  (defun tracer (pathname &optional (res 1))
-    (with-open-file (p pathname :direction :output :if-exists :supersede)
-      ;; создаем заголовок файла
-      (format p "P2 ~A ~A 255" (* res 100) (* res 100))
-      (let ((inc (/ res)))
-        (do ((y -50 (+ y inc)))
-            ((< (- 50 y) inc))
-          (do ((x -50 (+ x inc)))
-              ((< (- 50 x) inc))
-            (print (color-at x y) p)
-            ;; (format t "y: ~A; x: ~A; inc: ~A; color: ~A | (< (- 50 ~A) ~A) ~%"
-            ;;         y
-            ;;         x
-            ;;         inc
-            ;;         (color-at x y)
-            ;;         y
-            ;;         inc
-            ;;            )
-            )))))
-
-  (defun ray-test (&optional (res 1))
-    (setf *world* nil)
-    (defsphere 0 -300 -1200 200 .8)
-    (defsphere -80 -150 -1200 200 .7)
-    (defsphere 70 -100 -1200 200 .9)
-    (do ((x -2 (1+ x)))
-        ((> x 2))
-      (do ((z 2 (1+ z)))
-          ((> z 7))
-        (defsphere (* x 200) 300 (* z -400) 40 .75)))
-    (tracer (make-pathname :name "spheres.pgm") res))
-
-
-  (defun ray-test-flat (&optional (res 1))
-    (setf *world* nil)
-    (defflat 0 -150 -200 -100 -120 -130 -9 .8)
-    (tracer (make-pathname :name "spheres.pgm") res))
-
-  (ray-test 10)
-
-  (ray-test-flat 10)
-
-#+END_SRC
-
-
-#+NAME: tracer
-#+BEGIN_SRC lisp
-  (defun sq (x)
-    "Возведение в квадрат"
-    (* x x))
-
-  (defun mag (x y z)
-    "Длина вектора"
-    (sqrt (+ (sq x) (sq y) (sq z))))
-
-  (defun unit-vector (x y z)
-    "Возвращает координаты конца вектора как если бы он шел из начала координат"
-    (let ((d (mag x y z)))
-      (values (/ x d) (/ y d) (/ z d))))
-
-  ;; Структура точки в 3D
-  (defstruct (point (:conc-name nil))
-    x y z)
-
-  (defun distance (p1 p2)
-    "Вычисляет дистанцию между точками"
-    ;; передаем два экземпляра структуры point,
-    ;; затем в mag передаем посля X, Y и Z от структур
-    (mag (- (x p1) (x p2))
-         (- (y p1) (y p2))
-         (- (z p1) (z p2))))
-
-  ;; принимает 3 действительных числа (число, которое можно записать в виде конечной дроби)
-  ;; возвращает наименьший Х, для которого  Ax^2+Bx+c = 0
-  ;; (как это помогает понять, пересекаются ли сферы?)
-  (defun minroot (a b c)
-    "Решает квадратное уравнение Ax^2+Bx+c, применяется при вычислении пересечений сфер"
-    ;; если А = 0
-    (if (zerop a)
-        ;; вычисляем эту строку
-        (/ (- c) b)
-        ;; в противном случае считаем так
-        (let ((disc (- (sq b) (* 4 a c))))
-          (unless (minusp disc)
-            (let ((discrt (sqrt disc)))
-              (min (/ (+ (- b) discrt) (* 2 a))
-                   (/ (- (- b) discrt) (* 2 a))))))))
-
-  ;; Структура поверхности, имеющая только цвет
-  ;; color принимает значения от 0 (черный) до 1 (белый)
-  (defstruct surface color)
-
-  ;; Список объектов мира
-  ;; чтобы добавить обЪект в мир, надо занести его в world, при этом его
-  ;; z-координата должна быть отрицательной, чтоб обЪект был видимым
-  (defparameter *world* nil)
-
-  ;; Координаты point-of-view
-  (defconstant eye (make-point :x 0 :y 0 :z 200))
-
   ;; создает само изображение
   ;; принимает путь к файлу, в который пишет изображение и разрешение
   ;; (по умолчанию 1 что означает 100x100)
@@ -3503,172 +3482,6 @@ c)
             ;;            )
             )))))
 
-  (defun color-at (x y)
-    "Возвращает количество света, в диапазоне от 0 до 255 попадающее в EYE"
-    (multiple-value-bind (xr yr zr)
-        ;; Ищем вектор от EYE к точке X:Y:0 т.е. к точке экрана
-        (unit-vector (- x (x eye))
-                     (- y (y eye))
-                     (- 0 (z eye)))
-      ;; Отправляем луч, проходящий от глаза через эту точку в мир,
-      ;; получая число от 0 до 1, которое потом масштабируем
-      ;; на от 0 до 255
-      (round (* (sendray eye xr yr zr) 255))))
-
-  (defun sendray (pt xr yr zr)
-    "Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE
-    Параметры:
-    pt - point of view (eye)
-    xr,yr,zr - единичный вектор вектор из начала в координат point of view (eye)"
-    (multiple-value-bind (s int)
-        ;; Находим куда попал луч (среди объектов списка *WORLD*)
-        ;; или 0 если луч никуда не попадает
-        (first-hit pt xr yr zr)
-      (if s
-          ;; Если есть попадание, то вычисляем интенсивность света,
-          ;; отраженного точкой поверхности по закону Ламберта и умножаем его
-          ;; на цвет поверхности (темная отражает меньше света)
-          (* (lambert s int xr yr zr)
-             (surface-color s))
-          0)))
-
-  (defun first-hit (pt xr yr zr)
-    ;; Перебираем *WORLD* пока не найдем тот элемент,
-    ;; для которого INTERSECT даст T
-    ;; Проверяем DISTANCE и если все ок - возращаем
-    (let (surface hit dist)
-      (dolist (s *world*)
-        (let ((h (intersect s pt xr yr zr)))
-          (when h
-            (let ((d (distance h pt)))
-              (when (or (null dist)
-                        (< d dist))
-                (setf surface s
-                      hit h
-                      dist d))))))
-      (values surface hit)))
-
-  (defun lambert (s int xr yr zr)
-    "Интенсивность света, отраженного точкой поверхности,
-     пропорциональна скалярному произведению единичного вектора N,
-     направленного из этой точки вдоль нормали к поверхности, и
-     единичного вектора L, направленного вдоль луча к источнику света.
-
-     i = N * L
-
-     Нормаль к поверхности - это вектор, длина которого равна 1,
-     направленный перпендикулярно поверхности в заданной точке
-
-     Означает, что сила света плоской поверхности максимальна по
-     перпендикуляру к ней и, убывая с увеличением угла, становится
-     равной нулю в касательных к поверхности направлениях."
-    (multiple-value-bind (xn yn zn)
-        (normal s int)
-      (max 0 (+ (* xr xn)
-                (* yr yn)
-                (* zr zn)))))
-
-  ;; Структура сферы, включающая в себя структуру surface
-  ;; Чтобы определить сферу нам нужны ее X,Y,Z-координаты,
-  ;; радиус и цвет (который определен в surface)
-  (defstruct (sphere (:include surface))
-    radius center)
-
-  (defun defsphere (x y z r c)
-    "Процедура, создающая сферу и пуш-ащая ее в *WORLD*"
-    (let ((s (make-sphere
-              :radius r
-              :center (make-point :x x :y y :z z)
-              :color c)))
-      (push s *world*)
-      s))
-
-  (defun intersect (s pt xr yr zr)
-    "Процедура, которая для каждого типа объекта S вызывает
-    функцию, которая ищет пересечение этого объекта с лучом.
-    У нас пока есть только один объект - сфера"
-    (funcall
-     (typecase s
-       (sphere #'sphere-intersect))
-     s pt xr yr zr))
-
-  (defun sphere-intersect (s pt xr yr zr)
-    "<<Как найти пересечение луча со сферой?>>"
-    (let* ((c (sphere-center s))
-           (n (minroot (+ (sq xr) (sq yr) (sq zr))
-                       (* 2 (+ (* (- (x pt) (x c)) xr)
-                               (* (- (y pt) (y c)) yr)
-                               (* (- (z pt) (z c)) zr)))
-                       (+ (sq (- (x pt) (x c)))
-                          (sq (- (y pt) (y c)))
-                          (sq (- (z pt) (z c)))
-                          (- (sq (sphere-radius s)))))))
-      (if n
-          (make-point :x (+ (x pt) (* n xr))
-                      :y (+ (y pt) (* n yr))
-                      :z (+ (z pt) (* n zr))))))
-
-  (defun explained-sphere-intersect (s pt xr yr zr)
-    ""
-    ;; Определяем, пересекает ли луч сферу
-    ;; Дистанция между центром сферы и ближайшей точкой луча может быть посчитана
-    ;; Если эта дистанция больше чем радиус сферы - значит пересечения нет.
-    ;; Для вычисления расстояния рассматриваются два случая:
-    ;; - центр сферы проецируется на луч
-    ;; - либо нет
-    ;; Пусть V будет вектором, который идет от P (точка начала луча?) к C (центру сферы)
-    ;; Тогда если:
-    ;; - d . v > 0  // Расстояние до луча может быть вычислено (рис. Sphere 1)
-    ;; - d . v <= 0 // Сфера находится позади луча (рис. Sphere 2)
-    ;; Здесь "." (точка) - это "dot product", т.е. скалярное произведение векторов,
-    ;; операция над двумя векторами, результатом которой является число. Ее геометрический
-    ;; смысл - умножение длины первого вектора на длину проекции второго
-    ;; вектора на первый вектор.
-    ;; Технически, мы можем получить скалярное произведение умножив длины векторов друг
-    ;; на друга и на косинус угла между ними, но я не уверен что могу правильно посчитать
-    ;; этот угол.
-    ;; Чтобы рассчитать скалярное произведение двух векторов, мы должны умножить их
-    ;; компоненты, а затем сложить полученные результаты вместе
-    ;; Возможны три варианта:
-    ;; - Нет пересечения сферы с лучом
-    ;; - Есть пересечении в одной точке (точке касательной к сфере)
-    ;; - Есть два пересечения в двух точках (где луч пронзает сферу)
-    ;; Сначала посчитаем проекцию центра сферы на луч,
-    ;; назовем ее PC (projection of center sphere)
-    ;; - Если расстояние от PC до луча больше чем радиус сферы, то пересечения нет
-    ;; - Если расстояние от PC до луча равно радиусу сферы, то есть одно пересечение
-    ;; - В противном случае у нас два пересечения
-    ;; Последний случай требует немного дополнительной работы
-    bool ray_intersect(const Vec3f &orig, const Vec3f &dir, float &t0) const {
-    Vec3f L = center - orig;
-    float tca = L*dir;
-    float d2 = L*L - tca*tca;
-    if (d2 > radius*radius) return false;
-    float thc = sqrtf(radius*radius - d2);
-    t0       = tca - thc;
-    float t1 = tca + thc;
-    if (t0 < 0) t0 = t1;
-    if (t0 < 0) return false;
-    return true;
-        }
-    )
-
-  (defun normal (s pt)
-    "Процедура, которая для каждого типа объекта S вызывает
-    функцию, которая ищет нормаль.
-    У нас пока есть только один объект - сфера"
-    (funcall
-     (typecase s
-       (sphere #'sphere-normal))
-     s pt))
-
-  (defun sphere-normal (s pt)
-    "Расчет нормали к сфере"
-    (let ((c (sphere-center s)))
-      (unit-vector (- (x c) (x pt))
-                   (- (y c) (y pt))
-                   (- (z c) (z pt)))))
-
   (defun ray-test (&optional (res 1))
     (setf *world* nil)
     (defsphere 0 -300 -1200 200 .8)
@@ -3681,10 +3494,279 @@ c)
         (defsphere (* x 200) 300 (* z -400) 40 .75)))
     (tracer (make-pathname :name "spheres.pgm") res))
 
+<<<<<<< HEAD
+
+  (defun ray-test-flat (&optional (res 1))
+    (setf *world* nil)
+    (defflat 0 -150 -200 -100 -120 -130 -9 .8)
+    (tracer (make-pathname :name "spheres.pgm") res))
+
   (ray-test 10)
+=======
+  (ray-test 5)
+>>>>>>> 65e9c61f22f82c6670bf9c60cb21a7c7d4d6470e
+
+  (ray-test-flat 10)
 
 #+END_SRC
 
+#+BEGIN_SRC lisp
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NEW VARIANT
+  (ql:quickload "png")
+  (ql:quickload "l-math")
+
+  ;; Класс точки в трехмероном пространстве
+  (defclass point ()
+    ((point-x :initarg :point-x :accessor point-x)
+     (point-y :initarg :point-y :accessor point-y)
+     (point-z :initarg :point-z :accessor point-z)))
+
+  ;; Класс оболочки, имеющей только цвет, от него наследуются геометрические фигуры
+  ;; color принимает значения от 0 (черный) до 1 (белый)
+  (defclass surface ()
+    ((surface-color :initarg :surface-color :accessor surface-color)))
+
+  ;; Класс сферы, включающий в себя surface
+  ;; Чтобы определить сферу нам нужны ее X,Y,Z-координаты,
+  ;; радиус и цвет (который определен в surface)
+  (defclass sphere (surface)
+    ((sphere-radius :initarg :sphere-radius  :accessor sphere-radius)
+     (sphere-center :initarg :sphere-center  :accessor sphere-center)))
+
+  ;; Класс поверхности, определяемой через нормаль и точку
+  (defclass plane (surface)
+    ((plane-normal   :initarg :plane-normal    :accessor plane-normal)
+     (plane-distance :initarg :plane-distance  :accessor plane-distance)))
+
+  ;; Класс источника света
+  (defclass light ()
+    ((light-position :initarg :light-position :accessor light-position)))
+
+  (defclass scene ()
+    ((scene-eye      :initarg :scene-eye       :accessor scene-eye)
+     (scene-surfaces :initarg :scene-surfaces  :accessor scene-surfaces)
+     (scene-lights   :initarg :scene-lights    :accessor scene-lights)))
+
+  (defclass ray ()
+    ((ray-origin    :initarg :ray-origin     :accessor ray-origin)
+     (ray-direction :initarg :ray-direction  :accessor ray-direction)))
+
+  (defun sq (x)
+    (* x x))
+
+  (defun mag (x y z)
+    (sqrt (+ (sq x) (sq y) (sq z))))
+
+  (defun distance (p1 p2)
+    (mag (- (point-x p1) (point-x p2))
+         (- (point-y p1) (point-y p2))
+         (- (point-z p1) (point-z p2))))
+
+  (defun minroot (a b c)
+    (if (zerop a)
+        (/ (- c) b)
+        (let ((disc (- (sq b) (* 4 a c))))
+          (unless (minusp disc)
+            (let ((discrt (sqrt disc)))
+              (min (/ (+ (- b) discrt) (* 2 a))
+                   (/ (- (- b) discrt) (* 2 a))))))))
+
+  (defun put-pixel (canvas x y color)
+    (setf (aref canvas y x 0) color))
+
+  (defun tracer (scn canvas width height res)
+    (do ((y (- (/ height 2)) (+ y 1)))
+        ((< (- (/ height 2) y) 1))
+      (do ((x (- (/ width 2)) (+ x 1)))
+          ((< (- (/ width 2) x) 1))
+        (put-pixel canvas
+                   (- (- width 1) (+ x (/ width 2)))
+                   (- (- height 1) (+ y (/ height 2)))
+                   (color-at scn (/ x res) (/ y res))))))
+
+  (defun dir-vector (p1 p2)
+    (lm:normalise
+     (lm:make-vector
+      3
+      :initial-elements (list (- (point-x p2) (point-x p1))
+                              (- (point-y p2) (point-y p1))
+                              (- (point-z p2) (point-z p1))))))
+
+  (defun color-at (scn x y)
+    (let* ((vr (dir-vector
+                (scene-eye scn)
+                (make-instance 'point
+                               :point-x x :point-y y :point-z 0)))
+           (r (make-instance 'ray
+                             :ray-origin (scene-eye scn)
+                             :ray-direction vr)))
+      (round (* (sendray scn r) 255))))
+
+  (defun sendray (scn r)
+    (multiple-value-bind (s int) (first-hit scn r)
+      (if s
+          (shade scn s int)
+          0)))
+
+  (defun send-shadow-ray (o scn r)
+    (multiple-value-bind (s int dist) (first-hit scn r)
+      (declare (ignore int))
+      (if (and s (not (equal o s)))
+          ;;    (if s
+          dist
+          NIL)))
+
+  (defun shade (scn s int)
+    (let ((color 0))
+      (dolist (l (scene-lights scn))
+        (let* ((vl (dir-vector int (light-position l)))
+               (sr (make-instance 'ray :ray-origin int :ray-direction vl))
+               (dist (send-shadow-ray s scn sr)))
+          (if (or (null dist)
+                  (> dist (distance int (light-position l))))
+              (setf color (+ color (* (lambert s int vl) (surface-color s)))))))
+      (min color 1)))
+
+  (defun first-hit (scn r)
+    (let (surface hit dist)
+      (dolist (s (scene-surfaces scn))
+        (let ((h (intersect s r)))
+          (when h
+            (let ((d (distance h (ray-origin r))))
+              (when (or (null dist)
+                        (< d dist))
+                (setf surface s
+                      hit h
+                      dist d))))))
+      (values surface hit dist)))
+
+  (defun lambert (s int vl)
+    (let ((vn (normal s int)))
+      ;;(break)
+      (max 0 (lm:dot-product vl vn))))
+
+  (defun create-sphere (x y z r c)
+    (make-instance
+     'sphere
+     :sphere-radius r
+     :sphere-center (make-instance
+                     'point
+                     :point-x x
+                     :point-y y
+                     :point-z z)
+     :surface-color c))
+
+  (defmethod intersect ((s sphere) r)
+    (let* ((c (sphere-center s))
+           (n (minroot
+               (+ (sq (lm:x (ray-direction r)))
+                  (sq (lm:y (ray-direction r)))
+                  (sq (lm:z (ray-direction r))))
+               (* 2 (+ (* (- (point-x (ray-origin r)) (point-x c)) (lm:x (ray-direction r)))
+                       (* (- (point-y (ray-origin r)) (point-y c)) (lm:y (ray-direction r)))
+                       (* (- (point-z (ray-origin r)) (point-z c)) (lm:z (ray-direction r)))))
+               (+ (sq (- (point-x (ray-origin r)) (point-x c)))
+                  (sq (- (point-y (ray-origin r)) (point-y c)))
+                  (sq (- (point-z (ray-origin r)) (point-z c)))
+                  (- (sq (sphere-radius s)))))))
+      (if n
+          (make-instance
+           'point
+           :point-x (+ (point-x (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:x (ray-direction r))))
+           :point-y (+ (point-y (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:y (ray-direction r))))
+           :point-z (+ (point-z (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:z (ray-direction r))))))))
+
+  (defun point-to-vector (p)
+    (lm:make-vector
+     3
+     :initial-elements (list (point-x p)
+                             (point-y p)
+                             (point-z p))))
+
+  (defmethod intersect ((s plane) r)
+    (let* ((vd (lm:dot-product (plane-normal s) (ray-direction r)))
+           (v0 (- (+ (lm:dot-product
+                      (plane-normal s)
+                      (point-to-vector (ray-origin r)))
+                     (plane-distance s))))
+           (n (/ v0 vd)))
+      (if (>= n 0)
+          (make-instance
+           'point
+           :point-x (+ (point-x (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:x (ray-direction r))))
+           :point-y (+ (point-y (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:y (ray-direction r))))
+           :point-z (+ (point-z (ray-origin r))
+                       (* (- n 0.0000000001)
+                          (lm:z (ray-direction r))))))))
+
+  (defmethod normal ((s sphere) pt)
+    (dir-vector (sphere-center s) pt))
+
+  (defmethod normal ((s plane) pt)
+    (declare (ignore pt))
+    (plane-normal s))
+
+  (defun create-plane (xn yn zn dist color)
+    (make-instance
+     'plane
+     :plane-normal (lm:normalise
+                    (lm:make-vector 3 :initial-elements (list xn yn zn)))
+     :plane-distance dist
+     :surface-color color))
+
+  (defun init-scene ()
+    (let ((srfcs nil)
+          (lghts nil))
+      (push (create-plane 0  1 .003 400 1) srfcs)
+      (push (create-plane -1 `1 .001 400 1) srfcs)
+      (push (create-plane 1 -1 .001 400 1) srfcs)
+      (push (create-plane 3 0 .001 400 1) srfcs)
+      ;; (push (create-sphere 0 -100 -1200 200 .8) srfcs)
+      ;; (push (create-sphere -80 -50 -1200 200 .7) srfcs)
+      ;; (push (create-sphere 70 0 -1200 200 .9) srfcs)
+      (do ((x -2 (1+ x)))
+          ((> x 2))
+        (do ((z 2 (1+ z)))
+            ((> z 7))
+          (push (create-sphere (* x 200) 300 (* z -400) 80 .75) srfcs)))
+      (push (make-instance
+             'light
+             :light-position (make-instance
+                              'point
+                              :point-x 0
+                              :point-y -300
+                              :point-z -950))
+            lghts)
+      (make-instance
+       'scene
+       :scene-eye (make-instance 'point :point-x 0 :point-y 0 :point-z 200)
+       :scene-surfaces srfcs
+       :scene-lights lghts)))
+
+
+  (defun render (pathname scn width height res)
+    (let ((result (png:make-image height width 1)))
+      (tracer scn result width height res)
+      (let ((p (open pathname
+                     :direction :output
+                     :if-does-not-exist :create
+                     :if-exists :overwrite
+                     :element-type '(unsigned-byte 8))))
+        (png:encode result p)
+        (close p))))
+
+  (render "ccc222.png" (init-scene) 300 300 1)
+#+END_SRC
 
 ** area
 
