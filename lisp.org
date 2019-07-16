@@ -3463,7 +3463,8 @@ c)
           (when h
             (let ((d (distance h pt)))
   ;;            (format t "distance ~a ~&" d)
-              (when (null dist)
+              (when (or (null dist)
+                        (< d dist))
                 (setf surface s
                       hit h
                       dist d))))))
@@ -3510,27 +3511,28 @@ c)
                 (* yr yn)
                 (* zr zn)))))
 
-  (defun sendray (pt xr yr zr)
-    ;;   Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE
-    ;;   Параметры:
-    ;;   pt - point of view (eye)
-    ;;   xr,yr,zr - единичный вектор вектор из начала в координат point of view (eye)
-    (multiple-value-bind (s int)
-        ;; Находим куда попал луч (среди объектов списка *WORLD*)
-        ;; или 0 если луч никуда не попадает
-        (first-hit pt xr yr zr)
-      (format t "obj ~A x ~a y ~a z ~a point ~a ~&"
-              s (Nx s) (Ny s) (Nz s) int)
-      (if s
-          ;; Если есть попадание, то вычисляем интенсивность света,
-          ;; отраженного точкой поверхности по закону Ламберта и умножаем его
-          ;; на цвет поверхности (темная отражает меньше света)
-          (progn
-          ;;(format t "color ~a ~&" (* (lambert s int xr yr zr)
-          ;;                           (sur-color s)))
-          (* (lambert s int xr yr zr)
-             (sur-color s)))
-          0)))
+  (let ((test (make-hash-table :test #'equal)))
+    (defun sendray (pt xr yr zr)
+      ;;   Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE
+      ;;   Параметры:
+      ;;   pt - point of view (eye)
+      ;;   xr,yr,zr - единичный вектор вектор из начала в координат point of view (eye)
+      (multiple-value-bind (s int)
+          ;; Находим куда попал луч (среди объектов списка *WORLD*)
+          ;; или 0 если луч никуда не попадает
+          (first-hit pt xr yr zr)
+        (format t "obj ~A x ~a y ~a z ~a point ~a ~&"
+                s (Nx s) (Ny s) (Nz s) int)
+        (if s
+            ;; Если есть попадание, то вычисляем интенсивность света,
+            ;; отраженного точкой поверхности по закону Ламберта и умножаем его
+            ;; на цвет поверхности (темная отражает меньше света)
+            (progn
+              ;;(format t "color ~a ~&" (* (lambert s int xr yr zr)
+              ;;                           (sur-color s)))
+              (* (lambert s int xr yr zr)
+                 (sur-color s)))
+            0))))
 
   (defun color-at (x y)
     "Возвращает количество света, в диапазоне от 0 до 255 попадающее в EYE"
