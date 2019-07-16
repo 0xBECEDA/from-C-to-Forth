@@ -3218,6 +3218,7 @@ c)
                             :D d
                             :sur-color color)))
       (push s *world*)
+      (format t "defflat normal Nx ~a Ny ~a Nz ~a ~&" (Nx s) (Ny s) (Nz s))
       s))
 
   ;; высчитывает нормаль по 3 точкам
@@ -3360,13 +3361,16 @@ c)
                                       :z zr))
            (den (+ (dot-product ray-normal flat-normal)))
            (result (/ num den)))
+      (format t "intersect-normal NX ~a NY ~a NZ~a ~&"
+              (x flat-normal) (y flat-normal) (z flat-normal))
+
       (if (>= result 0)
           ;;(format t "true!")
           (make-instance
            'point
            :x (+ (x pt) (* result xr))
            :y (+ (y pt) (* result yr))
-           :z (+ (z pt) (* result zr))))))
+        :z (+ (z pt) (* result zr))))))
 
   ;;метод работает с треугольниками
   ;; принимает объект типа "треугольник", точку испускания луча и его вектор.
@@ -3465,20 +3469,6 @@ c)
                       dist d))))))
       (values surface hit)))
 
-  (defun first-hit (pt xr yr zr)
-    ;; тест
-    (let (surface hit dist)
-      (dolist (s *world*)
-        (let ((h (intersect s pt xr yr zr)))
-          (when h
-            (let ((d "true"))
-              (when (or (null dist)
-                        (< d dist))
-                (setf surface s
-                      hit h
-                      dist d))))))
-      (values surface hit)))
-
   (defmethod normal ((s sphere) (pt point))
     "Расчет нормали к сфере"
     (let ((c (sphere-center s)))
@@ -3486,10 +3476,8 @@ c)
                    (- (y c) (y pt))
                    (- (z c) (z pt)))))
 
-
   (defmethod normal ((s flat) (pt point))
-    (let ((flat s))
-      (values (Nx flat) (Ny flat) (Nz flat))))
+      (values (Nx s) (Ny s) (Nz s)))
 
   (defmethod normal ((s triangle) (pt point))
     (let ((treangle s))
@@ -3515,9 +3503,9 @@ c)
     (multiple-value-bind (xn yn zn)
         (normal s int)
       (format t "normal xn ~a yn ~a zn ~a  ~&" xn yn zn)
-      (format t "lambert ~a ~&" (max 0 (+ (* xr xn)
-                                          (* yr yn)
-                                          (* zr zn))))
+      ;;(format t "lambert ~a ~&" (max 0 (+ (* xr xn)
+      ;;                                    (* yr yn)
+      ;;                                    (* zr zn))))
       (max 0 (+ (* xr xn)
                 (* yr yn)
                 (* zr zn)))))
@@ -3531,6 +3519,8 @@ c)
         ;; Находим куда попал луч (среди объектов списка *WORLD*)
         ;; или 0 если луч никуда не попадает
         (first-hit pt xr yr zr)
+      (format t "obj ~A x ~a y ~a z ~a point ~a ~&"
+              s (Nx s) (Ny s) (Nz s) int)
       (if s
           ;; Если есть попадание, то вычисляем интенсивность света,
           ;; отраженного точкой поверхности по закону Ламберта и умножаем его
@@ -3552,7 +3542,7 @@ c)
       ;; Отправляем луч, проходящий от глаза через эту точку в мир,
       ;; получая число от 0 до 1, которое потом масштабируем
       ;; на от 0 до 255
-      (format t "xr ~a  yr ~a  zr ~a ~&" xr yr zr)
+  ;;    (format t "xr ~a  yr ~a  zr ~a ~&" xr yr zr)
       (round (* (sendray eye xr yr zr) 255))))
 
   (defun tracer (pathname &optional (res 1))
@@ -3590,11 +3580,11 @@ c)
 
   (defun ray-test-flat (&optional (res 1))
     (setf *world* nil)
-    (defflat 2 -80 -90 3000 .7)
     (defflat 10 -100 -800 3000 .5)
+    (defflat 200 -13 -400 3000 .2)
     ;;(defflat 9 18 -2 300 1)
      ;; (deftriangle a b c .8)
-      (defsphere 0 -300 -1200 200 .8)
+      ;;(defsphere 0 -300 -1200 200 .8)
      ;; (defsphere -80 -150 -1200 200 .7)
      ;; (defsphere 70 -100 -1200 200 .9)
      ;; (do ((x -2 (1+ x)))
