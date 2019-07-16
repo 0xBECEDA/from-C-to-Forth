@@ -3319,6 +3319,7 @@ c)
                                (* (- (z pt) (z c)) zr)))
                        (+ (sq (- (x pt) (x c)))
                           (sq (- (y pt) (y c)))
+
                           (sq (- (z pt) (z c)))
                           (- (sq (sphere-radius s)))))))
       (if n
@@ -3501,15 +3502,20 @@ c)
     ;;    Означает, что сила света плоской поверхности максимальна по
     ;;    перпендикуляру к ней и, убывая с увеличением угла, становится
     ;;    равной нулю в касательных к поверхности направлениях."
-    (multiple-value-bind (xn yn zn)
-        (normal s int)
+      (multiple-value-bind (x y z)
+      (normal s int)
+
+      (multiple-value-bind (xn yn zn)
+        (unit-vector x y z)
+
       ;; (format t "normal xn ~a yn ~a zn ~a  ~&" xn yn zn)
-      ;;(format t "lambert ~a ~&" (max 0 (+ (* xr xn)
-      ;;                                    (* yr yn)
-      ;;                                    (* zr zn))))
-      (max 0 (+ (* xr xn)
-                (* yr yn)
-                (* zr zn)))))
+      ;; (format t "ray xn ~a yn ~a zn ~a  ~&" xr yr zr)
+      ;; (format t "lambert ~a ~&" (+ (* xr xn)
+      ;;                               (* yr yn)
+      ;;                               (* zr zn)))
+    (max 0 (+ (* xr xn)
+              (* yr yn)
+              (* zr zn))))))
 
   (defparameter *test* (make-hash-table :test #'equal))
 
@@ -3534,8 +3540,8 @@ c)
           ;; отраженного точкой поверхности по закону Ламберта и умножаем его
           ;; на цвет поверхности (темная отражает меньше света)
           (progn
-            ;;(format t "color ~a ~&" (* (lambert s int xr yr zr)
-            ;;                           (sur-color s)))
+  ;;          (format t "color ~a x ~a ~&" (* (lambert s int xr yr zr)
+   ;;                                    (sur-color s)) (Nx s))
             (* (lambert s int xr yr zr)
                (sur-color s)))
           0)))
@@ -3550,13 +3556,16 @@ c)
       ;; Отправляем луч, проходящий от глаза через эту точку в мир,
       ;; получая число от 0 до 1, которое потом масштабируем
       ;; на от 0 до 255
-  ;;    (format t "xr ~a  yr ~a  zr ~a ~&" xr yr zr)
+      ;;    (format t "xr ~a  yr ~a  zr ~a ~&" xr yr zr)
+      ;;(format t "color round ~a ~& "
+      ;;        (round (* (sendray eye xr yr zr) 255)))
+
       (round (* (sendray eye xr yr zr) 255))))
 
   (defun tracer (pathname &optional (res 1))
     (with-open-file (p pathname :direction :output :if-exists :supersede)
       ;; создаем заголовок файла
-      ;; (format p "P2 ~A ~A 255" (* res 100) (* res 100))
+      (format p "P2 ~A ~A 255" (* res 100) (* res 100))
       (let ((inc (/ res)))
         (do ((y -50 (+ y inc)))
             ((< (- 50 y) inc))
@@ -3573,25 +3582,25 @@ c)
             ;;            )
             )))))
 
-  (defun ray-test (&optional (res 1))
-    (setf *world* nil)
-    (defsphere 0 -300 -1200 200 .8)
-    (defsphere -80 -150 -1200 200 .7)
-    (defsphere 70 -100 -1200 200 .9)
-    (do ((x -2 (1+ x)))
-        ((> x 2))
-      (do ((z 2 (1+ z)))
-          ((> z 7))
-        (defsphere (* x 200) 300 (* z -400) 40 .75)))
-    (tracer (make-pathname :name "spheres.pgm") res))
+  ;; (defun ray-test (&optional (res 1))
+  ;;   (setf *world* nil)
+  ;;   (defsphere 0 -300 -1200 200 .8)
+  ;;   (defsphere -80 -150 -1200 200 .7)
+  ;;   (defsphere 70 -100 -1200 200 .9)
+  ;;   (do ((x -2 (1+ x)))
+  ;;       ((> x 2))
+  ;;     (do ((z 2 (1+ z)))
+  ;;         ((> z 7))
+  ;;       (defsphere (* x 200) 300 (* z -400) 40 .75)))
+  ;;   (tracer (make-pathname :name "spheres.pgm") res))
 
 
   (defun ray-test-flat (&optional (res 1))
     (setf *world* nil)
-    (defflat 10 -100 -800 3000 .5)
-    (defflat 200 -13 -400 3000 .2)
+    (defflat 200 -300 -500 3000 .5)
+    (defflat 100 -150 -100 3000 .2)
     ;;(defflat 9 18 -2 300 1)
-     ;; (deftriangle a b c .8)
+    ;;(deftriangle a b c .8)
       ;;(defsphere 0 -300 -1200 200 .8)
      ;; (defsphere -80 -150 -1200 200 .7)
      ;; (defsphere 70 -100 -1200 200 .9)
@@ -3602,13 +3611,13 @@ c)
      ;;     (defsphere (* x 200) 300 (* z -400) 40 .75)))
      (tracer (make-pathname :name "spheres.pgm") res))
 
-  (ray-test 10)
+  ;;(ray-test 10)
 
   (ray-test-flat 3)
 
   (print "[[[[[")
   (maphash #'(lambda (k v)
-               (print (list k v)))
+               (print (list k v )))
            ,*test*)
   (print "]]]]")
 
