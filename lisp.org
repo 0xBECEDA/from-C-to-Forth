@@ -3180,7 +3180,7 @@ c)
      (center :accessor sphere-center
              :initarg :sphere-center)))
 
-  (defclass flat (surface point)
+  (defclass flat (surface)
     ((flat-normalX :accessor Nx
               :initarg :Nx)
      (flat-normalY :accessor Ny
@@ -3210,11 +3210,8 @@ c)
       s))
   ;; Чтобы построить плоскость, нужно указать координаты точки, нормаль к плоскости и
   ;; расстояние от начала координат до этой плоскости
-  (defun defflat (x y z d Nx Ny Nz color)
+  (defun defflat (Nx Ny Nz d color)
     (let ((s (make-instance 'flat
-                            :x x
-                            :y y
-                            :z z
                             :Nx Nx
                             :Ny Ny
                             :Nz Nz
@@ -3307,6 +3304,9 @@ c)
               (min (/ (+ (- b) discrt) (* 2 a))
                    (/ (- (- b) discrt) (* 2 a))))))))
 
+  (defgeneric intersect (obj pt xr yr zr)
+    (:documentation "Вычисляет точку пересечения луча с обЪектом"))
+
   ;; метод, работающий только со сферами. В будущем появится такое же метод для других
   ;; геометрических фигур
   (defmethod intersect ((s sphere) pt xr yr zr)
@@ -3353,14 +3353,15 @@ c)
                                        :x (Nx flat)
                                        :y (Ny flat)
                                        :z (Nz flat)))
-           (num (+ (dot-product pt flat-normal) (d flat)))
+           (num (- (+ (dot-product pt flat-normal) (d flat))))
            (ray-normal (make-instance 'point
                                       :x xr
                                       :y yr
                                       :z zr))
            (den (+ (dot-product ray-normal flat-normal)))
-           (result (- (/ num den))))
-      (if (> result 0)
+           (result (/ num den)))
+      (if (>= result 0)
+          ;;(format t "true!")
           (make-instance
            'point
            :x (+ (x pt) (* result xr))
@@ -3436,10 +3437,11 @@ c)
                                          :y yp
                                          :z 0))
                    ;;(Px*By - Bx*Py) / (Cx*By - Bx*Cy)
-                   (m (/ (- (* (x new-p) (x new-b)) (* (x new-b) (y new-p)))
+                   (m (/ (- (* (x new-p) (y new-b)) (* (x new-b) (y new-p)))
                          (- (* (x new-c) (y new-b)) (* (x new-b) (y new-c))))))
               (let ((result 0))
                 (if (and (> m 0) ( < m 1))
+                    ;;l := (Px - m*Cx) / Bx
                     (let ((l (/ (- (x new-p) (* m (x new-c)))
                                 (x new-b))))
                       (if (and (>= l 0) (<= (+ m l) 1))
@@ -3456,6 +3458,20 @@ c)
         (let ((h (intersect s pt xr yr zr)))
           (when h
             (let ((d (distance h pt)))
+  ;;            (format t "distance ~a ~&" d)
+              (when (null dist)
+                (setf surface s
+                      hit h
+                      dist d))))))
+      (values surface hit)))
+
+  (defun first-hit (pt xr yr zr)
+    ;; тест
+    (let (surface hit dist)
+      (dolist (s *world*)
+        (let ((h (intersect s pt xr yr zr)))
+          (when h
+            (let ((d "true"))
               (when (or (null dist)
                         (< d dist))
                 (setf surface s
@@ -3498,7 +3514,10 @@ c)
     ;;    равной нулю в касательных к поверхности направлениях."
     (multiple-value-bind (xn yn zn)
         (normal s int)
-  ;;    (format t "normal xn ~a yn ~a zn ~a ~&" xn yn zn)
+      (format t "normal xn ~a yn ~a zn ~a  ~&" xn yn zn)
+      (format t "lambert ~a ~&" (max 0 (+ (* xr xn)
+                                          (* yr yn)
+                                          (* zr zn))))
       (max 0 (+ (* xr xn)
                 (* yr yn)
                 (* zr zn)))))
@@ -3516,8 +3535,11 @@ c)
           ;; Если есть попадание, то вычисляем интенсивность света,
           ;; отраженного точкой поверхности по закону Ламберта и умножаем его
           ;; на цвет поверхности (темная отражает меньше света)
+          (progn
+          ;;(format t "color ~a ~&" (* (lambert s int xr yr zr)
+          ;;                           (sur-color s)))
           (* (lambert s int xr yr zr)
-             (sur-color s))
+             (sur-color s)))
           0)))
 
   (defun color-at (x y)
@@ -3530,6 +3552,7 @@ c)
       ;; Отправляем луч, проходящий от глаза через эту точку в мир,
       ;; получая число от 0 до 1, которое потом масштабируем
       ;; на от 0 до 255
+      (format t "xr ~a  yr ~a  zr ~a ~&" xr yr zr)
       (round (* (sendray eye xr yr zr) 255))))
 
   (defun tracer (pathname &optional (res 1))
@@ -3567,30 +3590,19 @@ c)
 
   (defun ray-test-flat (&optional (res 1))
     (setf *world* nil)
-    (let*
-        ((a (make-instance 'point
-                           :x -5
-                           :y -5
-                           :z 0))
-         (b (make-instance 'point
-                           :x 20
-                           :y -5
-                           :z 0))
-         (c (make-instance 'point
-                           :x 5
-                           :y 13
-                           :z 0)))
-    ;;  (defflat -100 200 -80 5 3 4 6 .7)
-     (deftriangle a b c .8)
-     (defsphere 0 -300 -1200 200 .8)
-     (defsphere -80 -150 -1200 200 .7)
-     (defsphere 70 -100 -1200 200 .9)
-     (do ((x -2 (1+ x)))
-         ((> x 2))
-       (do ((z 2 (1+ z)))
-           ((> z 7))
-         (defsphere (* x 200) 300 (* z -400) 40 .75)))
-     (tracer (make-pathname :name "spheres.pgm") res)))
+    (defflat 2 -80 -90 3000 .7)
+    (defflat 10 -100 -800 3000 .5)
+    ;;(defflat 9 18 -2 300 1)
+     ;; (deftriangle a b c .8)
+      (defsphere 0 -300 -1200 200 .8)
+     ;; (defsphere -80 -150 -1200 200 .7)
+     ;; (defsphere 70 -100 -1200 200 .9)
+     ;; (do ((x -2 (1+ x)))
+     ;;     ((> x 2))
+     ;;   (do ((z 2 (1+ z)))
+     ;;       ((> z 7))
+     ;;     (defsphere (* x 200) 300 (* z -400) 40 .75)))
+     (tracer (make-pathname :name "spheres.pgm") res))
 
   (ray-test 10)
 
