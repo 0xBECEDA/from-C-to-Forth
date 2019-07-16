@@ -3168,7 +3168,7 @@ c)
      (z :initarg :z :accessor z)))
 
   ;; Координаты point-of-view
-  (defconstant eye (make-instance 'point :x 0 :y 0 :z 200))
+  (defparameter eye (make-instance 'point :x 0 :y 0 :z 200))
 
   (defclass surface ()
     ((color :accessor sur-color
@@ -3218,7 +3218,7 @@ c)
                             :D d
                             :sur-color color)))
       (push s *world*)
-      (format t "defflat normal Nx ~a Ny ~a Nz ~a ~&" (Nx s) (Ny s) (Nz s))
+      ;; (format t "defflat normal Nx ~a Ny ~a Nz ~a ~&" (Nx s) (Ny s) (Nz s))
       s))
 
   ;; высчитывает нормаль по 3 точкам
@@ -3361,8 +3361,8 @@ c)
                                       :z zr))
            (den (+ (dot-product ray-normal flat-normal)))
            (result (/ num den)))
-      (format t "intersect-normal NX ~a NY ~a NZ~a ~&"
-              (x flat-normal) (y flat-normal) (z flat-normal))
+      ;; (format t "intersect-normal NX ~a NY ~a NZ~a ~&"
+      ;;         (x flat-normal) (y flat-normal) (z flat-normal))
 
       (if (>= result 0)
           ;;(format t "true!")
@@ -3376,12 +3376,12 @@ c)
   ;; принимает объект типа "треугольник", точку испускания луча и его вектор.
   (defmethod intersect ((s triangle) pt xr yr zr)
   ;; проверяем, падает ли луч на плоскость, на которой лежит треугольник
-    (format t "Ax ~a Ay ~a Az ~a ~&
-               Bx ~a By ~a Bz ~a ~&
-               Cx ~a Cy ~a Cz ~a ~&
-               ------------------- ~&"
-            (x (A s)) (y (A s)) (z (A s)) (x (B s)) (y (B s)) (z (B s))
-            (x (C s)) (y (C s)) (z (C s)))
+    ;; (format t "Ax ~a Ay ~a Az ~a ~&
+    ;;            Bx ~a By ~a Bz ~a ~&
+    ;;            Cx ~a Cy ~a Cz ~a ~&
+    ;;            ------------------- ~&"
+    ;;         (x (A s)) (y (A s)) (z (A s)) (x (B s)) (y (B s)) (z (B s))
+    ;;         (x (C s)) (y (C s)) (z (C s)))
 
     (let* ((flat s)
            (flat-normal (make-instance 'point
@@ -3503,7 +3503,7 @@ c)
     ;;    равной нулю в касательных к поверхности направлениях."
     (multiple-value-bind (xn yn zn)
         (normal s int)
-      (format t "normal xn ~a yn ~a zn ~a  ~&" xn yn zn)
+      ;; (format t "normal xn ~a yn ~a zn ~a  ~&" xn yn zn)
       ;;(format t "lambert ~a ~&" (max 0 (+ (* xr xn)
       ;;                                    (* yr yn)
       ;;                                    (* zr zn))))
@@ -3511,28 +3511,34 @@ c)
                 (* yr yn)
                 (* zr zn)))))
 
-  (let ((test (make-hash-table :test #'equal)))
-    (defun sendray (pt xr yr zr)
-      ;;   Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE
-      ;;   Параметры:
-      ;;   pt - point of view (eye)
-      ;;   xr,yr,zr - единичный вектор вектор из начала в координат point of view (eye)
-      (multiple-value-bind (s int)
-          ;; Находим куда попал луч (среди объектов списка *WORLD*)
-          ;; или 0 если луч никуда не попадает
-          (first-hit pt xr yr zr)
-        (format t "obj ~A x ~a y ~a z ~a point ~a ~&"
-                s (Nx s) (Ny s) (Nz s) int)
-        (if s
-            ;; Если есть попадание, то вычисляем интенсивность света,
-            ;; отраженного точкой поверхности по закону Ламберта и умножаем его
-            ;; на цвет поверхности (темная отражает меньше света)
-            (progn
-              ;;(format t "color ~a ~&" (* (lambert s int xr yr zr)
-              ;;                           (sur-color s)))
-              (* (lambert s int xr yr zr)
-                 (sur-color s)))
-            0))))
+  (defparameter *test* (make-hash-table :test #'equal))
+
+  (defun sendray (pt xr yr zr)
+    ;;   Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE
+    ;;   Параметры:
+    ;;   pt - point of view (eye)
+    ;;   xr,yr,zr - единичный вектор вектор из начала в координат point of view (eye)
+    (multiple-value-bind (s int)
+        ;; Находим куда попал луч (среди объектов списка *WORLD*)
+        ;; или 0 если луч никуда не попадает
+        (first-hit pt xr yr zr)
+      ;; (format t "obj ~A x ~a y ~a z ~a point ~a ~&"
+      ;;         s (Nx s) (Ny s) (Nz s) int)
+      (multiple-value-bind (value present)
+          (gethash s *test*)
+        (if (not present)
+            (setf (gethash s *test*) 1)
+            (incf (gethash s *test*))))
+      (if s
+          ;; Если есть попадание, то вычисляем интенсивность света,
+          ;; отраженного точкой поверхности по закону Ламберта и умножаем его
+          ;; на цвет поверхности (темная отражает меньше света)
+          (progn
+            ;;(format t "color ~a ~&" (* (lambert s int xr yr zr)
+            ;;                           (sur-color s)))
+            (* (lambert s int xr yr zr)
+               (sur-color s)))
+          0)))
 
   (defun color-at (x y)
     "Возвращает количество света, в диапазоне от 0 до 255 попадающее в EYE"
@@ -3550,7 +3556,7 @@ c)
   (defun tracer (pathname &optional (res 1))
     (with-open-file (p pathname :direction :output :if-exists :supersede)
       ;; создаем заголовок файла
-      (format p "P2 ~A ~A 255" (* res 100) (* res 100))
+      ;; (format p "P2 ~A ~A 255" (* res 100) (* res 100))
       (let ((inc (/ res)))
         (do ((y -50 (+ y inc)))
             ((< (- 50 y) inc))
@@ -3599,6 +3605,12 @@ c)
   (ray-test 10)
 
   (ray-test-flat 3)
+
+  (print "[[[[[")
+  (maphash #'(lambda (k v)
+               (print (list k v)))
+           ,*test*)
+  (print "]]]]")
 
 #+END_SRC
 
