@@ -3223,14 +3223,18 @@ c)
 
   ;; высчитывает нормаль по 3 точкам
   (defun normal-triangle (a b c)
+    (multiple-value-bind (x y z)
+        (get-vector a b)
+      (multiple-value-bind (x2 y2 z2)
+          (get-vector a c)
     (let* ((vec-ab (make-instance 'point
-                                  :x (- (x b) (x a))
-                                  :y (- (y b) (y a))
-                                  :z (- (z b) (z a))))
+                                  :x x
+                                  :y y
+                                  :z z))
            (vec-ac (make-instance 'point
-                                  :x (- (x c) (x a))
-                                  :y (- (y c) (y a))
-                                  :z (- (z c) (z a))))
+                                  :x x2
+                                  :y y2
+                                  :z z2))
            ;; Получили вектора AB, и ВС.
            ;; Вычисляем нормаль по формуле: x = (V1.y * V2.z) - (V1.z * V2.y)
            ;; y =  (V1.z * V2.x) - (V1.x * V2.z); z = (V1.x * V2.y) - (V1.y * V2.x)
@@ -3239,13 +3243,17 @@ c)
                                   :y (- (* (z vec-ab) (x vec-ac)) (* (x vec-ab) (z vec-ac)))
                                   :z (- (* (x vec-ab) (y vec-ac))
                                         (* (y vec-ab) (x vec-ac))))))
-   ;;   (format t "normal-triangle x ~a y ~a z ~a ~&" (x normal) (y normal) (z normal))
-      (values (x normal) (y normal) (z normal))))
+      ;;   (format t "normal-triangle x ~a y ~a z ~a ~&" (x normal) (y normal) (z normal))
+      (format t "AB x ~a y ~a z ~a | AC x ~a y ~a z ~a ~&"
+              (x vec-ab) (y vec-ab) (z vec-ab)
+              (x vec-ac) (y vec-ac)(z vec-ac))
+
+      (values (/ (x normal) 100) (/ (y normal) 100) (/ (z normal) 100))))))
 
   ;; в одной из ссылок нашла, что чтобы узнать D, нужно воспользоваться формулой
   ;; Ax + By +Cz = -D, где ABC - нормаль, а XYZ - координаты любой из вершин треугольника
 
-  (defun deftriangle (a b c color)
+  (defun deftriangle (a b c d color)
     (multiple-value-bind (xn yn zn)
         (normal-triangle a b c)
       (format t "normal-triangle x ~a y ~a z ~a ~&" xn yn zn)
@@ -3265,7 +3273,7 @@ c)
                               :Nx xn
                               :Ny yn
                               :Nz zn
-                              :D (- (+ (* xn (x a)) (* yn (y a)) (* zn (z a))))
+                              :D d
                               :sur-color color)))
         (push s *world*)
         (format t "push Ax ~a Ay ~a Az ~a ~&" (x (A s)) (y (A s)) (z (A s)))
@@ -3376,38 +3384,44 @@ c)
   ;;метод работает с треугольниками
   ;; принимает объект типа "треугольник", точку испускания луча и его вектор.
   (defmethod intersect ((s triangle) pt xr yr zr)
-  ;; проверяем, падает ли луч на плоскость, на которой лежит треугольник
+    ;; проверяем, падает ли луч на плоскость, на которой лежит треугольник
     ;; (format t "Ax ~a Ay ~a Az ~a ~&
     ;;            Bx ~a By ~a Bz ~a ~&
     ;;            Cx ~a Cy ~a Cz ~a ~&
     ;;            ------------------- ~&"
     ;;         (x (A s)) (y (A s)) (z (A s)) (x (B s)) (y (B s)) (z (B s))
     ;;         (x (C s)) (y (C s)) (z (C s)))
-
-    (let* ((flat s)
-           (flat-normal (make-instance 'point
-                                       :x (Nx flat)
-                                       :y (Ny flat)
-                                       :z (Nz flat)))
-           (num (+ (dot-product pt flat-normal) (d flat)))
+  ;;  (format t "xr ~a yr ~a zr ~a ~&" xr yr zr)
+    (let* ((flat-normal (make-instance 'point
+                                       :x (Nx s)
+                                       :y (Ny s)
+                                       :z (Nz s)))
            (ray-normal (make-instance 'point
                                       :x xr
                                       :y yr
                                       :z zr))
-           (den (+ (dot-product ray-normal flat-normal)))
-           (result (- (/ num den))))
-      (if (> result 0)
-          (let* ((ray-point (make-instance
-                             'point
-                             :x (+ (x pt) (* result xr))
-                             :y (+ (y pt) (* result yr))
-                             :z (+ (z pt) (* result zr))))
-                 (result (triangle-intersect flat ray-point)))
-            (if result
-                (progn
-   ;;            (format t "ray-point x ~a y ~a z ~a" (x ray-point) (y ray-point)
-  ;;                      (z ray-point))
-                (values ray-point)))))))
+           ;; считаем знаменатель
+           (den (+ (dot-product ray-normal flat-normal))))
+      ;; если он <= 0,
+      (if (<= den 0)
+          ;; значит, луч параллелен поверхности, т.е. не пересекает ее
+          (return-from intersect nil)
+          ;; в противном случае считаем числитель
+          (let* ((num (+ (dot-product pt flat-normal) (d s)))
+                 (result (- (/ num den))))
+            ;; если результат > 0
+            (if (> result 0)
+                ;; создаем объект точки
+                (let ((ray-point (make-instance
+                                  'point
+                                  :x (+ (x pt) (* result xr))
+                                  :y (+ (y pt) (* result yr))
+                                  :z (+ (z pt) (* result zr)))))
+                  ;; проверяем, принадлежит ли точка треугольнику
+                  (setf result (triangle-intersect s ray-point))
+                  (if result
+                      ;; возвращаем точку
+                      (values ray-point))))))))
 
   (defun get-vector (pt1 pt2)
     (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
@@ -3479,11 +3493,9 @@ c)
                    (- (z c) (z pt)))))
 
   (defmethod normal ((s flat) (pt point))
-      (values (Nx s) (Ny s) (Nz s)))
-
-  (defmethod normal ((s triangle) (pt point))
-    (let ((treangle s))
-      (values (Nx treangle) (Ny treangle) (Nz treangle))))
+    (multiple-value-bind (xn yn zn)
+        (unit-vector (Nx s) (Ny s) (Nz s))
+      (values xn yn zn)))
 
   (defgeneric normal (object pt)
     (:documentation "Вычисляет нормаль к объекту"))
@@ -3502,11 +3514,9 @@ c)
     ;;    Означает, что сила света плоской поверхности максимальна по
     ;;    перпендикуляру к ней и, убывая с увеличением угла, становится
     ;;    равной нулю в касательных к поверхности направлениях."
-      (multiple-value-bind (x y z)
-      (normal s int)
 
       (multiple-value-bind (xn yn zn)
-        (unit-vector x y z)
+          (normal s int)
 
       ;; (format t "normal xn ~a yn ~a zn ~a  ~&" xn yn zn)
       ;; (format t "ray xn ~a yn ~a zn ~a  ~&" xr yr zr)
@@ -3515,7 +3525,7 @@ c)
       ;;                               (* zr zn)))
     (max 0 (+ (* xr xn)
               (* yr yn)
-              (* zr zn))))))
+              (* zr zn)))))
 
   (defparameter *test* (make-hash-table :test #'equal))
 
@@ -3595,12 +3605,24 @@ c)
   ;;   (tracer (make-pathname :name "spheres.pgm") res))
 
 
+  (let ((a (make-instance 'point
+                          :x 0
+                          :y 0
+                          :z -30))
+        (b (make-instance 'point
+                          :x -30
+                          :y 0
+                          :z -30))
+        (c (make-instance 'point
+                          :x 10
+                          :y 100
+                          :z -30)))
   (defun ray-test-flat (&optional (res 1))
     (setf *world* nil)
-    (defflat 200 -300 -500 3000 .5)
-    (defflat 100 -150 -100 3000 .2)
+    ;;(defflat 800 -300 -500 3000 .5)
+    ;;(defflat 100 -150 -100 3000 .2)
     ;;(defflat 9 18 -2 300 1)
-    ;;(deftriangle a b c .8)
+    (deftriangle a b c 3000 .8)
       ;;(defsphere 0 -300 -1200 200 .8)
      ;; (defsphere -80 -150 -1200 200 .7)
      ;; (defsphere 70 -100 -1200 200 .9)
@@ -3609,7 +3631,7 @@ c)
      ;;   (do ((z 2 (1+ z)))
      ;;       ((> z 7))
      ;;     (defsphere (* x 200) 300 (* z -400) 40 .75)))
-     (tracer (make-pathname :name "spheres.pgm") res))
+     (tracer (make-pathname :name "spheres.pgm") res)))
 
   ;;(ray-test 10)
 
