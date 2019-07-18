@@ -3252,7 +3252,8 @@ c)
                   (x vec-ab) (y vec-ab) (z vec-ab)
                   (x vec-ac) (y vec-ac)(z vec-ac))
 
-          (values (/ (x normal) 100) (/ (y normal) 100) (/ (z normal) 100))))))
+          ;;(values (/ (x normal) 100) (/ (y normal) 100) (/ (z normal) 100))))))
+          (values (x normal) (y normal) (z normal))))))
 
   ;; в одной из ссылок нашла, что чтобы узнать D, нужно воспользоваться формулой
   ;; Ax + By +Cz = -D, где ABC - нормаль, а XYZ - координаты любой из вершин треугольника
@@ -3690,13 +3691,13 @@ c)
                           :y 0
                           :z -300))
         (b (make-instance 'point
-                          :x -30
+                          :x -20
                           :y 0
                           :z -300))
         (c (make-instance 'point
                           :x 0
-                          :y 60
-                          :z -400)))
+                          :y 50
+                          :z -300)))
   (defun ray-test-flat (&optional (res 1))
     (setf *world* nil)
     ;;(defflat 800 -300 -500 3000 .5)
