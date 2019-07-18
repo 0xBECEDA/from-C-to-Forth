@@ -3158,8 +3158,11 @@ c)
 
 
 #+BEGIN_SRC lisp
-
+  ;; изображаемый мир (по умолчанию пуст)
   (defparameter *world* nil)
+
+  ;; хэш-таблица для отладки
+  (defparameter *test* (make-hash-table :test #'equal))
 
   ;; Структура точки в 3D
   (defclass point  ()
@@ -3173,20 +3176,20 @@ c)
   (defclass surface ()
     ((color :accessor sur-color
             :initarg :sur-color)))
-
+  ;; сфера
   (defclass sphere (surface)
     ((radius :accessor sphere-radius
              :initarg :sphere-radius)
      (center :accessor sphere-center
              :initarg :sphere-center)))
-
+  ;; плоскость
   (defclass flat (surface)
     ((flat-normalX :accessor Nx
-              :initarg :Nx)
+                   :initarg :Nx)
      (flat-normalY :accessor Ny
-              :initarg :Ny)
+                   :initarg :Ny)
      (flat-normalZ :accessor Nz
-              :initarg :Nz)
+                   :initarg :Nz)
      (D :accessor d
         :initarg :d)))
 
@@ -3201,15 +3204,18 @@ c)
      (C :accessor C
         :initarg :C)))
 
-    (defun defsphere (x y z r c)
+  ;; пушит сферу в мир
+  (defun defsphere (x y z r c)
     (let ((s (make-instance 'sphere
                             :sphere-radius r
                             :sphere-center (make-instance 'point :x x :y y :z z)
                             :sur-color c)))
       (push s *world*)
       s))
-  ;; Чтобы построить плоскость, нужно указать координаты точки, нормаль к плоскости и
-  ;; расстояние от начала координат до этой плоскости
+
+  ;; пушит плоскость в мир
+  ;; общее уравнение плоскости Ax + By + Cz + D = 0, где ABC - координаты нормали,
+  ;; а D - расстояние между плоскостью и наблюдателем
   (defun defflat (Nx Ny Nz d color)
     (let ((s (make-instance 'flat
                             :Nx Nx
@@ -3218,7 +3224,6 @@ c)
                             :D d
                             :sur-color color)))
       (push s *world*)
-      ;; (format t "defflat normal Nx ~a Ny ~a Nz ~a ~&" (Nx s) (Ny s) (Nz s))
       s))
 
   ;; высчитывает нормаль по 3 точкам
@@ -3246,17 +3251,11 @@ c)
                                       :z (- (* (x vec-ab) (y vec-ac))
                                             (* (y vec-ab) (x vec-ac))))))
 
-          ;;   (format t "normal-triangle x ~a y ~a z ~a ~&"
-          ;;   (x normal) (y normal) (z normal))
-          (format t "AB x ~a y ~a z ~a | AC x ~a y ~a z ~a ~&"
-                  (x vec-ab) (y vec-ab) (z vec-ab)
-                  (x vec-ac) (y vec-ac)(z vec-ac))
+          ;; (format t "AB x ~a y ~a z ~a | AC x ~a y ~a z ~a ~&"
+          ;;         (x vec-ab) (y vec-ab) (z vec-ab)
+          ;;         (x vec-ac) (y vec-ac)(z vec-ac))
 
-          ;;(values (/ (x normal) 100) (/ (y normal) 100) (/ (z normal) 100))))))
           (values (x normal) (y normal) (z normal))))))
-
-  ;; в одной из ссылок нашла, что чтобы узнать D, нужно воспользоваться формулой
-  ;; Ax + By +Cz = -D, где ABC - нормаль, а XYZ - координаты любой из вершин треугольника
 
   (defun deftriangle (a b c d color)
     (multiple-value-bind (xn yn zn)
@@ -3281,7 +3280,7 @@ c)
                               :D d
                               :sur-color color)))
         (push s *world*)
-        (format t "push Ax ~a Ay ~a Az ~a ~&" (x (A s)) (y (A s)) (z (A s)))
+        ;;(format t "push Ax ~a Ay ~a Az ~a ~&" (x (A s)) (y (A s)) (z (A s)))
         s)))
 
 
@@ -3318,11 +3317,28 @@ c)
               (min (/ (+ (- b) discrt) (* 2 a))
                    (/ (- (- b) discrt) (* 2 a))))))))
 
+  ;; возвращает X, Y  и Z вектора от точки А до точки В
+  (defun get-vector (pt1 pt2)
+    (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
+
+  ;; переносит точку А на разницу между (B - А)
+  ;; позволяет переносить треугольник в точку начала координат
+  (defun change-location (pt1 pt2)
+    (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
+
+  ;; возвращает скалярное произведение векторов
+  (defun dot-product (vec1 vec2)
+    (+ (* (x vec1) (x vec2))
+       (* (y vec1) (y vec2))
+       (* (z vec1) (z vec2))))
+
+  (defgeneric normal (object pt)
+    (:documentation "Вычисляет нормаль к объекту"))
+
   (defgeneric intersect (obj pt xr yr zr)
     (:documentation "Вычисляет точку пересечения луча с обЪектом"))
 
-  ;; метод, работающий только со сферами. В будущем появится такое же метод для других
-  ;; геометрических фигур
+  ;; метод, работающий со сферами
   (defmethod intersect ((s sphere) pt xr yr zr)
     ;;<<Как найти пересечение луча со сферой?>>
     (let* ((c (sphere-center s))
@@ -3357,11 +3373,6 @@ c)
   ;; Чтобы определить, куда именно падает лучть нужно:
   ;; tx = x0 + t* lx; ty = y0 + t* ly; tz = z0 + t* lz;
 
-  (defun dot-product (vec1 vec2)
-    (+ (* (x vec1) (x vec2))
-       (* (y vec1) (y vec2))
-       (* (z vec1) (z vec2))))
-
   (defmethod intersect ((s flat) pt xr yr zr)
     (let* ((flat s)
            (flat-normal (make-instance 'point
@@ -3379,14 +3390,14 @@ c)
       ;;         (x flat-normal) (y flat-normal) (z flat-normal))
 
       (if (>= result 0)
-          ;;(format t "true!")
           (make-instance
            'point
            :x (+ (x pt) (* result xr))
            :y (+ (y pt) (* result yr))
-        :z (+ (z pt) (* result zr))))))
+           :z (+ (z pt) (* result zr))))))
 
-  ;;метод работает с треугольниками
+
+  ;; метод работает с треугольниками
   ;; принимает объект типа "треугольник", точку испускания луча и его вектор.
   (defmethod intersect ((s triangle) pt xr yr zr)
     ;; проверяем, падает ли луч на плоскость, на которой лежит треугольник
@@ -3396,7 +3407,6 @@ c)
     ;;            ------------------- ~&"
     ;;         (x (A s)) (y (A s)) (z (A s)) (x (B s)) (y (B s)) (z (B s))
     ;;         (x (C s)) (y (C s)) (z (C s)))
-  ;;  (format t "xr ~a yr ~a zr ~a ~&" xr yr zr)
     (let* ((flat-normal (make-instance 'point
                                        :x (Nx s)
                                        :y (Ny s)
@@ -3428,89 +3438,24 @@ c)
                       ;; возвращаем точку
                       (values ray-point))))))))
 
-  (defun get-vector (pt1 pt2)
-    (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
-
-
-  (defun change-location (pt1 pt2)
-    (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
-
-  ;; (defun triangle-intersect (triangle ray-point)
-  ;;   (multiple-value-bind (xa ya za)
-  ;;       (change-location (A triangle) (A triangle))
-  ;;     (multiple-value-bind (xb yb)
-  ;;         (change-location (A triangle) (B triangle))
-  ;;       (multiple-value-bind (xc yc)
-  ;;           (change-location (A triangle) (C triangle))
-  ;;         (multiple-value-bind (xp yp)
-  ;;             (change-location (A triangle) ray-point)
-  ;;           (let* ((new-a (make-instance 'point
-  ;;                                        :x xa
-  ;;                                        :y ya
-  ;;                                        :z za))
-  ;;                  (new-b (make-instance 'point
-  ;;                                        :x xb
-  ;;                                        :y yb
-  ;;                                        :z 0))
-  ;;                  (new-c (make-instance 'point
-  ;;                                        :x xc
-  ;;                                        :y yc
-  ;;                                        :z 0))
-  ;;                  (new-p (make-instance 'point
-  ;;                                        :x xp
-  ;;                                        :y yp
-  ;;                                        :z 0))
-  ;;                  ;; q1:=  Q(aAx, aAy, aBx, aBy, aPx, aPy);
-  ;;                  ;; q2 := Q(aBx, aBy, aCx, aCy, aPx, aPy);
-  ;;                  ;; q3 := Q(aCx, aCy, aAx, aAy, aPx, aPy);
-
-  ;;                  (result-a (check-point (x new-a) (y new-a) (x new-b) (y new-b)
-  ;;                                         (x new-p) (y new-p)))
-  ;;                  (result-b (check-point (x new-b) (y new-b) (x new-c) (y new-c)
-  ;;                                         (x new-p) (y new-p)))
-  ;;                  (result-c (check-point (x new-c) (y new-c) (x new-a) (y new-a)
-  ;;                                         (x new-p) (y new-p))))
-
-  ;;             (if (or (and ( >= result-a 0) ( >= result-b 0) ( >= result-c 0))
-  ;;                     (and ( < result-a 0) ( < result-b 0) ( < result-c 0)))
-  ;;                 (values 1))))))))
-
-  ;;                  ;;(Px*By - Bx*Py) / (Cx*By - Bx*Cy)
-  ;;                  (m (/ (- (* (x new-p) (y new-b)) (* (x new-b) (y new-p)))
-  ;;                        (- (* (x new-c) (y new-b)) (* (x new-b) (y new-c))))))
-  ;;             (let ((result 0))
-  ;;               (if (and (> m 0) ( < m 1))
-  ;;                   ;;l := (Px - m*Cx) / Bx
-  ;;                   (let ((l (/ (- (x new-p) (* m (x new-c)))
-  ;;                               (x new-b))))
-  ;;                     (if (and (>= l 0) (<= (+ m l) 1))
-  ;;                         (values (setf result 1))
-  ;;                         (values result)))))))))))
-
-
-  (defun check-point (vec_x  vec_y vec2_x vec2_y px py)
-    ;;atx * (by - ay) + aty * (ax - bx) + ay * bx - ax * by
-    (- (+ (* px (- vec2_y vec_y)) (* py (- vec_x vec2_x))
-          (* vec_y vec2_x)) (* vec_x vec2_y)))
-
-
+  ;; определяет, принадлежит данная ли точка треугольнику
   (defun triangle-intersect (triangle ray-point)
     (let* ((new-a (make-instance 'point
-                                :x (x (A triangle))
-                                :y (y (A triangle))
-                                :z 0))
-          (new-b (make-instance 'point
-                                :x (x (B triangle))
-                                :y (y (B triangle))
-                                :z 0))
-          (new-c (make-instance 'point
-                                :x (x (C triangle))
-                                :y (y (C triangle))
-                                :z 0))
-          (new-p (make-instance 'point
-                                :x (x ray-point)
-                                :y (y ray-point)
-                                :z 0))
+                                 :x (x (A triangle))
+                                 :y (y (A triangle))
+                                 :z 0))
+           (new-b (make-instance 'point
+                                 :x (x (B triangle))
+                                 :y (y (B triangle))
+                                 :z 0))
+           (new-c (make-instance 'point
+                                 :x (x (C triangle))
+                                 :y (y (C triangle))
+                                 :z 0))
+           (new-p (make-instance 'point
+                                 :x (x ray-point)
+                                 :y (y ray-point)
+                                 :z 0))
 
            (result-a (- (* (- (x new-a) (x new-p)) (- (y new-b) (y new-a)))
                         (* (- (x new-b) (x new-a)) (- (y new-a) (y new-p)))))
@@ -3524,21 +3469,6 @@ c)
               (and ( < result-a 0) ( < result-b 0) ( < result-c 0)))
           (values 1))))
 
-  ;; (defun triangle-intersect (triangle ray-point)
-  ;;   (multiple-value-bind (x y z)
-  ;;       (get-vector a b)
-  ;;     (multiple-value-bind (x2 y2 z2)
-  ;;         (get-vector a c)
-  ;;       (let* ((vec-ab (make-instance 'point
-  ;;                                     :x x
-  ;;                                     :y y
-  ;;                                     :z z))
-  ;;              (vec-ac (make-instance 'point
-  ;;                                     :x x2
-  ;;                                     :y y2
-  ;;                                     :z z2))
-
-
   (defun first-hit (pt xr yr zr)
     ;; Перебираем *WORLD* пока не найдем тот элемент,
     ;; для которого INTERSECT даст T
@@ -3549,7 +3479,6 @@ c)
         (let ((h (intersect s pt xr yr zr)))
           (when h
             (let ((d (distance h pt)))
-  ;;            (format t "distance ~a ~&" d)
               (when (or (null dist)
                         (< d dist))
                 (setf surface s
@@ -3569,10 +3498,7 @@ c)
         (unit-vector (Nx s) (Ny s) (Nz s))
       (values xn yn zn)))
 
-  (defgeneric normal (object pt)
-    (:documentation "Вычисляет нормаль к объекту"))
-
-    (defun lambert (s int xr yr zr)
+  (defun lambert (s int xr yr zr)
     ;;   "Интенсивность света, отраженного точкой поверхности,
     ;;    пропорциональна скалярному произведению единичного вектора N,
     ;;    направленного из этой точки вдоль нормали к поверхности, и
@@ -3587,19 +3513,16 @@ c)
     ;;    перпендикуляру к ней и, убывая с увеличением угла, становится
     ;;    равной нулю в касательных к поверхности направлениях."
 
-      (multiple-value-bind (xn yn zn)
-          (normal s int)
-
+    (multiple-value-bind (xn yn zn)
+        (normal s int)
       ;; (format t "normal xn ~a yn ~a zn ~a  ~&" xn yn zn)
       ;; (format t "ray xn ~a yn ~a zn ~a  ~&" xr yr zr)
       ;; (format t "lambert ~a ~&" (+ (* xr xn)
       ;;                               (* yr yn)
       ;;                               (* zr zn)))
-    (max 0 (+ (* xr xn)
-              (* yr yn)
-              (* zr zn)))))
-
-  (defparameter *test* (make-hash-table :test #'equal))
+      (max 0 (+ (* xr xn)
+                (* yr yn)
+                (* zr zn)))))
 
   (defun sendray (pt xr yr zr)
     ;;   Возвращает кол-во света в диапазоне от 0 до 1 попадающее в EYE
@@ -3622,12 +3545,12 @@ c)
           ;; отраженного точкой поверхности по закону Ламберта и умножаем его
           ;; на цвет поверхности (темная отражает меньше света)
           (progn
-  ;;          (format t "color ~a x ~a ~&" (* (lambert s int xr yr zr)
-   ;;                                    (sur-color s)) (Nx s))
+            ;; (format t "color ~a x ~a ~&" (* (lambert s int xr yr zr)
+            ;;                              (sur-color s)) (Nx s))
             (* (lambert s int xr yr zr)
                (sur-color s)))
-          ;;0)))
           .1)))
+
 
   (defun color-at (x y)
     "Возвращает количество света, в диапазоне от 0 до 255 попадающее в EYE"
@@ -3639,56 +3562,31 @@ c)
       ;; Отправляем луч, проходящий от глаза через эту точку в мир,
       ;; получая число от 0 до 1, которое потом масштабируем
       ;; на от 0 до 255
-      ;;    (format t "xr ~a  yr ~a  zr ~a ~&" xr yr zr)
-      ;;(format t "color round ~a ~& "
+
+      ;; (format t "xr ~a  yr ~a  zr ~a ~&" xr yr zr)
+      ;; (format t "color round ~a ~& "
       ;;        (round (* (sendray eye xr yr zr) 255)))
 
       (round (* (sendray eye xr yr zr) 255))))
+
 
   (defun tracer (pathname &optional (res 1))
     (with-open-file (p pathname :direction :output :if-exists :supersede)
       ;; создаем заголовок файла
       (format p "P2 ~A ~A 255" (* res 100) (* res 100))
-      ;; (let ((inc (/ res)))
-      ;;   (do ((y -50 (+ y inc)))
-      ;;       ((< (- 50 y) inc))
-      ;;     (do ((x -50 (+ x inc)))
-      ;;         ((< (- 50 x) inc))
-      ;;       (print (color-at x y) p)
       (let ((inc (/ res)))
         (do ((y 50 (- y inc)))
             ((< (+ 50 y) inc))
           (do ((x -50 (+ x inc)))
               ((< (- 50 x) inc))
-            (print (color-at x y) p)
+            (print (color-at x y) p))))))
 
-            ;; (format t "y: ~A; x: ~A; inc: ~A; color: ~A | (< (- 50 ~A) ~A) ~%"
-            ;;         y
-            ;;         x
-            ;;         inc
-            ;;         (color-at x y)
-            ;;         y
-            ;;         inc
-            ;;            )
-            )))))
-
-
-  ;; (defun ray-test (&optional (res 1))
-  ;;   (setf *world* nil)
-  ;;   (defsphere 0 -300 -1200 200 .8)
-  ;;   (defsphere -80 -150 -1200 200 .7)
-  ;;   (defsphere 70 -100 -1200 200 .9)
-  ;;   (do ((x -2 (1+ x)))
-  ;;       ((> x 2))
-  ;;     (do ((z 2 (1+ z)))
-  ;;         ((> z 7))
-  ;;       (defsphere (* x 200) 300 (* z -400) 40 .75)))
-  ;;   (tracer (make-pathname :name "spheres.pgm") res))
-
-
+  ;; координата Х у всех 3 точек НЕ должна быть положительной
+  ;; (в этом случае координата Z у нормали оказывается положительной, т.к. объект
+  ;; оказывается вне пределов изображаемого мира
   (let ((a (make-instance 'point
-                          :x 20
-                          :y 0
+                          :x 30
+                          :y -10
                           :z -300))
         (b (make-instance 'point
                           :x -20
@@ -3698,23 +3596,16 @@ c)
                           :x 0
                           :y 50
                           :z -300)))
-  (defun ray-test-flat (&optional (res 1))
-    (setf *world* nil)
-    ;;(defflat 800 -300 -500 3000 .5)
-    ;;(defflat 100 -150 -100 3000 .2)
-    ;;(defflat 9 18 -2 300 1)
-    (deftriangle a b c 3000 .8)
-    ;;(defsphere 0 -300 -1200 200 .8)
-     ;; (defsphere -80 -150 -1200 200 .7)
-     ;;(defsphere 0 80 -1200 200 .9)
-     ;; (do ((x -2 (1+ x)))
-     ;;     ((> x 2))
-     ;;   (do ((z 2 (1+ z)))
-     ;;       ((> z 7))
-     ;;     (defsphere (* x 200) 300 (* z -400) 40 .75)))
-     (tracer (make-pathname :name "spheres.pgm") res)))
-
-  ;;(ray-test 10)
+    (defun ray-test-flat (&optional (res 1))
+      (setf *world* nil)
+      ;;(defflat 800 -300 -500 3000 .5)
+      (deftriangle a b c 3000 .8)
+      ;; (do ((x -2 (1+ x)))
+      ;;     ((> x 2))
+      ;;   (do ((z 2 (1+ z)))
+      ;;       ((> z 7))
+      ;;     (defsphere (* x 200) 300 (* z -400) 40 .75)))
+      (tracer (make-pathname :name "spheres.pgm") res)))
 
   (ray-test-flat 3)
 
