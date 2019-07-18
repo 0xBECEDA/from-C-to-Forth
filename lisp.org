@@ -3473,7 +3473,7 @@ c)
                    (result-c (check-point (x new-c) (y new-c) (x new-a) (y new-a)
                                           (x new-p) (y new-p))))
 
-              (if (or (and ( > result-a 0) ( > result-b 0) ( > result-c 0))
+              (if (or (and ( >= result-a 0) ( >= result-b 0) ( >= result-c 0))
                       (and ( < result-a 0) ( < result-b 0) ( < result-c 0)))
                   (values 1))))))))
 
