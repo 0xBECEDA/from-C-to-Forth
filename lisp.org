@@ -3238,11 +3238,15 @@ c)
            ;; Получили вектора AB, и ВС.
            ;; Вычисляем нормаль по формуле: x = (V1.y * V2.z) - (V1.z * V2.y)
            ;; y =  (V1.z * V2.x) - (V1.x * V2.z); z = (V1.x * V2.y) - (V1.y * V2.x)
+           (check-z (- (* (x vec-ab) (y vec-ac))
+             (* (y vec-ab) (x vec-ac))))
            (normal (make-instance 'point
                                   :x (- (* (y vec-ab) (z vec-ac)) (* (z vec-ab) (y vec-ac)))
                                   :y (- (* (z vec-ab) (x vec-ac)) (* (x vec-ab) (z vec-ac)))
-                                  :z (- (* (x vec-ab) (y vec-ac))
-                                        (* (y vec-ab) (x vec-ac))))))
+                                  :z (if (> check-z 0)
+                                         (- 0 check-z)
+                                         (check-z)))))))))
+
       ;;   (format t "normal-triangle x ~a y ~a z ~a ~&" (x normal) (y normal) (z normal))
       (format t "AB x ~a y ~a z ~a | AC x ~a y ~a z ~a ~&"
               (x vec-ab) (y vec-ab) (z vec-ab)
@@ -3430,42 +3434,70 @@ c)
   (defun change-location (pt1 pt2)
     (values (- (x pt2) (x pt1)) (- (y pt2) (y pt1)) (- (z pt2) (z pt1))))
 
+  ;; (defun triangle-intersect (triangle ray-point)
+  ;;   (multiple-value-bind (xa ya za)
+  ;;       (change-location (A triangle) (A triangle))
+  ;;     (multiple-value-bind (xb yb)
+  ;;         (change-location (A triangle) (B triangle))
+  ;;       (multiple-value-bind (xc yc)
+  ;;           (change-location (A triangle) (C triangle))
+  ;;         (multiple-value-bind (xp yp)
+  ;;             (change-location (A triangle) ray-point)
+  ;;           (let* ((new-a (make-instance 'point
+  ;;                                        :x xa
+  ;;                                        :y ya
+  ;;                                        :z za))
+  ;;                  (new-b (make-instance 'point
+  ;;                                        :x xb
+  ;;                                        :y yb
+  ;;                                        :z 0))
+  ;;                  (new-c (make-instance 'point
+  ;;                                        :x xc
+  ;;                                        :y yc
+  ;;                                        :z 0))
+  ;;                  (new-p (make-instance 'point
+  ;;                                        :x xp
+  ;;                                        :y yp
+  ;;                                        :z 0))
+  ;;                  ;;(Px*By - Bx*Py) / (Cx*By - Bx*Cy)
+  ;;                  (m (/ (- (* (x new-p) (y new-b)) (* (x new-b) (y new-p)))
+  ;;                        (- (* (x new-c) (y new-b)) (* (x new-b) (y new-c))))))
+  ;;             (let ((result 0))
+  ;;               (if (and (> m 0) ( < m 1))
+  ;;                   ;;l := (Px - m*Cx) / Bx
+  ;;                   (let ((l (/ (- (x new-p) (* m (x new-c)))
+  ;;                               (x new-b))))
+  ;;                     (if (and (>= l 0) (<= (+ m l) 1))
+  ;;                         (values (setf result 1))
+  ;;                         (values result)))))))))))
+
+
   (defun triangle-intersect (triangle ray-point)
-    (multiple-value-bind (xa ya za)
-        (change-location (A triangle) (A triangle))
-      (multiple-value-bind (xb yb)
-          (change-location (A triangle) (B triangle))
-        (multiple-value-bind (xc yc)
-            (change-location (A triangle) (C triangle))
-          (multiple-value-bind (xp yp)
-              (change-location (A triangle) ray-point)
-            (let* ((new-a (make-instance 'point
-                                         :x xa
-                                         :y ya
-                                         :z za))
-                   (new-b (make-instance 'point
-                                         :x xb
-                                         :y yb
-                                         :z 0))
-                   (new-c (make-instance 'point
-                                         :x xc
-                                         :y yc
-                                         :z 0))
-                   (new-p (make-instance 'point
-                                         :x xp
-                                         :y yp
-                                         :z 0))
-                   ;;(Px*By - Bx*Py) / (Cx*By - Bx*Cy)
-                   (m (/ (- (* (x new-p) (y new-b)) (* (x new-b) (y new-p)))
-                         (- (* (x new-c) (y new-b)) (* (x new-b) (y new-c))))))
-              (let ((result 0))
-                (if (and (> m 0) ( < m 1))
-                    ;;l := (Px - m*Cx) / Bx
-                    (let ((l (/ (- (x new-p) (* m (x new-c)))
-                                (x new-b))))
-                      (if (and (>= l 0) (<= (+ m l) 1))
-                          (values (setf result 1))
-                          (values result)))))))))))
+    (let* ((new-a (make-instance 'point
+                                :x (x (A triangle))
+                                :y (y (A triangle))
+                                :z 0))
+          (new-b (make-instance 'point
+                                :x (x (B triangle))
+                                :y (y (B triangle))
+                                :z 0))
+          (new-c (make-instance 'point
+                                :x (x (C triangle))
+                                :y (y (C triangle))
+                                :z 0))
+          (new-p (make-instance 'point
+                                :x (x ray-point)
+                                :y (y ray-point)
+                                :z 0))
+           (result-a (- (* (- (x new-a) (x new-p)) (- (y new-b) (y new-a)))
+                        (* (- (x new-b) (x new-a)) (- (y new-a) (y new-p)))))
+           (result-b (- (* (- (x new-b) (x new-p)) (- (y new-c) (y new-b)))
+                        (* (- (x new-c) (x new-b)) (- (y new-b) (y new-p)))))
+           (result-c (- (* (- (x new-c) (x new-p)) (- (y new-a) (y new-c)))
+                        (* (- (x new-a) (x new-c)) (- (y new-c) (y new-p))))))
+      (if (or (and ( > result-a 0) ( > result-b 0) ( > result-c 0))
+              (and ( < result-a 0) ( < result-b 0) ( < result-c 0)))
+          (values 1))))
 
   (defun first-hit (pt xr yr zr)
     ;; Перебираем *WORLD* пока не найдем тот элемент,
@@ -3554,7 +3586,8 @@ c)
    ;;                                    (sur-color s)) (Nx s))
             (* (lambert s int xr yr zr)
                (sur-color s)))
-          0)))
+          ;;0)))
+          .1)))
 
   (defun color-at (x y)
     "Возвращает количество света, в диапазоне от 0 до 255 попадающее в EYE"
@@ -3576,12 +3609,19 @@ c)
     (with-open-file (p pathname :direction :output :if-exists :supersede)
       ;; создаем заголовок файла
       (format p "P2 ~A ~A 255" (* res 100) (* res 100))
+      ;; (let ((inc (/ res)))
+      ;;   (do ((y -50 (+ y inc)))
+      ;;       ((< (- 50 y) inc))
+      ;;     (do ((x -50 (+ x inc)))
+      ;;         ((< (- 50 x) inc))
+      ;;       (print (color-at x y) p)
       (let ((inc (/ res)))
-        (do ((y -50 (+ y inc)))
-            ((< (- 50 y) inc))
+        (do ((y 50 (- y inc)))
+            ((< (+ 50 y) inc))
           (do ((x -50 (+ x inc)))
               ((< (- 50 x) inc))
             (print (color-at x y) p)
+
             ;; (format t "y: ~A; x: ~A; inc: ~A; color: ~A | (< (- 50 ~A) ~A) ~%"
             ;;         y
             ;;         x
@@ -3591,6 +3631,7 @@ c)
             ;;         inc
             ;;            )
             )))))
+
 
   ;; (defun ray-test (&optional (res 1))
   ;;   (setf *world* nil)
@@ -3610,12 +3651,12 @@ c)
                           :y 0
                           :z -30))
         (b (make-instance 'point
-                          :x -30
+                          :x 50
                           :y 0
                           :z -30))
         (c (make-instance 'point
-                          :x 10
-                          :y 100
+                          :x 25
+                          :y 60
                           :z -30)))
   (defun ray-test-flat (&optional (res 1))
     (setf *world* nil)
@@ -3623,9 +3664,9 @@ c)
     ;;(defflat 100 -150 -100 3000 .2)
     ;;(defflat 9 18 -2 300 1)
     (deftriangle a b c 3000 .8)
-      ;;(defsphere 0 -300 -1200 200 .8)
+    ;;(defsphere 0 -300 -1200 200 .8)
      ;; (defsphere -80 -150 -1200 200 .7)
-     ;; (defsphere 70 -100 -1200 200 .9)
+     ;;(defsphere 0 80 -1200 200 .9)
      ;; (do ((x -2 (1+ x)))
      ;;     ((> x 2))
      ;;   (do ((z 2 (1+ z)))
