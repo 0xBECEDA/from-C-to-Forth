@@ -3158,6 +3158,7 @@ c)
 
 
 #+BEGIN_SRC lisp
+
   ;; изображаемый мир (по умолчанию пуст)
   (defparameter *world* nil)
 
@@ -3983,5 +3984,122 @@ c)
 
   (let ((x (make-instance 'burning-forest)))
     (help x 20))
+
+#+END_SRC
+
+* Chapter 12
+
+** copy-queue
+
+Определите функцию copy-queue, возвращающую копию очереди
+
+Основой copy-queque будет copy-list:
+#+BEGIN_SRC lisp
+
+  (defun our-copy-list (lst)
+    ;; если lst является атомом
+    (if (atom lst)
+        ;; возвращаем lst
+        lst
+        ;; в противном случае соединяем начало списка и его cdr в новый список
+        (cons (car lst) (our-copy-list (cdr lst)))))
+
+#+END_SRC
+
+#+BEGIN_SRC lisp
+
+  ;; делаем пустую точечную пару
+  (defun make-queue () (cons nil nil))
+
+  ;; функция для добавления элементов в очередь (мановская)
+  (defun enqueue (obj q)
+    (if (null (car q))
+        (setf (cdr q) (setf (car q) (list obj)))
+        (setf (cdr (cdr q)) (list obj)
+              (cdr q) (cdr (cdr q))))
+    (car q))
+
+
+  (defun copy-queue (q)
+    (let ((new-q (make-queue))
+          (copy q))
+      (if (null (car q))
+          nil
+          (progn
+            (setf (cdr new-q) (setf (car new-q) (car copy)))
+            (pop (car copy))
+            (do ((i (length (car copy)) (- i 1)))
+                ((= i 0) new-q)
+              (setf (cdr (cdr new-q)) (car copy)
+                    (cdr new-q) (cdr (cdr new-q)))
+              (pop (car copy)))))))
+
+  ;; пустая очередь
+  (setf qu (make-queue))
+  (copy-queue qu)
+
+  ;; очередь с одним элементом
+  (enqueue 'a qu)
+  (copy-queue qu)
+
+  ;; очередь с двумя элементами (можно добавить больше)
+  (enqueue 'b qu)
+  (enqueue 'с qu)
+  (copy-queue qu)
+
+#+END_SRC
+
+** beginning of queue
+
+Определите функцию, принимающую объект и очередь, и помещающую объект
+в начало очереди.
+
+#+BEGIN_SRC lisp
+  (defun beg-in-qu (obj q)
+    (setf (car q) (push obj (car q))))
+
+  ;;test
+  (setf qu (make-queue))
+  (enqueue 'a qu)
+  (enqueue 'b qu)
+  (enqueue 'c qu)
+  (beg-in-qu 's qu)
+
+#+END_SRC
+
+** eql in beginning
+
+Определите функцию, принимающую в качестве аргументов
+объект и очередь и (деструктивно) перемещающую первый найденный
+(eql) экземпляр этого объекта в начало очереди.
+
+- проход по очереди
+- сравниваем каждый объект очереди с искомым
+- если нашли, перемещаем найденное в начало очереди (не забыть
+  подчистить указатели)
+- если нет, двигаемся дальше
+- если ничего не нашли после прохода, возвращаем nil
+
+#+BEGIN_SRC lisp
+
+  (defun eql-obj (obj q)
+    (dolist (obj2 (car q))
+      (if (eql obj obj2)
+          (progn
+            (setf (car q) (remove obj (car q)))
+            (setf (car q) (push obj (car q)))
+            (if (eql obj2 (car (cdr q)))
+                  (setf (cdr q) (last (car q)))))))
+                (values q))
+
+  ;; подготовка к запуску
+  (setf q (make-queue))
+  (enqueue  'a q)
+  (enqueue  'b q)
+  (enqueue  'c q)
+
+  ;; запуск
+  (eql-obj 'b q)
+  (eql-obj 'c q)
 
 #+END_SRC
