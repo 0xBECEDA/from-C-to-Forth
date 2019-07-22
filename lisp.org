@@ -3988,6 +3988,64 @@ c)
 #+END_SRC
 
 * Chapter 12
+** three trees
+
+Двусвязный список:
+
+#+BEGIN_SRC lisp
+  ;; мановские функции для определения двусвязного списка
+  (defstruct (dl (:print-function print-dl))
+    prev data next)
+
+  (defun print-dl (dl stream depth)
+    (declare (ignore depth))
+    (format stream "#<DL ~A>" (dl->list dl)))
+
+  (defun dl->list (lst)
+    (if (dl-p lst)
+        (cons (dl-data lst) (dl->list (dl-next lst)))
+        lst))
+
+  (defun dl-insert (x lst)
+    (let ((elt (make-dl :data x :next lst)))
+      (when (dl-p lst)
+        (if (dl-prev lst)
+            (setf (dl-next (dl-prev lst)) elt
+                  (dl-prev elt) (dl-prev lst)))
+        (setf (dl-prev lst) elt))
+      elt))
+
+  (defun dl-list (&rest args)
+    (reduce #'dl-insert args
+              :from-end t :initial-value nil))
+
+  (defun dl-remove (lst)
+    (if (dl-prev lst)
+        (setf (dl-next (dl-prev lst)) (dl-next lst)))
+    (if (dl-next lst)
+        (setf (dl-prev (dl-next lst)) (dl-prev lst)))
+    (dl-next lst))
+
+  ;; тест
+  (let ((tree))
+    (setf tree (dl-insert '(A) tree))
+    (setf tree (dl-insert '(A) tree))
+    (setf tree (dl-insert '(A) tree)))
+
+#+END_SRC
+
+Структура списка верхнего уровня:
+
+#+BEGIN_SRC lisp
+
+  (let ((part '(A))
+        (lst))
+    (setf lst (cons part lst))
+    (setf lst (cons part lst))
+    (setf lst (cons part lst)))
+
+#+END_SRC
+
 
 ** copy-queue
 
@@ -4102,4 +4160,100 @@ c)
   (eql-obj 'b q)
   (eql-obj 'c q)
 
+#+END_SRC
+
+** circle cdr
+
+Определите функцию, проверяющую, является ли ее аргумент циклическим
+по хвосту списком
+
+- проверить, указывает ли cdr списка на начало списка
+
+#+BEGIN_SRC lisp
+  (defun check-cdr (lst end)
+    (if (null lst)
+        nil
+        (if (eql (cdr lst) end)
+            t
+            (check-cdr (cdr lst) end))))
+
+  ;; test
+  (let ((lst (list 'a 'b 'c 'd)))
+    (progn (setf (cdr (last lst)) lst) nil)
+    (check-cdr lst lst))
+
+  (let ((lst (list 'a 'b 'c 'd)))
+    (check-cdr lst lst))
+
+#+END_SRC
+
+** circle-car
+
+Определите функцию, проверяющую, является ли ее аргумент циклическим
+по голове списком
+
+- проверить, указывает ли car на начало списка
+
+#+BEGIN_SRC lisp
+  (defun check-car (lst)
+    (eql (car lst) lst))
+
+  ;; test
+  (let ((lst (list 'a 'b 'c 'd)))
+    (progn (setf (car lst) lst) nil)
+    (check-car lst))
+
+  (let ((lst (list 'a 'b 'c 'd)))
+    (check-car lst))
+
+#+END_SRC
+
+** check-circal-lst
+
+Определите функцию, принимающую объект и  цикkический список, который
+может быть циклическим по хвосту, и проверяющую наличие заданного объекта в списке
+
+ - пройти по списку, при этом сделать так, чтоб проход не зациклился
+
+- если cdr ячейки указывает в начало списка, значит, этот элемент
+  последний
+
+#+BEGIN_SRC lisp
+
+  (defun check-circle-lst (obj lst copy)
+    (if (eql (car lst) obj)
+        t
+        (if (eql copy (cdr lst))
+            (return-from check-circle-lst nil)
+            (check-circle-lst obj (cdr lst) copy))))
+  ;; test
+  (let ((lst (list 'a 'b 'c 'd)))
+    (progn (setf (cdr (last lst)) lst) nil)
+    (check-circle-lst 'v lst lst))
+
+  (let ((lst (list 'a 'b 'c 'd)))
+    (progn (setf (cdr (last lst)) lst) nil)
+    (check-circle-lst 'd lst lst))
+
+#+END_SRC
+
+#+BEGIN_SRC lisp
+
+  CL-USER> (defun dbglist (lst end)
+             (labels ((out (lst)
+                        (format t "~%~A" (car lst))))
+               (cond ((null lst) 'fin-nil)
+                     ((eql (cdr lst) end) (progn (out lst) 'fin-circullar))
+                     (t (progn (out lst) (dbglist (cdr lst) end))))))
+
+  WARNING: redefining COMMON-LISP-USER::DBGLIST in DEFUN
+  DBGLIST
+  CL-USER> (let ((lst '(a b c d)))
+             (rplacd (last lst) lst)
+             (dbglist lst lst))
+
+  FIN-CIRCULLAR
+  CL-USER> (let ((lst '(a b c d)))
+             ;; (rplacd (last lst) lst)
+             (dbglist lst lst))
 #+END_SRC
