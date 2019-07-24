@@ -4257,3 +4257,402 @@ c)
              ;; (rplacd (last lst) lst)
              (dbglist lst lst))
 #+END_SRC
+* Chapter 13
+
+** inline
+
+Проверьте, принимает ли ваш компилтор inline декларации.
+
+Судя по ассемблерному листингу, single? не была встроена в foo, она
+там только вызывается.
+
+#+BEGIN_SRC lisp
+
+  (defun single? (lst)
+    (and (consp lst) (null (cdr lst))))
+
+  (declaim (inline single?))
+
+  (defun foo (x)
+    (single? (bar x)))
+
+  (disassemble 'foo)
+
+  (disassemble 'single?)
+
+#+END_SRC
+
+** tail rec
+
+Перепишите исходную функцию в фунцию с хвостовой рекурсией.
+Скомпилируйте и сравните производительность обеих версий.
+
+#+BEGIN_SRC lisp
+  ;; исходная функция
+  ;; принимает 1 параметр
+  (defun foo (x)
+    ;; если параметр = 0
+    (if (zerop x)
+        ;; возвращаем 0
+        0
+        ;; в противном случае рекурсивно вызываем foo, уменьшая параметр на 1
+        (+ 1 (foo (1- x)))))
+
+  (foo 2)
+
+  ;; Рекурсия будет работать до тех пор, пока X не станет = 0. При последнем вызове рекурсии
+  ;; функция вернет 0, затем мы откатимся назад, прибавим к возвращаемому значению 1 и будем
+  ;; повторять откат столько раз, сколько было рекурсивных вызовов
+
+  ;; Чтоб рекурсия считалась хвостовой, надо чтоб после вызовов не пришлось ничего считать,
+  ;; как в исходном варианте.
+  ;; мой вариант:
+
+  (defun foo2 (x acc)
+    (if (zerop x)
+        acc
+        (foo2 (1- x) (1+ acc))))
+
+  ;; test
+  (foo2 2 0)
+
+  ;; почему-то time не показывает количество секунд, затраченных на исполнение функций
+  (time (foo2 2 0))
+  (time (foo 2))
+
+#+END_SRC
+
+** declarations
+
+Добавьте декларации в следующие программы. Насколько ускорится их
+исполнение?
+
+Арифметика дат (см раздел 5.7 в мане)
+
+#+BEGIN_SRC lisp
+
+  ;; устанавливаем константы
+  ;; этот вектор показывает, сколько дней проходит от начала года
+  ;; до соответствующего месяца
+  (defconstant month
+    #(0 31 59 90 120 151 181 212 243 273 304 334 365))
+
+  ;; устанваливаем константу yzerop
+  ;; ее значение - 2000ый год
+
+  (defconstant yzero 2000)
+
+  ;; функция leap? принимает год в качестве параметра и проверяет,
+  ;; не високосный ли он
+  ;; год високосный если:
+  ;; - кратен 4
+  ;; - либо кратен 400 или не кратен 100
+
+  (defun leap? (y)
+    (and (zerop (mod y 4))
+         (or (zerop (mod y 400))
+             (not (zerop (mod y 100))))))
+
+  ;; преобразовывает дату в целое число
+  ;; функция принимает день, месяц и год
+  ;; складываем день (со вчерашнего дня), соответствующий месяц, прибавив к нему 1,
+  ;; если год високосный и искомый месяц после февраля, и количество дней от двухтысячного
+  ;; года до первого января текущего года
+
+  (defun date->num (d m y)
+    (+ (- d 1) (month-num m y) (year-num y)))
+
+  ;; отнимаем от месяца один, чтоб не считать текущий месяц,
+  ;; если год високосный, прибавляем к количеству дней, если нет, то 0
+
+  (defun month-num (m y)
+    (+ (svref month ( - m 1))
+       (if (and (> m 2) (leap? y))
+           1
+           0)))
+
+  (defun year-num (y)
+    (declare (fixnum y))
+    (format t "year->num params ~a ~&" y)
+    (let ((d 0))
+      (if (>= y yzero)
+          (dotimes (i (- y yzero) d)
+            (incf d (year-days (+ i yzero))))
+          (dotimes (i (- yzero y) (- d))
+            (incf d (year-days (+ y i)))))))
+
+  (defun year-days (y) (if (leap? y) 366 365))
+
+
+  ;; арифметика дат
+  ;; преобразует целое число в дату
+  (defun num->date (n)
+    (multiple-value-bind (y left) (num-year n)
+      (multiple-value-bind (m d) (num-month left y)
+        (values d m y))))
+
+  (defun num-year (n)
+    (if (< n 0)
+        (do* ((y (- yzero 1) (- y 1))
+              (d (- (year-days y)) (- d (year-days y))))
+             ((<= d n) (values y (- n d))))
+        (do* ((y yzero (+ y 1))
+              (prev 0 d)
+              (d (year-days y) (+ d (year-days y))))
+             ((> d n) (values y (- n prev))))))
+
+  (defun num-month (n y)
+    (if (leap? y)
+        (cond ((= n 59) (values 2 29))
+              ((> n 59) (nmon (- n 1)))
+              (t (nmon n)))
+        (nmon n)))
+
+  (defun nmon (n)
+    (let ((m (position n month :test #'<)))
+      (values m (+ 1 (- n (svref month (- m 1)))))))
+
+  ;; позволяет складывать даты
+  (defun date+ (d m y n)
+    (num->date (+ (date->num d m y) n)))
+
+
+  ;; мой вариант:
+
+
+  (defun leap? (y)
+    (declare (fixnum y))
+    (and (zerop (mod y 4))
+         (or (zerop (mod y 400))
+             (not (zerop (mod y 100))))))
+
+  (defun date->num (d m y)
+    (declare (fixnum d m y))
+    (+ (- d 1) (month-num m y) (year-num y)))
+
+  (defun month-num (m y)
+    (declare (fixnum m y))
+    (+ (svref month ( - m 1))
+       (if (and (> m 2) (leap? y))
+           1
+           0)))
+
+  (defun year-num (y)
+    (declare (fixnum y))
+    (let ((d 0))
+      (if (>= y yzero)
+          (dotimes (i (- y yzero) d)
+            (incf d (year-days (+ i yzero))))
+          (dotimes (i (- yzero y) (- d))
+            (incf d (year-days (+ y i)))))))
+
+  (defun year-days (y)
+    (declare (fixnum y))
+    (if (leap? y) 366 365))
+
+  (defun num->date (n)
+    (declare (fixnum n))
+    (multiple-value-bind (y left) (num-year n)
+      (multiple-value-bind (m d) (num-month left y)
+        (values d m y))))
+
+  (defun num-year (n)
+    (declare (fixnum n))
+    (if (< n 0)
+        (do* ((y (- yzero 1) (- y 1))
+              (d (- (year-days y)) (- d (year-days y))))
+             ((<= d n) (values y (- n d))))
+        (do* ((y yzero (+ y 1))
+              (prev 0 d)
+              (d (year-days y) (+ d (year-days y))))
+             ((> d n) (values y (- n prev))))))
+
+  (defun num-month (n y)
+    (declare (fixnum n y))
+    (if (leap? y)
+        (cond ((= n 59) (values 2 29))
+              ((> n 59) (nmon (- n 1)))
+              (t (nmon n)))
+        (nmon n)))
+
+  (defun nmon (n)
+    (declare (fixnum n))
+    (let ((m (position n month :test #'<)))
+      (values m (+ 1 (- n (svref month (- m 1)))))))
+
+  (defun date+ (d m y n)
+    (declare (fixnum d m y n))
+    (num->date (+ (date->num d m y) n)))
+
+  (time (date+ 10 12 1982 60))
+  (date+ 10 12 1997 60)
+
+#+END_SRC
+
+Трассировщик лучей (см раздел 9.8 в мане)
+
+#+BEGIN_SRC lisp
+  ;; Координаты point-of-view
+  (defconstant eye (make-point :x 0 :y 0 :z (float 200)))
+
+  (defun sq (x)
+    (declare (short-float x))
+    (* x x))
+
+  (defun mag (x y z)
+    (declare (short-float x y z))
+    (sqrt (+ (sq x) (sq y) (sq z))))
+
+  (defun unit-vector (x y z)
+    (declare (short-float x y z))
+    (let ((d (mag x y z)))
+      (values (/ x d) (/ y d) (/ z d))))
+
+  (defstruct (point (:conc-name nil))
+    x y z)
+
+  (defun distance (p1 p2)
+    (declare (point pt1 pt2))
+    (mag (- (x p1) (x p2))
+         (- (y p1) (y p2))
+         (- (z p1) (z p2))))
+
+  (defun minroot (a b c)
+    (if (zerop a)
+        (/ (- c) b)
+        (let ((disc (- (sq b) (* 4 a c))))
+          (unless (minusp disc)
+            (let ((discrt (sqrt disc)))
+              (min (/ (+ (- b) discrt) (* 2 a))
+                   (/ (- (- b) discrt) (* 2 a))))))))
+
+  (defstruct surface color)
+
+  (defparameter *world* nil)
+
+  (defun tracer (pathname &optional (res 1))
+    (with-open-file (p pathname :direction :output :if-exists :supersede)
+      (format p "P2 ~A ~A 255" (* res 100) (* res 100))
+      (let ((inc (/ res)))
+        (do ((y -50 (+ y inc)))
+            ((<  (- 50 y) inc))
+          (do ((x -50 (+ x inc)))
+              ((< (- 50 x) inc))
+            (print (color-at (float x) (float y)) p))))))
+
+  (defun color-at (x y)
+    (declare (short-float x y))
+    (multiple-value-bind (xr yr zr)
+        (unit-vector (- x (x eye))
+                     (- y (y eye))
+                     (- 0 (z eye)))
+      (round (* (sendray eye xr yr zr) 255))))
+
+  (defun sendray (pt xr yr zr)
+    (declare (point pt) (short-float xr yr zr))
+    (multiple-value-bind (s int) (first-hit pt xr yr zr)
+      (if s
+          (* (lambert s int xr yr zr) (surface-color s))
+          0)))
+
+  (defun first-hit (pt xr yr zr)
+    (declare (point pt) (short-float xr yr zr))
+    (let (surface hit dist)
+      (dolist (s *world*)
+        (let ((h (intersect s pt xr yr zr)))
+          (when h
+            (let ((d (distance h pt)))
+              (when (or (null dist) (< d dist))
+                (setf surface s hit h dist d))))))
+      (values surface hit)))
+
+  (defun lambert (s int xr yr zr)
+    (declare (short-float xr yr zr))
+    (multiple-value-bind (xn yn zn) (normal s int)
+      (max 0 (+ (* xr xn) (* yr yn) (* zr zn)))))
+
+  (defstruct (sphere (:include surface))
+    radius center)
+
+  (defun defsphere (x y z r c)
+    (declare (short-float x y z r c))
+    (let ((s (make-sphere
+              :radius r
+              :center (make-point :x x :y y :z z)
+              :color c)))
+      (push s *world*)
+      s))
+
+  (defun intersect (s pt xr yr zr)
+    (declare (point pt) (sphere s) (short-float xr yr zr))
+    (funcall (typecase s (sphere #'sphere-intersect))
+             s pt xr yr zr))
+
+  (defun sphere-intersect (s pt xr yr zr)
+    (declare (point pt) (sphere s) (short-float xr yr zr))
+    (let* ((c (sphere-center s))
+           (n (minroot (+ (sq xr) (sq yr) (sq zr))
+                       (* 2 (+ (* (- (x pt) (x c)) xr)
+                               (* (- (y pt) (y c)) yr)
+                               (* (- (z pt) (z c)) zr)))
+                       (+ (sq (- (x pt) (x c)))
+                          (sq (- (y pt) (y c)))
+                          (sq (- (z pt) (z c)))
+                          (- (sq (sphere-radius s)))))))
+      (if n
+          (make-point :x (+ (x pt) (* n xr))
+                      :y (+ (y pt) (* n yr))
+                      :z (+ (z pt) (* n zr))))))
+
+  (defun normal (s pt)
+    (funcall (typecase s (sphere #'sphere-normal))
+             s pt))
+
+  (defun sphere-normal (s pt)
+    (declare (point pt) (sphere s))
+    (let ((c (sphere-center s)))
+      (unit-vector (- (x c) (x pt))
+                   (- (y c) (y pt))
+                   (- (z c) (z pt)))))
+
+  (defun ray-test (&optional (res 1))
+    (setf *world* nil)
+    (defsphere (float 0) (float -30) (float -1200) (float 200) .8)
+    ;;(defsphere -80 -150 -1200 200 .7)
+    ;;(defsphere 70 -100 -1200 200 .9)
+    ;; (do ((x -2 (1+ x)))
+    ;;     ((> x 2))
+    ;;   (do ((z 2 (1+ z)))
+    ;;       ((> z 7))
+    ;;     (defsphere (* x 200) 300 (* z -400) 40 .75)))
+    (tracer (make-pathname :name "spheres.pgm") res))
+
+  (time (ray-test 3))
+
+  ;; (setf vec1 (make-array 1000000 :initial-element nil))
+  ;; (setf vec2 (make-array 1000000 :initial-element nil))
+
+  ;; (do ((i 0 (1+ i)))
+  ;;     ((= i 999999))
+  ;;   (setf (aref vec2 i) (float (/ (random 10000000) 3.0d0))))
+
+  ;; (svref vec1 1)
+
+  ;; (svref vec2 1)
+
+  ;; (defun test (x y)
+  ;;   (declare (number x y))
+  ;;   (+ x y))
+
+  ;; (test 2 3)
+  ;; (time (do ((i 0 (1+ i)))
+  ;;           ((= i 999999))
+  ;;         (test (svref vec1 i) (svref vec2 i))))
+
+  ;; (defun test (x y)
+  ;;   (declare (fixnum x y))
+  ;;   (+ x y))
+
+  ;; (test 2.5 4.3)
+
+#+END_SRC
