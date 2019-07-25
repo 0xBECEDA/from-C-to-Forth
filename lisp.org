@@ -4629,25 +4629,27 @@ c)
 
   (time (ray-test 3))
 
-  ;; (setf vec1 (make-array 1000000 :initial-element nil))
-  ;; (setf vec2 (make-array 1000000 :initial-element nil))
+  (setf vec1 (make-array 1000000 :initial-element nil))
+  (setf vec2 (make-array 1000000 :initial-element nil))
 
-  ;; (do ((i 0 (1+ i)))
-  ;;     ((= i 999999))
-  ;;   (setf (aref vec2 i) (float (/ (random 10000000) 3.0d0))))
+  (do ((i 0 (1+ i)))
+      ((= i 999999))
+    (setf (aref vec1 i) (float (/ (random 10000000) 3.0d0))))
 
-  ;; (svref vec1 1)
+  (svref vec1 1)
 
-  ;; (svref vec2 1)
+  (svref vec2 1)
 
-  ;; (defun test (x y)
-  ;;   (declare (number x y))
-  ;;   (+ x y))
+  (defun test (x y)
+    (declare (long-float x y))
+    (+ x y))
 
-  ;; (test 2 3)
-  ;; (time (do ((i 0 (1+ i)))
-  ;;           ((= i 999999))
-  ;;         (test (svref vec1 i) (svref vec2 i))))
+  (test 2 3)
+  (time (do ((i 0 (1+ i)))
+            ((= i 999999))
+          (test (svref vec1 i) (svref vec2 i))))
+
+  (print (disassemble #'test))
 
   ;; (defun test (x y)
   ;;   (declare (fixnum x y))
