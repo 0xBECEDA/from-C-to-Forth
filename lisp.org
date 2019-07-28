@@ -1120,7 +1120,6 @@ rgb), выгружаем из объекта и color цвета в соотве
                   (lst_bst (node-r bst) lst))
               (lst_bst (node-r bst) lst))
           nil)
-
       ;; если левая ветка!= nil
       (if (node-l bst)
           ;; проверяем ее подветки
@@ -4314,11 +4313,15 @@ c)
         (foo2 (1- x) (1+ acc))))
 
   ;; test
-  (foo2 2 0)
+  (setf vec (make-array 1000000 :initial-element nil))
 
-  ;; почему-то time не показывает количество секунд, затраченных на исполнение функций
-  (time (foo2 2 0))
-  (time (foo 2))
+  (do ((i 0 (1+ i)))
+      ((= i 99999))
+    (setf (svref vec i) (random 31)))
+
+  (time (do ((i 0 (1+ i)))
+            ((= i 99999))
+          (foo2 (svref vec i) 0)))
 
 #+END_SRC
 
@@ -4331,94 +4334,10 @@ c)
 
 #+BEGIN_SRC lisp
 
-  ;; устанавливаем константы
-  ;; этот вектор показывает, сколько дней проходит от начала года
-  ;; до соответствующего месяца
   (defconstant month
     #(0 31 59 90 120 151 181 212 243 273 304 334 365))
 
-  ;; устанваливаем константу yzerop
-  ;; ее значение - 2000ый год
-
   (defconstant yzero 2000)
-
-  ;; функция leap? принимает год в качестве параметра и проверяет,
-  ;; не високосный ли он
-  ;; год високосный если:
-  ;; - кратен 4
-  ;; - либо кратен 400 или не кратен 100
-
-  (defun leap? (y)
-    (and (zerop (mod y 4))
-         (or (zerop (mod y 400))
-             (not (zerop (mod y 100))))))
-
-  ;; преобразовывает дату в целое число
-  ;; функция принимает день, месяц и год
-  ;; складываем день (со вчерашнего дня), соответствующий месяц, прибавив к нему 1,
-  ;; если год високосный и искомый месяц после февраля, и количество дней от двухтысячного
-  ;; года до первого января текущего года
-
-  (defun date->num (d m y)
-    (+ (- d 1) (month-num m y) (year-num y)))
-
-  ;; отнимаем от месяца один, чтоб не считать текущий месяц,
-  ;; если год високосный, прибавляем к количеству дней, если нет, то 0
-
-  (defun month-num (m y)
-    (+ (svref month ( - m 1))
-       (if (and (> m 2) (leap? y))
-           1
-           0)))
-
-  (defun year-num (y)
-    (declare (fixnum y))
-    (format t "year->num params ~a ~&" y)
-    (let ((d 0))
-      (if (>= y yzero)
-          (dotimes (i (- y yzero) d)
-            (incf d (year-days (+ i yzero))))
-          (dotimes (i (- yzero y) (- d))
-            (incf d (year-days (+ y i)))))))
-
-  (defun year-days (y) (if (leap? y) 366 365))
-
-
-  ;; арифметика дат
-  ;; преобразует целое число в дату
-  (defun num->date (n)
-    (multiple-value-bind (y left) (num-year n)
-      (multiple-value-bind (m d) (num-month left y)
-        (values d m y))))
-
-  (defun num-year (n)
-    (if (< n 0)
-        (do* ((y (- yzero 1) (- y 1))
-              (d (- (year-days y)) (- d (year-days y))))
-             ((<= d n) (values y (- n d))))
-        (do* ((y yzero (+ y 1))
-              (prev 0 d)
-              (d (year-days y) (+ d (year-days y))))
-             ((> d n) (values y (- n prev))))))
-
-  (defun num-month (n y)
-    (if (leap? y)
-        (cond ((= n 59) (values 2 29))
-              ((> n 59) (nmon (- n 1)))
-              (t (nmon n)))
-        (nmon n)))
-
-  (defun nmon (n)
-    (let ((m (position n month :test #'<)))
-      (values m (+ 1 (- n (svref month (- m 1)))))))
-
-  ;; позволяет складывать даты
-  (defun date+ (d m y n)
-    (num->date (+ (date->num d m y) n)))
-
-
-  ;; мой вариант:
-
 
   (defun leap? (y)
     (declare (fixnum y))
@@ -4484,8 +4403,20 @@ c)
     (declare (fixnum d m y n))
     (num->date (+ (date->num d m y) n)))
 
-  (time (date+ 10 12 1982 60))
-  (date+ 10 12 1997 60)
+  ;; test
+  ;; date+ принимает дату и количество дней, котоое надо к ней прибавить.
+  ;; вместо дня в тестовый вызов передается рандомное число до 31.
+
+  (setf vec (make-array 100000 :initial-element nil))
+
+  (do ((i 0 (1+ i)))
+      ((= i 9999))
+    (setf (svref vec i) (random 31)))
+
+  (time (do ((i 0 (1+ i)))
+            ((= i 9999))
+          (date+ (svref vec i) 12 1982 60)))
+
 
 #+END_SRC
 
@@ -4641,7 +4572,8 @@ c)
   (svref vec2 1)
 
   (defun test (x y)
-    (declare (long-float x y))
+    (declare (long-float x y)
+(optimize (speed 3) (debug 0) (safety 0)))
     (+ x y))
 
   (test 2 3)
@@ -4657,4 +4589,298 @@ c)
 
   ;; (test 2.5 4.3)
 
+#+END_SRC
+
+** bst with pulls
+
+Переделайте код двоичных деревьев с использованием пулов.
+
+#+BEGIN_SRC lisp
+
+  (defun mybst-insert (obj bst <)
+    (if (eql 0 (fill-pointer bst))
+        (let ((new-node (aref bst (fill-pointer bst))))
+          ;;(format t "true~&")
+          (setf (node-elt new-node) obj
+                (node-r new-node) nil
+                (node-l new-node) nil)
+          (vector-push new-node bst))
+        ;;(format t "~%bst ~A" bst))
+        (let ((node (aref bst 0)))
+          (do ((i 0 (+ i 1)))
+              (nil)
+            ;;(format t "~%bst ~A" bst)
+            ;;(format t "~%node ~A" node)
+            (if (eql obj (node-elt node))
+                bst
+                (if (funcall < obj (node-elt node))
+                    (if (null (node-l node))
+                        (progn
+                          ;;(format t "left ~&")
+                          ;;(format t "~%fill-p left ~A" (fill-pointer bst))
+                          (let ((new-node (aref bst (fill-pointer bst))))
+                            (setf (node-elt new-node) obj
+                                  (node-r new-node) nil
+                                  (node-l new-node) nil)
+                            (vector-push new-node bst)
+                            (setf (node-l node) (- (fill-pointer bst) 1))
+                            ;;(format t "~%bst ~A" bst)
+                            (return-from  mybst-insert bst)))
+                        (setf node (aref bst (node-l node))))
+                    (if (null (node-r node))
+                        (progn
+                          ;;(format t "right ~&")
+                          ;;(format t "~%fill-p rigth ~A" (fill-pointer bst))
+                          (let ((new-node (aref bst (fill-pointer bst))))
+                            (setf (node-elt new-node) obj
+                                  (node-r new-node) nil
+                                  (node-l new-node) nil)
+                            (vector-push new-node bst)
+                            (setf (node-r node) (- (fill-pointer bst) 1))
+                            ;;(format t "~%bst ~A" bst)
+                            (return-from  mybst-insert bst)))
+                        (setf node (aref bst (node-r node))))))))))
+
+  ;; ищет объект в дереве
+  (defun bst-find (obj bst <)
+    (if (eql 0 (fill-pointer bst))
+        nil
+        (let ((node (aref bst 0)))
+          (do ((i 0 (+ i 1)))
+              (nil)
+            (if (eql obj (node-elt node))
+                (return-from bst-find bst)
+                (if (and (null (node-r node)) (null (node-l node)))
+                    (return-from bst-find nil)
+                    (if (funcall < obj (node-elt node))
+                        (setf node (aref bst (node-l node)))
+                        (setf node (aref bst (node-r node))))))))))
+
+  ;; возвращает минимальное значение в дереве
+  (defun bst-min (bst)
+    (if (eql 0 (fill-pointer bst))
+        nil
+        (let ((node (aref bst 0)))
+          (do ((i 0 (+ i 1)))
+              (nil)
+            (if (and (null (node-r node)) (null (node-l node)))
+                (return-from bst-min node)
+                (setf node (aref bst (node-l node))))))))
+
+  ;;возвращает максимальное значение в дереве
+  (defun bst-max (bst)
+    (if (eql 0 (fill-pointer bst))
+        nil
+        (let ((node (aref bst 0)))
+          (do ((i 0 (+ i 1)))
+              (nil)
+            (if (and (null (node-r node)) (null (node-l node)))
+                (return-from bst-max node)
+                (setf node (aref bst (node-r node))))))))
+
+  ;; очищаем память
+  (defun clean-memory (f-p bst)
+    (do ((i (fill-pointer bst) (- i 1)))
+        ((= i f-p) bst)
+      (vector-pop bst)))
+
+  (defun bst-lst (node bst lst)
+    ;;(format t "~%node ~A" node)
+    ;;(format t "~%lst ~A" lst)
+    (let ((elt (node-elt node)))
+      (setf lst (cons elt lst))
+      ;; если правая нода = лист
+      (if (and (node-r node)
+               (null (node-r (aref bst (node-r node))))
+               (null (node-l (aref bst (node-r node)))))
+          ;; копируем элемент ноды в список
+          (progn
+            ;;(format t "~%node-r ~A" (node-r node))
+            (setf lst (cons (node-elt (aref bst (node-r node))) lst)))
+          ;;(format t "~%lst ~A" lst))
+          ;; если правая нода = ветка
+          (if (node-r node)
+              (progn
+                ;; вызываем рекурсивный проход по ней
+                (setf lst (bst-lst (aref bst (node-r node)) bst lst)))))
+      ;;(format t "~%after rec right lst ~A" lst))))
+      ;; проверяем левую ветку
+      (if (and (node-l node)
+               (null (node-r (aref bst (node-l node))))
+               (null (node-l (aref bst (node-l node)))))
+          (progn
+            ;;(format t "~%node-l ~A" (node-l node))
+            (setf lst (cons (node-elt (aref bst (node-l node))) lst)))
+          ;;(format t "~%lst ~A" lst))
+          (if (node-l node)
+              ;; в противном случае заходим в левую ветку
+              (progn
+                (setf lst (bst-lst (aref bst (node-l node)) bst lst)))
+              ;;(format t "~%after rec left lst ~A" lst)
+              ))
+      ;;если ни один из ифов не сработал, возвращаем список
+      lst))
+
+
+  (defun bst-remove (obj bst <)
+    ;;(format t "~% f-p ~A" (fill-pointer bst))
+    (if (eql 0 (fill-pointer bst))
+        nil
+        (let ((node (aref bst 0))
+              (lst))
+          ;;(format t "~% node ~A" node)
+          (do ((i 0 (+ i 1)))
+              (nil)
+            ;;(format t "~%do")
+            (if (eql obj (node-elt node))
+                (progn
+                  (format t "~% eql obj ~a node-elt ~A" obj (node-elt node))
+                  ;; вызов функции обхода
+                  (setf lst (bst-lst (aref bst 0) bst lst))
+                  ;; очистка памяти до сохраненного f-p
+                  (clean-memory 0 bst)
+                  ;; вызов построения дерева с полученным списком
+                  (setf lst (reverse (remove obj lst)))
+                  ;;(format t "~% eql lst ~A f-p ~A" lst (fill-pointer bst))
+                  (do ((i (length lst) (- i 1)))
+                      ((= i 0) bst)
+                    (mybst-insert (car lst) bst #'<)
+                    (setf lst (cdr lst)))
+                  (return-from bst-remove bst))
+                ;; возврат нового дерева
+                (if (and (node-l node)
+                         (eql obj (node-elt (aref bst (node-l node)))))
+                    ;;"true"
+                    (progn
+                      ;;(format t "~% eql obj ~a elt-node-l ~A" obj
+                      ;;        (node-elt (aref bst (node-l node))))
+                      ;;(format t "~% f-p after setf ~A" f-p)
+                      ;; вызов функции обхода
+                      (setf lst (bst-lst (aref bst 0) bst lst))
+                      ;;(format t "~% lst ~A" lst)
+                      ;; очистка памяти до сохраненного f-p
+                      (clean-memory 0 bst)
+                      ;; вызов построения дерева с полученным списком
+                      (setf lst (reverse (remove obj lst)))
+                      ;;(format t "~% node-l lst ~A f-p ~A" lst (fill-pointer bst))
+                      ;; возврат нового дерева
+                      (do ((i (length lst) (- i 1)))
+                          ((= i 0) bst)
+                        (mybst-insert (car lst) bst #'<)
+                        (setf lst (cdr lst)))
+                      (return-from bst-remove bst))
+                    ;;"false"
+                    (if (and (node-r node)
+                             (eql obj (node-elt (aref bst (node-r node)))))
+                        ;;"true"
+                        (progn
+                          ;; (format t "~% eql obj ~a elt-node-r ~A" obj
+                          ;;         (node-elt (aref bst (node-r node))))
+                          ;; вызов функции обхода
+                          (setf lst (bst-lst (aref bst 0) bst lst))
+                          ;;(format t "~% lst ~A" lst)
+                          ;; очистка памяти до сохраненного f-p
+                          (clean-memory 0 bst)
+                          ;; вызов построения дерева с полученным списком
+                          (setf lst (reverse (remove obj lst)))
+                          ;;(format t "~% node-r lst ~A f-p ~A" lst (fill-pointer bst))
+                          ;; возврат нового дерева
+                          (do ((i (length lst) (- i 1)))
+                              ((= i 0) bst)
+                            (mybst-insert (car lst) bst #'<)
+                            (setf lst (cdr lst)))
+                          (return-from bst-remove bst))
+                        ;;"false"
+                        (if (funcall < obj (node-elt node))
+                            ;; ищем дальше
+                            (if (null (node-l node))
+                                (return-from bst-remove nil)
+                                (progn
+                                  (setf node (aref bst (node-l node)))
+                                  ;;(format t "~% < node ~A" node)
+                                  ))
+                            (if (null (node-r node))
+                                (return-from bst-remove nil)
+                                (progn
+                                  (setf node (aref bst (node-r node)))
+                                  ;;(format t "~% < node ~A" node)
+                                  ))))))))))
+  ;; создание дерева с нуля
+  (block test
+    (defstruct (node (:print-function
+                      (lambda (n s d)
+                        (format s "#<NODE:~A{~A|~A}> ~&"
+                                (node-elt n)
+                                (node-l n)
+                                (node-r n)
+                                ))))
+      elt (l nil) (r nil))
+    ;;
+    (defparameter mytree (make-array 10 :fill-pointer 0 :element-type 'node))
+    ;;
+    (dotimes (i 9)
+      (setf (aref mytree i) (make-node)))
+
+    ;; создает дерево
+    (let ((lst '(5 8 4 2 1 9 6 7 3 )))
+      (do ((i (length lst) (- i 1)))
+          ((= i 0) mytree)
+        (mybst-insert (car lst) mytree #'<)
+        (setf lst (cdr lst))))
+    )
+
+  ;; ищет объект в дереве
+  (bst-find 1 mytree #'<)
+
+  ;; возвращает максимальный объект в дереве
+  (bst-max mytree)
+
+  ;; возвращает минимальный объект в дереве
+  (bst-min mytree)
+
+  ;; удаляет объект в дереве
+  ;; принимает объект, дерево и функцию
+  (bst-remove 9 mytree #'<)
+
+  ;; превращает дерево в список
+  ;; принимает ноду, дерево и список
+  (bst-lst (aref mytree 0) mytree '())
+
+  ;; чистка памяти
+  ;; принимает fill-pointer, до которого надо надо очистить память
+  ;; (двигаемся от конца к началу)
+  (clean-memory 5 mytree)
+
+#+END_SRC
+
+** broad search
+
+Перепишите код поиска в ширину в разделе 3.15 так, чтобы он
+выделял как можно меньше памяти.
+
+Итак, спонтанное выделени памяти происходит при объявлении let,
+т.е. локальных переменных
+В path хранится путь, в node - текущий узел
+
+#+BEGIN_SRC lisp
+
+  (defun shortest-path (start end net)
+    (bfs end (list (list start)) net))
+
+  (defun bfs (end queue net)
+    (if (null queue)
+        nil
+        (let ((path (car queue)))
+          (let ((node (car path)))
+            (if (eql node end)
+                (reverse path)
+                (bfs end
+                     (append (cdr queue)
+                             (new-paths path node net))
+                     net))))))
+
+  (defun new-paths (path node net)
+    (mapcar #’(lambda (n)
+                (cons n path))
+              (cdr (assoc node net))))
 #+END_SRC
