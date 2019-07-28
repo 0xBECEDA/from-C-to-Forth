@@ -4824,7 +4824,6 @@ c)
                                   (setf node (aref bst (node-r node)))
                                   ;;(format t "~% < node ~A" node)
                                   ))))))))))
-<<<<<<< HEAD
   (defun print-tree (node bst)
     (print node)
     (cond ((and (node-r node)
@@ -4839,9 +4838,6 @@ c)
           ((node-l node) (print (print-tree (aref bst (node-l node)) bst)))))
   (print-tree (aref mytree 0) mytree)
 
-
-=======
->>>>>>> 113a9ed0fe56dc229876596fdf35570209fe1e0e
 
   ;; создание дерева с нуля
   (block test
