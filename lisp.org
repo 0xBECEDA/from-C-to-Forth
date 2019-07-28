@@ -4596,8 +4596,28 @@ c)
 Переделайте код двоичных деревьев с использованием пулов.
 
 #+BEGIN_SRC lisp
+  (defstruct (node (:print-function
+                    (lambda (n s d)
+                      (declare (ignore d))
+                      (format s "#<NODE:~A{~A|~A}> ~&"
+                              (node-elt n)
+                              (node-l n)
+                              (node-r n)
+                              ))))
+    elt
+    (l nil :type (or nil integer))  ;; NB: type declarations
+    (r nil :type (or nil integer)))
 
-  (defun mybst-insert (obj bst <)
+  (defun bst-init (size)
+    (make-array size :fill-pointer 0 :element-type 'node))
+
+  (block bst-init-test ;; example of tests
+    (let ((test-tree (bst-init 10)))
+      (assert (equal '(vector t 10) (type-of test-tree)))
+      (assert (equal 0 (fill-pointer test-tree)))))
+
+
+  (defun bst-insert (obj bst <)
     (if (eql 0 (fill-pointer bst))
         (let ((new-node (aref bst (fill-pointer bst))))
           ;;(format t "true~&")
@@ -4625,7 +4645,7 @@ c)
                             (vector-push new-node bst)
                             (setf (node-l node) (- (fill-pointer bst) 1))
                             ;;(format t "~%bst ~A" bst)
-                            (return-from  mybst-insert bst)))
+                            (return-from  bst-insert bst)))
                         (setf node (aref bst (node-l node))))
                     (if (null (node-r node))
                         (progn
@@ -4638,7 +4658,7 @@ c)
                             (vector-push new-node bst)
                             (setf (node-r node) (- (fill-pointer bst) 1))
                             ;;(format t "~%bst ~A" bst)
-                            (return-from  mybst-insert bst)))
+                            (return-from  bst-insert bst)))
                         (setf node (aref bst (node-r node))))))))))
 
   ;; ищет объект в дереве
@@ -4721,7 +4741,6 @@ c)
       ;;если ни один из ифов не сработал, возвращаем список
       lst))
 
-
   (defun bst-remove (obj bst <)
     ;;(format t "~% f-p ~A" (fill-pointer bst))
     (if (eql 0 (fill-pointer bst))
@@ -4744,7 +4763,7 @@ c)
                   ;;(format t "~% eql lst ~A f-p ~A" lst (fill-pointer bst))
                   (do ((i (length lst) (- i 1)))
                       ((= i 0) bst)
-                    (mybst-insert (car lst) bst #'<)
+                    (bst-insert (car lst) bst #'<)
                     (setf lst (cdr lst)))
                   (return-from bst-remove bst))
                 ;; возврат нового дерева
@@ -4766,7 +4785,7 @@ c)
                       ;; возврат нового дерева
                       (do ((i (length lst) (- i 1)))
                           ((= i 0) bst)
-                        (mybst-insert (car lst) bst #'<)
+                        (bst-insert (car lst) bst #'<)
                         (setf lst (cdr lst)))
                       (return-from bst-remove bst))
                     ;;"false"
@@ -4787,7 +4806,7 @@ c)
                           ;; возврат нового дерева
                           (do ((i (length lst) (- i 1)))
                               ((= i 0) bst)
-                            (mybst-insert (car lst) bst #'<)
+                            (bst-insert (car lst) bst #'<)
                             (setf lst (cdr lst)))
                           (return-from bst-remove bst))
                         ;;"false"
@@ -4805,51 +4824,42 @@ c)
                                   (setf node (aref bst (node-r node)))
                                   ;;(format t "~% < node ~A" node)
                                   ))))))))))
+
   ;; создание дерева с нуля
   (block test
-    (defstruct (node (:print-function
-                      (lambda (n s d)
-                        (format s "#<NODE:~A{~A|~A}> ~&"
-                                (node-elt n)
-                                (node-l n)
-                                (node-r n)
-                                ))))
-      elt (l nil) (r nil))
-    ;;
-    (defparameter mytree (make-array 10 :fill-pointer 0 :element-type 'node))
+    (bst-init *mytree* 10)
     ;;
     (dotimes (i 9)
-      (setf (aref mytree i) (make-node)))
-
+      (setf (aref *mytree* i) (make-node)))
     ;; создает дерево
     (let ((lst '(5 8 4 2 1 9 6 7 3 )))
       (do ((i (length lst) (- i 1)))
-          ((= i 0) mytree)
-        (mybst-insert (car lst) mytree #'<)
+          ((= i 0) *mytree*)
+        (bst-insert (car lst) *mytree* #'<)
         (setf lst (cdr lst))))
     )
 
   ;; ищет объект в дереве
-  (bst-find 1 mytree #'<)
+  (print (bst-find 1 *mytree* #'<))
 
   ;; возвращает максимальный объект в дереве
-  (bst-max mytree)
+  (bst-max *mytree*)
 
   ;; возвращает минимальный объект в дереве
-  (bst-min mytree)
+  (bst-min *mytree*)
 
   ;; удаляет объект в дереве
   ;; принимает объект, дерево и функцию
-  (bst-remove 9 mytree #'<)
+  (bst-remove 9 *mytree* #'<)
 
   ;; превращает дерево в список
   ;; принимает ноду, дерево и список
-  (bst-lst (aref mytree 0) mytree '())
+  (bst-lst (aref *mytree* 0) *mytree* '())
 
   ;; чистка памяти
   ;; принимает fill-pointer, до которого надо надо очистить память
   ;; (двигаемся от конца к началу)
-  (clean-memory 5 mytree)
+  (clean-memory 5 *mytree*)
 
 #+END_SRC
 
