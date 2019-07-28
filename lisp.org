@@ -4805,6 +4805,22 @@ c)
                                   (setf node (aref bst (node-r node)))
                                   ;;(format t "~% < node ~A" node)
                                   ))))))))))
+  (defun print-tree (node bst)
+    (print node)
+    (cond ((and (node-r node)
+             (null (node-r (aref bst (node-r node))))
+             (null (node-l (aref bst (node-r node)))))
+           (print (aref bst (node-r node))))
+          ((node-r node) (print (print-tree (aref bst (node-r node)) bst))))
+    (cond ((and (node-l node)
+                (null (node-r (aref bst (node-l node))))
+                (null (node-l (aref bst (node-l node)))))
+           (print (aref bst (node-l node))))
+          ((node-l node) (print (print-tree (aref bst (node-l node)) bst)))))
+  (print-tree (aref mytree 0) mytree)
+
+
+
   ;; создание дерева с нуля
   (block test
     (defstruct (node (:print-function
