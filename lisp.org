@@ -4596,6 +4596,10 @@ c)
 Переделайте код двоичных деревьев с использованием пулов.
 
 #+BEGIN_SRC lisp
+
+  (deftype branch ()
+    '(or null (satisfies integerp)))
+
   (defstruct (node (:print-function
                     (lambda (n s d)
                       (declare (ignore d))
@@ -4604,12 +4608,13 @@ c)
                               (node-l n)
                               (node-r n)
                               ))))
-    elt
-    (l nil :type (or nil integer))  ;; NB: type declarations
-    (r nil :type (or nil integer)))
+    (elt nil)
+    (l nil :type branch)  ;; NB: type declarations
+    (r nil :type branch))
+
 
   (defun bst-init (size)
-    (make-array size :fill-pointer 0 :element-type 'node))
+    (make-array size :fill-pointer 0 ))
 
   (block bst-init-test ;; example of tests
     (let ((test-tree (bst-init 10)))
@@ -4697,6 +4702,7 @@ c)
             (if (and (null (node-r node)) (null (node-l node)))
                 (return-from bst-max node)
                 (setf node (aref bst (node-r node))))))))
+
 
   ;; очищаем память
   (defun clean-memory (f-p bst)
@@ -4824,56 +4830,204 @@ c)
                                   (setf node (aref bst (node-r node)))
                                   ;;(format t "~% < node ~A" node)
                                   ))))))))))
-  (defun print-tree (node bst)
-    (print node)
-    (cond ((and (node-r node)
-             (null (node-r (aref bst (node-r node))))
-             (null (node-l (aref bst (node-r node)))))
-           (print (aref bst (node-r node))))
-          ((node-r node) (print (print-tree (aref bst (node-r node)) bst))))
-    (cond ((and (node-l node)
-                (null (node-r (aref bst (node-l node))))
-                (null (node-l (aref bst (node-l node)))))
-           (print (aref bst (node-l node))))
-          ((node-l node) (print (print-tree (aref bst (node-l node)) bst)))))
-  (print-tree (aref mytree 0) mytree)
+
+  ;; (defun print-tree (node bst)
+  ;;   (print node)
+  ;;   (cond ((and (node-r node)
+  ;;            (null (node-r (aref bst (node-r node))))
+  ;;            (null (node-l (aref bst (node-r node)))))
+  ;;          (print (aref bst (node-r node))))
+  ;;         ((node-r node) (print (print-tree (aref bst (node-r node)) bst))))
+  ;;   (cond ((and (node-l node)
+  ;;               (null (node-r (aref bst (node-l node))))
+  ;;               (null (node-l (aref bst (node-l node)))))
+  ;;          (print (aref bst (node-l node))))
+  ;;         ((node-l node) (print (print-tree (aref bst (node-l node)) bst)))))
+  ;; (print-tree (aref mytree 0) mytree)
+
+  ;; сохранить f-p существующих веток
+  ;; если обе true, левая заменит текущий узел
+  ;; пройти по свежей правой ветке, дойти до листа
+  ;; вставить в него прошлую правую ветку
+  ;; вернуть дерево
+
+  (defun bst-remove (obj bst <)
+    (if (eql 0 (fill-pointer bst))
+        nil
+        (let ((node (aref bst 0)))
+          (do ((i 0 (+ i 1)))
+              (nil)
+            ;; если удаляемый элемент = левый потомок текущего узла
+            (if (and (node-l node)
+                     (eql obj (node-elt (aref bst (node-l node)))))
+                (let ((delnode (node-l node)))
+                  (format t "~% left")
+                  ;;если обе подветки пусты
+                  (if (and (null (node-r (aref bst delnode)))
+                           (null (node-l (aref bst delnode))))
+                      ;; удаляем данные узла
+                      (progn
+                        (setf (node-elt (aref bst delnode)) nil)
+                        ;; удаляем f-p узла
+                        (setf (node-l node) nil)
+                        (return-from bst-remove bst))
+                      ;; если обе ветки не пустые
+                      (if (and (node-r (aref bst delnode))
+                               (node-l (aref bst delnode)))
+                          (progn
+                            (change-pointers node delnode bst)
+                            (return-from bst-remove bst))
+                          ;; если правый потомок удаляемого узл пуст,
+                          ;; его место займет левый потомок, и наоборот
+                          (cond ((null (node-r (aref bst delnode)))
+                                 (progn
+                                   (setf (node-l node) (node-l (aref bst delnode)))
+                                   (setf (node-elt (aref bst delnode)) nil
+                                         (node-l (aref bst delnode)) nil
+                                         (node-r (aref bst delnode)) nil)
+                                   (return-from bst-remove bst)))
+                                ((null (node-l (aref bst delnode)))
+                                 (progn
+                                   (setf (node-l node) (node-r (aref bst delnode)))
+                                   (setf (node-elt (aref bst delnode)) nil
+                                         (node-l (aref bst delnode)) nil
+                                         (node-r (aref bst delnode)) nil)
+                                   (return-from bst-remove bst))))))))
+            ;; если удаляемый элемент = правый потомок текущего узла
+            (if (and (node-r node)
+                     (eql obj (node-elt (aref bst (node-r node)))))
+                (let ((delnode (node-r node)))
+                  ;;если обе подветки пусты
+                  (if (and (null (node-r (aref bst delnode)))
+                           (null (node-l (aref bst delnode))))
+                      ;; удаляем данные узла
+                      (progn
+                        (setf (node-elt (aref bst delnode)) nil)
+                        ;; удаляем f-p узла
+                        (setf (node-r node) nil)
+                        (return-from bst-remove bst))
+                      ;; если обе ветки не пустые
+                      (if (and (node-r (aref bst delnode))
+                               (node-l (aref bst delnode)))
+                          (progn
+                            (change-pointers node delnode bst)
+                            (return-from bst-remove bst))
+                          ;; если правый потомок удаляемого узл пуст,
+                          ;; его место займет левый потомок, и наоборот
+                          (cond ((null (node-r (aref bst delnode)))
+                                 (progn
+                                   (setf (node-l node) (node-l (aref bst delnode)))
+                                   (setf (node-elt (aref bst delnode)) nil
+                                         (node-l (aref bst delnode)) nil
+                                         (node-r (aref bst delnode)) nil)
+                                   (return-from bst-remove bst)))
+                                ((null (node-l (aref bst delnode)))
+                                 (progn
+                                   (setf (node-l node) (node-r (aref bst delnode)))
+                                   (setf (node-elt (aref bst delnode)) nil
+                                         (node-l (aref bst delnode)) nil
+                                         (node-r (aref bst delnode)) nil)
+                                   (return-from bst-remove bst))))))))
+            ;; если же ничего не подошло
+            (if (funcall < obj (node-elt node))
+                ;; ищем дальше
+                (if (null (node-l node))
+                    (return-from bst-remove nil)
+                    (progn
+                      (setf node (aref bst (node-l node)))
+                      ;;(format t "~% < node ~A" node)
+                      ))
+                (if (null (node-r node))
+                    (return-from bst-remove nil)
+                    (progn
+                      (setf node (aref bst (node-r node))))))))))
 
 
-  ;; создание дерева с нуля
+  ;;возвращает f-p самой большой ноды
+  (defun bst-max-node (bst node)
+    (if (eql 0 (fill-pointer bst))
+        nil
+        (do ((i 0 (+ i 1)))
+            (nil)
+          (format t "~% node ~A" node)
+          (if (and (null (node-r (aref bst (node-r node))))
+                   (null (node-l (aref bst (node-r node)))))
+              (return-from bst-max-node (node-r node))
+              (setf node (aref bst (node-r node)))))))
+
+  ;; принимает родительскую ноду, f-p удаляемой нодыи дерево
+  (defun change-pointers (parnode f-p-del bst)
+    (if (and (not (eql (node-l parnode) f-p-del))
+             (not (eql (node-r parnode) f-p-del)))
+        (format t "~% wrong parent")
+        ;; else - получили указатели на подветки удаляемой ноды
+        (let* ((delnode (aref bst f-p-del))
+               (f-delnode-l (node-l delnode))
+               (f-delnode-r (node-r delnode)))
+          ;;(format t "~% delnode ~A l: ~A r: ~A " delnode f-delnode-l f-delnode-r)
+          ;; очищаем узел
+          (setf (node-elt delnode) nil
+                (node-l delnode) nil
+                (node-r delnode) nil)
+          (let ((new-node))
+            (tagbody
+               ;; записываем родителю указатель на левого потомка удаленного узла
+               (if (eql (node-l parnode) f-p-del)
+                   (progn
+                     (setf (node-l parnode) f-delnode-l)
+                     (setf new-node (aref bst (node-l parnode)))
+                     (go cont))
+                   (progn
+                     (setf (node-r parnode) f-delnode-l)
+                     (setf new-node (aref bst (node-r parnode)))
+                     (go cont)))
+             cont
+               ;; если правая ветка нового потомка пустая
+               (if (null (node-r new-node))
+                   ;; устанавливаем в нее указатель на правую ветку удаленного узла
+                   (progn
+                     (format t "~% null")
+                     (setf (node-r new-node) f-delnode-r)
+                     (return-from change-pointers new-node))
+                   ;; в противном случае находим лист правой ветки нового потомка
+                   (let ((r-end (bst-max-node bst new-node)))
+                     ;; и заносим в него указатель на правую ветку удаленного потомка
+                     (format t "~% right")
+                     (setf (node-r (aref bst r-end))
+                           f-delnode-r)
+                     (setf r-end (aref bst r-end))
+                     ;; возвращаем нового потомка
+                     (return-from change-pointers r-end))))))))
+
+
   (block test
-    (bst-init *mytree* 10)
+    (defparameter mytree (bst-init 10))
     ;;
     (dotimes (i 9)
-      (setf (aref *mytree* i) (make-node)))
+      (setf (aref  mytree i) (make-node)))
     ;; создает дерево
-    (let ((lst '(5 8 4 2 1 9 6 7 3 )))
+    (let ((lst '(5 8 4 2 1 9 6 7 3)))
       (do ((i (length lst) (- i 1)))
-          ((= i 0) *mytree*)
-        (bst-insert (car lst) *mytree* #'<)
-        (setf lst (cdr lst))))
-    )
+          ((= i 0)  mytree)
+        (bst-insert (car lst)  mytree #'<)
+        (setf lst (cdr lst)))))
 
-  ;; ищет объект в дереве
-  (print (bst-find 1 *mytree* #'<))
+  ;; между тестами заново создавай дерево
+  (let ((obj 2))
+    (assert (bst-find obj mytree #'<)))
 
-  ;; возвращает максимальный объект в дереве
-  (bst-max *mytree*)
+  ;; lst = список, использовавшийся при построении дерева
+  (let ((lst '(5 8 4 2 1 9 6 7 3)))
+    (assert (eql (length lst)
+                 (length (bst-lst (aref mytree 0) mytree '())))))
 
-  ;; возвращает минимальный объект в дереве
-  (bst-min *mytree*)
+  (let ((obj 2))
+    (assert  (bst-remove obj mytree #'<)
+             (not (bst-find obj mytree #'<))))
 
-  ;; удаляет объект в дереве
-  ;; принимает объект, дерево и функцию
-  (bst-remove 9 *mytree* #'<)
-
-  ;; превращает дерево в список
-  ;; принимает ноду, дерево и список
-  (bst-lst (aref *mytree* 0) *mytree* '())
-
-  ;; чистка памяти
-  ;; принимает fill-pointer, до которого надо надо очистить память
-  ;; (двигаемся от конца к началу)
-  (clean-memory 5 *mytree*)
+  (let ((f-p 5))
+    (assert   (clean-memory f-p mytree)
+              (eql f-p (fill-pointer mytree))))
 
 #+END_SRC
 
