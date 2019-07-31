@@ -5065,25 +5065,40 @@ c)
 т.е. локальных переменных
 В path хранится путь, в node - текущий узел
 
+Можно определить пулы и брать память для насущных нужд оттуда.
+Создать пулл path, который будет являться массивом на 20-30 элементов
+и может расширяться по мере надобности
+так же создадим node, в которой будем хранить текущий узел
+
 #+BEGIN_SRC lisp
 
-  (defun shortest-path (start end net)
-    (bfs end (list (list start)) net))
+  (defparameter memory (make-array 10))
 
-  (defun bfs (end queue net)
+  (defun shortest-path (start end net memory)
+    (bfs end (list (list start)) net memory))
+
+  (defun bfs (end queue net memory)
+    (format t " BFS end ~a queue ~a  net ~a ~&" end queue net)
     (if (null queue)
         nil
-        (let ((path (car queue)))
-          (let ((node (car path)))
-            (if (eql node end)
-                (reverse path)
+        (progn
+        (setf (aref memory 0) (car queue))
+        (setf (aref memory 1) (car (aref memory 0)))
+        (format t " BFS path ~a ~& "  (aref memory 1))
+        (if (eql (aref memory 1) end)
+            (format t " reverse path ~a ~&" (reverse  (aref memory 0)))
                 (bfs end
                      (append (cdr queue)
-                             (new-paths path node net))
-                     net))))))
+                             (new-paths (aref memory 0) (aref memory 1) net))
+                     net memory)))))
 
   (defun new-paths (path node net)
-    (mapcar #’(lambda (n)
+    (format t " NEW-PATHS path ~a node  ~a  net ~a ~&" path node net)
+    (mapcar #'(lambda (n)
                 (cons n path))
-              (cdr (assoc node net))))
+            (cdr (assoc node net))))
+
+  (let ((min '((a b c) (b c) (c d))))
+    (shortest-path 'a 'd min memory))
+
 #+END_SRC
