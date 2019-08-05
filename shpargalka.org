@@ -1192,5 +1192,227 @@ http://filonenko-mikhail.github.io/cltl2-doc/ru/clmse42.html#x54-860007.8.2
   (macroexpand-1 '(with-answer (parent ?x ?y)
     (format t "~A is the father of ~A.~%" ?x ?y)))
 
+#+END_SRC
 
+* Chapter 16
+
+
+#+BEGIN_SRC lisp
+  ;; макросы для определения утилит HTML
+
+  ;; принимает строку и метку
+  ;; печатает строку, окруженную метками
+  (defmacro as (tag content)
+    `(format t "<~(~A~)>~A</~(~A~)>"
+             ',tag ,content ',tag))
+
+  ;; принимает метку и тело кода
+  ;; исполняет код и выводит его результат между напечатанными метками
+  (defmacro with (tag &rest body)
+    `(progn
+       (format t "~&<~(~A~)>~%" ',tag)
+       ,@body
+       (format t "~&<~(~A~)>~%" ',tag)))
+
+  ;; генерирует разрыв строки
+  (defun brs (&optional (n 1))
+    (fresh-line)
+    (dotimes (i n)
+      (princ "<br>"))
+    (terpri))
+
+  ;; присоединяет к файлу расширение html
+  (defun html-file (base)
+    (format nil "~(~A~).html" base))
+
+  ;; принимает имя файла, заголовок и опционально тело
+  (defmacro page (name title &rest body)
+    ;; на стадии макрораскрытия генерим переменную ti
+    (let ((ti (gensym)))
+      ;; ------ после макрораскрытия------
+      ;; откываем поток вывод (вывод стандартный)
+      ;; (теперь поток связан с нашим html-файлом
+      `(with-open-file (*standard-output*
+                        (html-file ,name)
+                        :direction :output
+                        :if-exists :supersede)
+         (let ((,ti ,title))
+           ;; выводим заголовок
+           (as title ,ti)
+           ;; выводим результат вызова макроса as (выводит тот же заголовок крупным шрифтом)
+           (with center
+                 (as h2 (string-upcase ,ti)))
+           ;; 3 пустые строки
+           (brs 3)
+           ;; исполняем остальной код
+           ,@body))))
+  ;; создаем ссылку
+  ;; принимает путь к каталогу и код
+  (defmacro with-link (dest &rest body)
+    `(progn
+       (format t "<a href=\"~A\">" (html-file ,dest))
+       ,@body
+       (princ "</a>")))
+
+  ;; создает элемент списка (обычного, не в лисп-смысле) как ссылку
+  (defun link-item (dest text)
+    (princ "<li>")
+    (with-link dest
+      (princ text)))
+
+  ;; создает кнопку (в основе все та же ссылка)
+  (defun button (dest text)
+    (princ "[ ")
+    (with-link dest
+      (princ text))
+    (format t " ]~%"))
+
+  ;; принимает функцию с 3мя аргументами и список. Функция применяется для текущего,
+  ;; предыдущего и последющего элемента. В случае, если предыдущий и/или последующий
+  ;;элементы отсутствуют, вместо них будет выведен nil
+  (defun map3 (fn lst)
+    ;; labels позволяет внутри своей области видимсти определять функции и тут же их
+    ;; использовать
+    (labels ((rec (curr prev next left)
+               (funcall fn curr prev next)
+               (when left
+                 (rec (car left)
+                      curr
+                      (cadr left)
+                      (cdr left)))))
+      (when lst
+        (rec (car lst) nil (cadr lst) (cdr lst)))))
+#+END_SRC
+
+Генерация  страниц сайта на "HTML"
+
+#+BEGIN_SRC lisp
+
+  (defparameter *sections* nil)
+
+  ;; пункт
+  (defstruct item
+    id title text)
+  ;; раздел
+  (defstruct section
+    id title items)
+
+  ;; макрос, создающий пункт
+  ;; id - это уникальное имя пункта
+  ;; title - заголовок текста
+  (defmacro defitem (id title text)
+    `(setf ,id
+           (make-item :id ',id
+                      :title ,title
+                      :text ,text)))
+
+  ;; макрос, создающий разделы
+  ;; (опционально может содержать пункты)
+  ;; id - это уникальное имя раздела
+  ;; title - заголовок текста
+  (defmacro defsection (id title &rest items)
+    `(setf ,id
+           (make-section :id
+                         ’,id
+                          :title ,title
+                          :items (list ,@items))))
+
+  ;; сохранение разделов
+  (defun defsite (&rest sections)
+    (setf *sections* sections))
+
+  (defconstant contents "contents")
+
+  (defconstant index
+    "index")
+
+  ;; генерирует оглавление
+  (defun gen-contents (&optional (sections *sections*))
+  ;; вызываем макрос page (создает страницу)
+    (page contents contents
+          ;; вызываем макрос with, который выведет результат исполнения кода между
+          ;; метками (в нашем случае макрос with вернет список ссылок-пунктов)
+          (with ol
+                (dolist (s sections)
+                  (link-item (section-id s) (section-title s))
+                  (brs 2))
+                (link-item index (string-capitalize index)))))
+
+  ;; генерирует оглавление раздела (?)
+  (defun gen-index (&optional (sections *sections*))
+    (page index index
+          (with ol
+                (dolist (i (all-items sections))
+                  (link-item (item-id i) (item-title i))
+                  (brs 2)))))
+
+  ;; получение всех пунктов из раздела
+  (defun all-items (sections)
+    (let ((is nil))
+      (dolist (s sections)
+        ;; получаем пункты из раздела
+        (dolist (i (section-items s))
+          ;; упорядочиваем их
+          (setf is (merge 'list (list i) is #'title<))))
+      is))
+
+  ;; сравнивает заголовки(?)
+  ;; видимо, чтоб быть уверенным, что материал принадлежит одному пункту или разделу
+  (defun title< (x y)
+    (string-lessp (item-title x) (item-title y)))
+
+  ;; создание сайта
+  (defun gen-site ()
+    (map3 #'gen-section *sections*)
+    (gen-contents)
+    (gen-index))
+
+  ;; создание раздела
+  (defun gen-section (sect <sect sect>)
+    ;; создаем страницу раздела
+    (page (section-id sect) (section-title sect)
+          ;; создаем список пунктов
+          (with ol
+                (map3 #'(lambda (item <item item>)
+                          ;; генерим ссылку на текущий пункт
+                          (link-item (item-id item)
+                                     (item-title item))
+                          (brs 2)
+                          (gen-item sect item <item item>))
+                      ;; возвращает список пунктов раздела
+                      (section-items sect)))
+          (brs 3)
+          ;; генерит кнопки перехода
+          (gen-move-buttons
+           ;; если задан предыдущий раздел, кнопка "назад" будет указывать на него
+           (if <sect (section-id <sect))
+           ;; кнопка "наверх" будет указывать на оглавление
+           contents
+           ;; если задан следующий раздел, кнопка "вперед" будет указывать на него
+           (if sect> (section-id sect>)))))
+
+  ;; создание пункта
+  ;; принимает текущий раздел, структуру пункта и структуры пунктов до и после текущего
+  ;; возвращает страницу пункта
+  (defun gen-item (sect item <item item>)
+    ;; генерим страницу пункта
+    (page (item-id item) (item-title item)
+          ;; печатаем в нее текст
+          (princ (item-text item))
+          ;; пропускаем 3 строки
+          (brs 3)
+          ;; генерим кнопки перехода
+          (gen-move-buttons
+           ;; если задан предыдущий пункт, кнопка "назад" будет указывать на него
+           (if <item (item-id <item))
+           ;; кнопка "наверх" указывает на наало раздела
+           (section-id sect)
+           ;; если задан следующий пункт, кнопка "вперед" будет указывать на него
+           (if item> (item-id item>)))))
+
+  ;; генерит 3 кнопки
+  (defun gen-move-buttons (back up forward)
+    (if back (button back "Back"))
+    (if up (button up "Up"))
+    (if forward (button forward "Forward")))
 #+END_SRC
