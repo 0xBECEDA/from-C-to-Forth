@@ -337,7 +337,7 @@ Bst-insert как cons для списков: создает новые узлы
 Если дерево пустое, то создаем экземпляр структуры node и в поле
 elt записываем объект (видимо, остальные поля идентичны node).
 Если же дерево не пустое, то мы создаем переменную elt и записываем
-в нее node-elt(видимо, поле elt конкретного узла) и дерево (целиком? зачем?)
+в нее node-elt(видимо, поле elt конкретного узла).
 Проверяем, если объект равен элементу, то возвращаем дерево.
 Если же не равен, то мы проверяем:
 - объект меньше элемента?
@@ -867,5 +867,330 @@ http://filonenko-mikhail.github.io/cltl2-doc/ru/clmse42.html#x54-860007.8.2
             (let ((discrt (sqrt disc)))
               (min (/ (+ (- b) discrt) (* 2 a))
                    (/ (- (- b) discrt) (* 2 a))))))))
+
+#+END_SRC
+
+* Chapter 12
+
+Реализация очереди:
+
+#+BEGIN_SRC lisp
+
+  ;; делаем пустую точечную пару
+  (defun make-queue () (cons nil nil))
+
+  ;; принимает объект и очередь
+  (defun enqueue (obj q)
+    ;; очередь пустая?
+    (if (null (car q))
+        ;;Да!
+        ;; в конец (cdr) очереди устанавливаем список, сохраненный
+        ;; в начало очереди
+        (setf (cdr q) (setf (car q) (list obj)))
+        ;; Нет!
+        ;; в хвост очереди останавливаем список,
+        ;; в начало устанавливаем хвост
+        (setf (cdr (cdr q)) (list obj)
+              (cdr q) (cdr (cdr q))))
+    ;; возвращаем начало очереди
+    (car q))
+
+  (defun dequeue (q)
+    (pop (car q)))
+
+#+END_SRC
+
+Реализация двусвязного списка и функция для оперирования с ним:
+
+#+BEGIN_SRC lisp
+  ;; ячейка двусвязного списка: next = cdr, prev = указатель на предыдущий элемент,
+  ;; data = содержимое ячейки
+  (defstruct (dl (:print-function print-dl))
+    prev data next)
+
+  ;;печатает ячкйку, принимает ячейку, поток и ...(?)
+  (defun print-dl (dl stream depth)
+    (declare (ignore depth))
+    (format stream "#<DL ~A>" (dl->list dl)))
+
+  ;; возвращает двусвязный список
+  (defun dl->list (lst)
+    (if (dl-p lst)
+        (cons (dl-data lst) (dl->list (dl-next lst)))
+        lst))
+
+  ;; вставляет ячейку в двусвязный список
+  (defun dl-insert (x lst)
+    ;; создаем ячейку, где содержимое X, а cdr - lst
+    (let ((elt (make-dl :data x :next lst)))
+      ;; если lst двусвязный список
+      (when (dl-p lst)
+        ;; и при этом car этого списка указывает на какое-то предыдущее значение
+        ;; т.е. мы не в начале списка
+        (if (dl-prev lst)
+            ;; то вставляем elt в список
+            (setf (dl-next (dl-prev lst)) elt
+                  (dl-prev elt) (dl-prev lst)))
+        ;; в противном случае устанавливаем elt в начало списка
+        (setf (dl-prev lst) elt))
+      elt))
+
+  (defun dl-list (&rest args)
+    (reduce #’dl-insert args
+              :from-end t :initial-value nil))
+
+  (defun dl-remove (lst)
+    (if (dl-prev lst)
+        (setf (dl-next (dl-prev lst)) (dl-next lst)))
+    (if (dl-next lst)
+        (setf (dl-prev (dl-next lst)) (dl-prev lst)))
+    (dl-next lst))
+#+END_SRC
+* Chapter 15
+
+#+BEGIN_SRC lisp
+  ;; сравнивает 2 дерева на совпадения. Если совпадения найдены, match возвращает их в виде
+  ;; ассоциативного списка
+
+  (defun match (x y &optional binds)
+    ;;(format t "~% binds are ~A" binds)
+    (cond
+      ;; если x = y, возвращаем связи и t
+      ((eql x y)
+       ;; (progn
+       ;;   (format t "~% 1")
+         (values binds t))
+       ;;)
+      ;; если какое-то зачение из binds соответствует X, находим его с помощью binding
+      ;; и рекурсивно вызываем match, чтоб сопоставить полученный результат с Y
+      ((assoc x binds)
+       ;; (progn
+       ;;   (format t "~% 2")
+         (match (binding x binds) y binds))
+       ;;)
+      ;; если какое-то зачение из binds соответствует Y, находим его с помощью binding
+      ;; и рекурсивно вызываем match, чтоб сопоставить полученный результат с X
+      ((assoc y binds)
+       ;; (progn
+       ;;   (format t "~% 3")
+         (match x (binding y binds) binds))
+       ;;)
+      ;; если Х переменная, не ассоциированная ни с каким значением, возвращаем точечную
+      ;; пару и t.
+      ((var? x)
+       ;; (progn
+       ;;   (format t "~% 4")
+         (values (cons (cons x y) binds) t))
+       ;;)
+      ;; если Y переменная, не ассоциированная ни с каким значением, возвращаем точечную
+      ;; пару и t
+      ((var? y)
+       ;; (progn
+       ;;   (format t "~% 5")
+         (values (cons (cons y x) binds) t))
+       ;;)
+      (t
+       ;; если же Y и X ячейки, то сначала сопоставляем их car, и если сопоставление
+       ;; найдено, сравниваем их cdr
+       (when (and (consp x) (consp y))
+         ;; (progn
+         ;;   (format t "~% 6")
+           (multiple-value-bind (b2 yes)
+               (match (car x) (car y) binds)
+             (and yes (match (cdr x) (cdr y) b2)))))))
+  ;;)
+
+  ;; проверяет, является ли ее аргумент переменной
+  ;; если аргумент = символ лиспа, начинающийся с вопросительного знака,
+  ;; значит аргумент = переменная
+  (defun var? (x)
+    (and (symbolp x)
+         (eql (char (symbol-name x) 0) #\?)))
+
+  ;; проверяет, если ли еще ассоциированные значения к cdr полученной пары
+  ;; это делается, чтоб найти даже косвенные связи
+  (defun binding (x binds)
+    ;;(format t "~% binding x ~A binds ~A" x binds)
+    (let ((b (assoc x binds)))
+      (if b
+          ;; (progn
+          ;;   (format t "~% B is ~A" b)
+            (or (binding (cdr b) binds)
+                (cdr b)))))
+  ;;)
+  ;; запуск
+  ;; (match '(p ?v b ?x d (?z ?z))
+  ;;   '(p a ?w c ?y ( e e)))
+
+  ;; таблица правил. Правила выглядят как (<- заголовок тело), где заголовок - это консеквен,
+  ;; а тело - антецедент. Т.е. заголовок = следствие, тело = причина
+  (defvar *rules* (make-hash-table))
+
+  ;; определяет правило, пушит его в таблицу с правилами и возвращает номер этого правила
+  (defmacro <- (con &optional ant)
+    `(length (push (cons (cdr ',con) ',ant)
+                   (gethash (car ',con) *rules*))))
+  ;; определяем правило (<- (father ?x ?y) (and (parent ?x ?y) (male ?x)))
+  ;; макрос раскрывается в:
+  ;; (length (push (cons (cdr 'con) 'ant)
+  ;;               (gethash (car 'con) *rules*)))
+  ;; con = '(father ?x ?y), ant = '(and (parent ?x ?y) (male ?x))
+  ;; father, parent и male - предикаты (видимо, определенные ранее)
+  ;; (cons (cdr 'con) 'ant) = ((?x ?y) and (parent ?x ?y) (male ?x))
+  ;; затем получаем из таблицы правил значение, ассоциированное с 'father и
+  ;; пушим получившееся правило в него (puthash)
+
+
+  ;; Эта функция ищет все правила с истинным предикатом (что значит истинный предикат
+  ;; в данном контексте?) и пытается сопоставить заголовок (в нем содержится следствие)
+  ;; каждого из них с фактом (правило, содержащее только заголовок), который мы хотим
+  ;; доказать. Затем для каждого совпавшего заголовка доказывается его тело с учетом новых
+  ;; связей, созданных match. Вызовы prove возвращают списки связей, которые затем
+  ;; собираются mapcan.
+
+  ;; мы ищем все правила, которым мог бы соответствовать данный факт. Для
+  ;; этого сравниваем на совпадения факт и заголовок правила. И если правило подходит для
+  ;; данного факта, т.е. сопоставление произошло, мы получаем связи, которые показывают, где
+  ;; именно произошло сопоставление. После этого вычисляем тело правила с новыми связями(?).
+
+  (defun prove (expr &optional binds)
+    ;; сравниваем первый элемент expr с логическими операторами
+    (format t "~% expr  ~A" expr)
+    (case (car expr)
+      (and (prove-and (reverse (cdr expr)) binds))
+      (or (prove-or (cdr expr) binds))
+      (not (prove-not (cadr expr) binds))
+      ;; если expr начинается не с логического оператора, вызываем prove-simple
+      (t
+       (progn
+         (format t "~% t")
+       (prove-simple (car expr) (cdr expr) binds)))))
+
+  ;; принимает предикат, аргументы и связи
+  (defun prove-simple (pred args binds)
+    ;; mapcan имеет 2 аргумента: список, который вернет лямбда, и список, который вернет
+    ;; mapcar. Mapcar вернет список результатов вызова change-vars для каждого элемента
+    ;; списка, который вернет (gethash pred *rules*)
+    ;; аргумент лямбды - правило, возвращенное gethash из таблицы (?)
+    (format t "~% pred ~A args ~A bids ~A" pred args binds)
+    (mapcan #'(lambda (r)
+                (format t " ~% r in lambda ~A" r)
+                (multiple-value-bind (b2 yes)
+                    ;;ищем совпадение между первым элементов правила и аргументами
+                    (match args (car r) binds)
+                  ;; если совпадение есть
+                  (when yes
+                    ;; и при этом cdr правила (тело правила) истинно, т.е. там не nil
+                    ;; а значит, это именно правило, а не факт
+                    (if (cdr r)
+                        ;; доказываем тело, передавая в prove тело и связи
+                        (prove (cdr r) b2)
+                        (list b2)))))
+            (mapcar #'change-vars
+                    ;; вернет правило, соответствующее предикату из таблицы
+                    (gethash pred *rules*))))
+  ;; меняет переменные на gensym, чтоб они не перекрывали друг друга в разных правилах или в
+  ;; вызове одного и того же правило рекурсивно
+  (defun change-vars (r)
+    (format t "~% r ~A in  change-vars" r)
+    ;; sublis принимает ассоциативный список и дерево. Возвращает дерево, но каждое поддерево
+    ;; совпадающее с ключом ассоциативного списка, заменяется на соответствующее ему
+    ;; значение.
+    ;; В данном примере sublis получит список переменных, возвращенный mapcar (наш alist)
+    ;; и исходный список переменных (tree)
+    (format t "~% sublis ~A"
+    (sublis (mapcar #'(lambda (v)
+
+                        (cons v (gensym "?")))
+                    (vars-in r))
+            r))
+    (sublis (mapcar #'(lambda (v)
+                        (format t "~% v ~A in  change-vars" v)
+                        (cons v (gensym "?")))
+                    (vars-in r))
+            r))
+  ;; принимает выражение
+  ;; возвращает список переменных в нем
+  (defun vars-in (expr)
+    (format t "~% expr ~A in vars-in" expr)
+    ;; если выражение атом
+    (if (atom expr)
+        ;; и при этом переменная
+        (if (var? expr)
+            ;; обернем ее в список
+            (list expr))
+        ;; в противном случае вызываем union,
+        ;; который вернет в списке резульятат вызова vars-in для всех элементов expr
+        ;; без повторяющихся элементов
+        (union (vars-in (car expr))
+               (vars-in (cdr expr)))))
+
+  ;;(gethash 'parent *rules*)
+  ;; сработает в случае, если clauses (условие) начинается с логического оператора and
+  ;; будет проверять истинность первого выражения для каждого набора связей (не очень
+  ;; понятно, как?)
+  (defun prove-and (clauses binds)
+    ;; если clauses пустой
+    (format t "~% clauses ~A" clauses)
+    (if (null clauses)
+        ;; возвращаем связи
+        (list binds)
+        ;; в противном случае вызовем prove-and c cdr текущего условия и будем повторять
+        ;; вызов до тех пор, пока не сработает условие завершение рекурсии (пустое условие)
+        ;; тогда результат вызова (список связей) будет отправлен в аргумент b лямбды
+        ;; ---- (зачем нам такая рекурсия?)---
+        (mapcan #'(lambda (b)
+                    (prove (car clauses) b))
+                  (prove-and (cdr clauses) binds))))
+
+  ;; собираем все связи, полученные из каждого выражения с or (зачем и как?)
+  (defun prove-or (clauses binds)
+    (mapcan #'(lambda (c)
+                (format t "~% c prove-or ~A" c)
+                (prove c  binds))
+              clauses))
+
+  (defun prove-not (clause binds)
+    ;; если prove вернет false (как?)
+    (unless (prove clause binds)
+      ;; возвращаем список связей
+      (list binds)))
+
+  ;; осуществляет запуск всей программы
+  (defmacro with-answer (query &body body)
+    ;; этот let отработает на стадии макрораскрытия, сгенерит 2 локальные переменные
+    (let ((binds (gensym)))
+      `(dolist (,binds (prove ',query))
+         ;; этот let тоже отработает на стади макрораскртия
+         ;; сначала вызовем vars-in с выражением
+         ;; vars-in вернет список переменных в выражении
+         ;; затем этот список попадет в аргумент V лямбды
+         ;;------стадия макрораскрытия закончена----
+         ;; (DOLIST (#:G954 (PROVE '(PARENT ?X ?Y)))
+         ;;   (LET ((?Y (BINDING '?Y #:G954)) (?X (BINDING '?X #:G954)))
+         ;;     (FORMAT T "~A is the father of ~A.~%" ?X ?Y)))
+         ;; вызываем prove с выражением (prove вернет полученные связи, т.е. места, в которых
+         ;; могут совпадать факт и заголовок правила)
+         ;; с помощью binding мы проверим, если ли у переменной косвенные связи,
+         ;; результат будет записан в саму переменную. Затем полученный результат выведем
+         ;; форматом (пример расписан для вызова ниже)
+         (let ,(mapcar #'(lambda (v)
+                           `(,v (binding ',v ,binds)))
+                         (vars-in query))
+           ,@body))))
+
+  ;; расписан этот пример
+  (with-answer (parent ?x ?y)
+    (format t "~A is the father of ~A.~%" ?x ?y))
+
+  (clrhash *rules*)
+
+  (<- (parent donald nancy))
+  (<- (parent donald debby))
+  (<- (parent ?x ?y))
+
+  (macroexpand-1 '(with-answer (parent ?x ?y)
+    (format t "~A is the father of ~A.~%" ?x ?y)))
+
 
 #+END_SRC
