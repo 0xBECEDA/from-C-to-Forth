@@ -832,7 +832,6 @@ http://filonenko-mikhail.github.io/cltl2-doc/ru/clmse42.html#x54-860007.8.2
             (return (car pair))))))
 #+END_SRC
 
-
 * Chapter 9
 
 #+BEGIN_SRC lisp
@@ -1415,4 +1414,430 @@ http://filonenko-mikhail.github.io/cltl2-doc/ru/clmse42.html#x54-860007.8.2
     (if back (button back "Back"))
     (if up (button up "Up"))
     (if forward (button forward "Forward")))
+#+END_SRC
+
+* chapter 17
+
+#+BEGIN_SRC lisp
+
+  ;; реализация наследования на лиспе
+
+  ;; считаем, что объект можно представить в виде хэштаблицы, где свойства - это
+  ;; функции и методы объекта
+
+  ;; принимает свойство и объект
+  (defun rget (prop obj)
+    ;; получаем метод из таблицы
+    (multiple-value-bind (val in) (gethash prop obj)
+      ;; если метод получен
+      (if in
+          ;; возвращаем его и t
+          (values val in)
+          ;; в противном случае получаем родительский объект
+          (let ((par (gethash :parent obj)))
+            ;; если родительский объект существует,
+            ;; вызываем rget с ним и получаем его свойство
+            (and par (rget prop par))))))
+
+  (defun tell (obj message &rest args)
+    ;; применяем полученное свойсто к списку объектов
+    (apply (rget message obj) obj args))
+
+#+END_SRC
+
+Множественное наследование
+#+BEGIN_SRC lisp
+  (defun rget (prop obj)
+    ;; берем каждого предка объекта, пока не найдем первый с подходящим методом
+    (format t "~% prop ~A obj ~A" prop obj)
+    (dolist (c (precedence obj))
+      (format t "~% ~A precedence obj" (precedence obj))
+      (multiple-value-bind (val in)
+          ;; получаем метод этого предка
+          (gethash prop c)
+        (format t "~% prop ~A c ~A" (gethash prop c) c)
+        ;; если метод найден
+        (if in
+            ;; возвращаем метод и t
+            (return (values val in))))))
+
+  ;; получаем список предшествования для объекта (сам объект тоже в списке)
+  ;; (obj <- первый предок <- второй и т.д.)
+  (defun precedence (obj)
+    (labels ((traverse (x)
+               ;; получаем всех предков объекта
+               (cons x
+                     (mapcan #'traverse
+                             (gethash :parents x)))))
+      ;; удаляем дубликаты
+      (delete-duplicates (traverse obj))))
+
+  (setf scoundrel (make-hash-table)
+        patriot (make-hash-table)
+        patriotic-scoundrel (make-hash-table)
+        (gethash 'serves scoundrel) 'self
+        (gethash 'serves patriot) 'country
+        (gethash :parents patriotic-scoundrel) (list scoundrel patriot))
+
+  (rget :parents patriotic-scoundrel)
+  (rget 'serves scoundrel)
+  (rget 'serves patriot)
+
+  (rget 'serves patriotic-scoundrel)
+#+END_SRC
+
+Создание объекта и получение всех его предков (и список предшествования
+соответственно) в один клик
+
+#+BEGIN_SRC lisp
+
+   ;; место хранения объекта
+   (defvar *objs* nil)
+
+   ;; получаем список предков
+   (defun parents (obj)
+     (gethash :parents obj))
+
+   ;; создаем список предшествования для объекта
+   (defun (setf parents) (val obj)
+     (prog1
+         (setf (gethash :parents obj) val)
+       (make-precedence obj)))
+
+   ;; непосредственное переопределение списока предшествования
+   (defun make-precedence (obj)
+     ;; получаем список предшествования (ipreclist позволяет получить список предшестсования
+     ;; для конкретного объекта) и сохраняем его
+     (setf (gethash :preclist obj)
+           (precedence obj))
+     ;; берем каждый объект
+     (dolist (x *objs*)
+       ;; если он является частью списка предшестсвования
+       (if (member obj (gethash :preclist x))
+           ;; устанавливаем список предшествования для него
+           (setf (gethash :preclist x) (precedence x)))))
+
+   ;; создаем объект "в один клик"
+   (defun obj (&rest parents)
+     (let ((obj (make-hash-table)))
+       (push obj *objs*)
+       (setf (parents obj) parents)
+       obj))
+
+   ;; переопределяем функцию множественного наследования
+   ;; теперь мы не ищем предков объекта заново, а используем уже имеющийся
+   (defun rget (prop obj)
+     (format t "~% prop ~A obj ~A" prop obj)
+     (dolist (c (gethash :preclist obj))
+       (multiple-value-bind (val in) (gethash prop c)
+         (if in (return (values val in))))))
+
+#+END_SRC
+
+Функциональный синтаксис
+#+BEGIN_SRC lisp
+  ;; определяем имя свойства (ключа?) как функцию
+  ;; если meth? не nil, то свойство = метод
+  ;; в противном случае оно считается слотом
+  (defmacro defprop (name &optional meth?)
+    `(progn
+       ;; определение функции
+       (defun ,name (obj &rest args)
+         ,(if meth?
+              ;; применяем метод к объекту
+              `(progn
+                 `(format t "~% run result ~A " `(run-methods obj ',name args))
+                 `(run-methods obj ',name args))
+              ;; в противном случае возвращаем первый подходящий метод объекта
+              `(progn
+                 `(format t "~% rget result ~A " `(rget ',name obj))
+              `(rget ',name obj))))
+       ;; определяем имя функции как свойство (в val явно находится результат вызова
+       ;; одной из веток if в предыдущей функции, как оно туда попало?)
+       (defun (setf ,name) (val obj)
+         (setf (gethash ',name obj) val))))
+
+  (defun run-methods (obj name args)
+    ;; получаем первый подходящий метод для объекта
+    (format t "~% obj ~A name ~A args ~A " obj name args)
+    (let ((meth (rget name obj)))
+      ;; если метод действительно есть
+      (if meth
+          ;; применяем к объекту (замена реализации tell)
+          (apply meth obj args)
+          (error "No ~A method for '~A." name obj))))
+
+
+  (macroexpand-1 '(defprop radius t))
+
+  ;; (PROGN
+  ;;   (DEFUN RADIUS (OBJ &REST ARGS)
+  ;;     (PROGN
+  ;;       `(FORMAT T "~% run result ~A " `(RUN-METHODS OBJ ',NAME ARGS))
+  ;;       `(RUN-METHODS OBJ ',NAME ARGS)))
+  ;;   (DEFUN (SETF RADIUS) (VAL OBJ) (SETF (GETHASH 'RADIUS OBJ) VAL)))
+
+  (defprop area t)
+
+  (setf circle-class (obj))
+
+  (setf (radius circle-class) 2)
+  (setf grumpy-circle (obj circle-class))
+
+  (setf (area circle-class)
+        #'(lambda (c)
+            (* pi (expt (radius c) 2))))
+
+  (setf (area grumpy-circle)
+        #'(lambda (c)
+            (format t "How dare you stereotype me!~%")
+            (funcall (some #'(lambda (x) (gethash 'area x))
+                           (cdr (gethash :preclist c)))
+                     c)))
+
+  (area circle-class) circle-class)
+  (type-of circle-class)
+  (gethash 'area circle-class)
+
+#+END_SRC
+
+Новое определение метода
+#+BEGIN_SRC lisp
+
+  (defmacro defmeth (name obj parms &rest body)
+    ;; на стадии макрораскрытия генерим генсим
+    (let ((gobj (gensym)))
+      ;; на стадии исполнения кода грузим в генсим объект
+      `(let ((,gobj ,obj))
+         ;; в знаение свойства устанавливаем результат от labels
+         (setf (gethash ',name ,gobj)
+               ;; получаем следующий метод для объекта
+               (labels ((next ()
+                          (get-next ,gobj ',name)))
+                 ;; вызываем текущий метод (его значение будет установлено в значение
+                 ;; метода объекта)
+                 #'(lambda ,parms ,@body))))))
+
+  ;; получаем следующий метод для объекта
+  ;; для этого узнаем первый метод самого недавнего родителя
+  ;; принимает текущий объект и имя метода
+  (defun get-next (obj name)
+    ;; some принимает предикат и последовательность. Предикат = функция, принимающая столько
+    ;; аргументов, сколько задано последовательностей. Проходит по всем первым/вторым/и т.д.
+    ;; элементам последовательностей, вернет t и значение предиката тогда, когда предикат
+    ;; вернет t.
+    (some #'
+     ;; "предикат" - функция принимает 1 аргумет (самого недавнего объекта)
+     ;; поскольку у нас 1 последовательность
+     (lambda (x)
+       ;; получаем метод
+       (gethash name x))
+     ;; "последовательность" - получаем список предшествования без текущего объекта
+     (cdr (gethash :preclist obj))))
+
+  (macroexpand-1 '(defmeth area circle-class (c)
+                   (* pi (expt (radius c) 2))))
+
+  ;; как мы определяли метод до реализации макроса defmeth
+
+  (defprop radius t)
+
+  (defprop area t)
+
+  (setf circle-class (obj))
+
+  (setf (radius circle-class) 2)
+  (setf grumpy-circle (obj circle-class))
+
+  (setf (area circle-class)
+        #'(lambda (c)
+            (* pi (expt (radius c) 2))))
+
+  (setf (area grumpy-circle)
+        #'(lambda (c)
+            (format t "How dare you stereotype me!~%")
+            (funcall (some #'(lambda (x) (gethash 'area x))
+                           (cdr (gethash :preclist c)))
+                     c)))
+
+  (area circle-class) circle-class)
+  (type-of circle-class)
+  (gethash 'area circle-class)
+
+  ;; _______________________________________________________________
+
+  (setf circle-class (obj))
+
+  (defmeth area circle-class (c)
+           (* pi (expt (radius c) 2)))
+
+  (gethash 'area circle-class)
+
+  (defmeth area grumpy-circle (c)
+           (format t "How dare you stereotype me!~%")
+           (funcall (next) c))
+
+  (funcall (gethash 'area circle-class) circle-class)
+
+
+#+END_SRC
+
+* Приложение B (Лисп на Лиспе)
+
+#+BEGIN_SRC lisp
+  ;; возведенеи комплексного числа в квадрат (видимо)
+  (defun -abs (n)
+    ;; если n = комплексное число
+    (if (typep n 'complex)
+        ;; возводим реальную часть числа в степень 2, то же самое делаем с мнимой частью
+        ;; складываем результат и возводим в квадрат
+        (sqrt (+ (expt (realpart n) 2) (expt (imagpart n) 2)))
+        ;; в противном случае проверяем, n < 0 ?
+        (if (< n 0)
+            ;; если да, то возвращаем -n
+            (- n)
+            ;; в противном случае возвращаем n
+            n)))
+
+  ;; реализация adjoin
+  (defun -adjoin (obj lst &rest args)
+    ;; если объект часть списка
+    (if (apply #'member obj lst args)
+        ;; возвращаем список
+        lst
+        ;; в противном случае добавляем объект в список
+        (cons obj lst)))
+
+  (defmacro -and (&rest args)
+    ;; на стадии макрораскртия проверяем, не пустые ли аргументы
+    ;; если да, то возвращаем t (раз дошли до конца списка, то все выражения
+    ;; дали t, завершаем рекурсию и возвращаем t)
+    (cond ((null args) t)
+          ;; если в cdr t или он хотя бы не пустой
+          ((cdr args)
+           ;; то получаем if, который проверяет, если car аргумента.
+           ;; если его вычисление возвращает t, то мы проверяем остаток списка
+           ;; в противном случае возвращаем nil
+           `(if ,(car args) (-and ,@(cdr args))))
+          ;; если cdr аргумента отсутствует, возвращаем его car
+          (t
+           (car args))))
+
+  (macroexpand-1 '(and (+ 1 2) (+ 2 1)))
+
+  (defun -append (&optional first &rest rest)
+    ;; если список задан только один
+    (if (null rest)
+        ;; возвращаем его
+        first
+        ;; в противном случае копируем первый список, рекурсивно вызываем append с
+        ;; остальными аргументами, результаты вызова склеиваем в единый список nconc
+        ;; хотя nconc деструктруктивна, мы все-таки не меняем исходные списки из-за
+        ;; copy-list (склеиваем копии списков)
+        (nconc (copy-list first) (apply #'-append rest))))
+
+  (defun -atom (x)
+    ;; если не ячейка, вовзращаем t
+    (not (consp x)))
+  ;; удаляем элементы списка, начиная с конца
+  ;; n - количество элементов, которые необходимо удалить, по умолчанию 1
+  (defun -butlast (lst &optional (n 1))
+    ;; получаем копию lst с элементами в обратном порядке, применяем cdr n кличество раз,
+    ;; затем переворачиваем список обратно
+    (nreverse (nthcdr n (reverse lst))))
+
+  (-butlast '( 1 2 3 4 5 6) '2)
+
+  (defun -cadr (x)
+    ;; полчаем car от cdr, т.е. кторой элемент списка
+    (car (cdr x)))
+
+  (defmacro -case (arg &rest clauses)
+    (let ((g (gensym)))
+      ;; устанавливаем изначальное значение (с ним все будем сравнивать)
+      `(let ((,g ,arg))
+         ;; применяем лямбду к каждому элемету clauses (т. е. список выражений)
+         ;; результат вернем в списке
+         (cond ,@(mapcar #'(lambda (cl)
+                             ;; берем первый элемент clauses
+                             (format t "~% cl ~A" cl)
+                             (let ((k (car cl)))
+                               ;; если первый кейс является частью otherwise или t,
+                               ;; (т.е это вариант пол умолчанию) возвращаем t
+                               `(,(cond ((member k '(t otherwise))
+                                         t)
+                                        ;; в противном случае проверяем, является ли первый
+                                        ;; кейс ячейкой
+                                        ((consp k)
+                                         ;; тогда проверяем, является ли изначальное значение
+                                         ;; частью первого элемента clauses
+                                         `(member ,g ',k))
+                                        ;; если ничего вышеперечисенного не подошло,
+                                        ;; проверяем, вдруг изначатльное значение
+                                        ;; и первое выражение равны
+                                        (t `(eql ,g ',k)))
+                                  ;; вычисляем остаток текущего кейса
+                                  (progn ,@(cdr cl)))))
+                         clauses)))))
+
+  (macroexpand-1 '(-case mon
+                     ((jan mar may jul aug oct dec) 31)
+                     ((apr jun sept nov) 30)
+                     (feb 29)
+                     (otherwise "unknown month")))
+
+  ;; (LET ((#:G817 MON))
+  ;;   (COND ((MEMBER #:G817 '(JAN MAR MAY JUL AUG OCT DEC)) (PROGN 31))
+  ;;         ((MEMBER #:G817 '(APR JUN SEPT NOV)) (PROGN 30))
+  ;;         ((EQL #:G817 'FEB) (PROGN 29)) (T (PROGN "unknown month"))))
+
+  ;; комменты излишни
+  (defun -cddr (x)
+    (cdr (cdr x)))
+
+  ;; функция возвращает лямбду
+  (defun -complement (fn)
+    #'(lambda (&rest args)
+        ;; применяем функцию к списку аргуметов
+        ;; если apply вернет, то мы вернем nil и наоборот
+        (not (apply fn args))))
+
+  (defmacro -cond (&rest args)
+    ;; если аргументов нет (или дошли до конца списка выражений)
+    (if (null args)
+        ;; nil
+        nil
+        ;; в противном случае берем car первого выражения
+        (let ((clause (car args)))
+          ;; если cdr хотя бы не пустой
+          (if (cdr clause)
+              ;; и при этом car выражения дал t
+              `(if ,(car clause)
+                   ;; вычисляем выражение целиком
+                   (progn ,@(cdr clause))
+                   ;; в противном случае вызываем -cond c остатоком списка аргументов
+                   (-cond ,@(cdr args)))
+              ;; если cdr выражения != t, то проверяем car выражения
+              ;; если он дает t, возвращаем его, (обработка варианта (-cond (99)))
+              ;; в противном случае вызываем -cond c остатоком списка аргументов
+              `(or ,(car clause)
+                    (-cond ,@(cdr args)))))))
+
+
+  ;; комменты излишни
+  (defun -consp (x)
+    (typep x 'cons))
+
+  ;; возвращает функцию, принимающую произвольное количество аргментов и объект
+  (defun -constantly (x)
+    #'(lambda (&rest args) x))
+
+  (defun -copy-list (lst)
+    (labels ((cl (x)
+               (if (atom x)
+                   x
+                   (cons (car x)
+                         (cl (cdr x))))))
+      (cons (car lst)
+            (cl (cdr lst)))))
 #+END_SRC
